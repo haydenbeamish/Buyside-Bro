@@ -121,97 +121,44 @@ export async function registerRoutes(
         return res.json(cached);
       }
 
-      const globalMarkets = [
-        { name: "VIX Volatility", price: 19.47, change1D: 4.5, change1M: 32.0, change1Q: 2.5, change1Y: 13.1, vs10D: 13.4, vs20D: 16.6, vs200D: 10.3 },
-        { name: "Canada", price: 32571.60, change1D: 0.6, change1M: 0.5, change1Q: 9.4, change1Y: 29.0, vs10D: -0.6, vs20D: -0.7, vs200D: 12.5 },
-        { name: "Hang Seng", price: 26885.24, change1D: 0.1, change1M: 1.6, change1Q: 3.7, change1Y: 32.9, vs10D: -0.9, vs20D: 0.0, vs200D: 6.6 },
-        { name: "Euro Stoxx", price: 5962.26, change1D: -0.1, change1M: 0.7, change1Q: 5.3, change1Y: 12.8, vs10D: 0.0, vs20D: -0.1, vs200D: 8.1 },
-        { name: "Germany DAX", price: 24499.27, change1D: -0.4, change1M: -2.5, change1Q: 1.5, change1Y: 11.9, vs10D: -0.8, vs20D: -1.6, vs200D: 2.0 },
-        { name: "FTSE 100", price: 10352.11, change1D: -0.5, change1M: 3.0, change1Q: 5.9, change1Y: 18.6, vs10D: 1.0, vs20D: 1.4, vs200D: 11.0 },
-        { name: "ASX 200", price: 8889.20, change1D: -0.4, change1M: 2.0, change1Q: 0.9, change1Y: 4.3, vs10D: 0.0, vs20D: 0.5, vs200D: 2.3 },
-        { name: "S&P 500", price: 6882.72, change1D: -0.5, change1M: -0.3, change1Q: 0.4, change1Y: 14.8, vs10D: -0.9, vs20D: -0.7, vs200D: 6.7 },
-        { name: "Nifty 50", price: 25643.50, change1D: -0.5, change1M: -2.3, change1Q: 0.2, change1Y: 10.7, vs10D: 1.0, vs20D: 0.5, vs200D: 1.6 },
-        { name: "China CSI 300", price: 4670.42, change1D: -0.6, change1M: -2.2, change1Q: -0.5, change1Y: 23.0, vs10D: -0.5, vs20D: -1.0, vs200D: 8.1 },
-        { name: "Russell 2000", price: 2624.55, change1D: -0.9, change1M: 3.0, change1Q: 6.2, change1Y: 16.2, vs10D: -1.1, vs20D: -0.9, vs200D: 12.1 },
-        { name: "Nikkei", price: 53818.04, change1D: -0.9, change1M: 2.5, change1Q: 2.7, change1Y: 34.8, vs10D: 0.5, vs20D: 0.8, vs200D: 21.1 },
-        { name: "Saudi Tadawul", price: 11200.06, change1D: -1.2, change1M: 7.1, change1Q: -0.4, change1Y: -9.8, vs10D: -1.0, vs20D: 0.9, vs200D: 1.5 },
-        { name: "Taiwan", price: 31801.27, change1D: -1.5, change1M: 4.5, change1Q: 14.0, change1Y: 40.1, vs10D: -1.1, vs20D: 0.5, vs200D: 25.0 },
-        { name: "Nasdaq", price: 24891.24, change1D: -1.8, change1M: -2.0, change1Q: -4.2, change1Y: 16.9, vs10D: -2.8, vs20D: -2.7, vs200D: 5.1 },
-        { name: "Brazil Bovespa", price: 181708.00, change1D: -2.1, change1M: 11.0, change1Q: 21.5, change1Y: 44.1, vs10D: 0.1, vs20D: 4.9, vs200D: 24.0 },
-        { name: "Bitcoin", price: 71471.26, change1D: -2.1, change1M: -25.2, change1Q: -22.4, change1Y: -32.3, vs10D: -10.8, vs20D: -16.1, vs200D: -30.7 },
-      ];
+      const response = await fetch("https://api.laserbeamcapital.com/api/markets");
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
 
-      const futures = [
-        { name: "S&P 500 E-mini", price: 5875.25, change1D: -0.4, change1M: -0.2, change1Q: 0.5, change1Y: 15.2, vs10D: -0.8, vs20D: -0.6, vs200D: 7.1 },
-        { name: "Nasdaq 100 E-mini", price: 21250.00, change1D: -1.6, change1M: -1.8, change1Q: -3.8, change1Y: 17.5, vs10D: -2.5, vs20D: -2.4, vs200D: 5.8 },
-        { name: "Dow Jones E-mini", price: 42850.00, change1D: -0.3, change1M: 0.8, change1Q: 2.1, change1Y: 12.4, vs10D: -0.4, vs20D: -0.2, vs200D: 8.2 },
-        { name: "Russell 2000 E-mini", price: 2285.00, change1D: -0.8, change1M: 2.8, change1Q: 5.9, change1Y: 15.8, vs10D: -1.0, vs20D: -0.8, vs200D: 11.8 },
-        { name: "Crude Oil WTI", price: 61.25, change1D: -1.2, change1M: -8.5, change1Q: -15.2, change1Y: -22.4, vs10D: -3.2, vs20D: -5.8, vs200D: -18.5 },
-        { name: "Gold", price: 3325.50, change1D: 0.8, change1M: 5.2, change1Q: 12.8, change1Y: 28.5, vs10D: 1.5, vs20D: 2.8, vs200D: 22.4 },
-      ];
+      const data = await response.json();
+      const markets = data.markets || [];
+      
+      // Transform external API data to match frontend expected format
+      const transformItem = (item: any) => ({
+        name: item.name,
+        ticker: item.ticker,
+        price: item.lastPrice || 0,
+        change1D: item.chgDay || 0,
+        change1M: item.chgMonth || 0,
+        change1Q: item.chgQtr || 0,
+        change1Y: item.chgYear || 0,
+        vs10D: item.pxVs10d || 0,
+        vs20D: item.pxVs20d || 0,
+        vs200D: item.pxVs200d || 0,
+      });
 
-      const commodities = [
-        { name: "Gold", price: 3325.50, change1D: 0.8, change1M: 5.2, change1Q: 12.8, change1Y: 28.5, vs10D: 1.5, vs20D: 2.8, vs200D: 22.4 },
-        { name: "Silver", price: 32.85, change1D: 1.2, change1M: 8.5, change1Q: 15.2, change1Y: 35.8, vs10D: 2.1, vs20D: 4.5, vs200D: 28.5 },
-        { name: "Crude Oil WTI", price: 61.25, change1D: -1.2, change1M: -8.5, change1Q: -15.2, change1Y: -22.4, vs10D: -3.2, vs20D: -5.8, vs200D: -18.5 },
-        { name: "Natural Gas", price: 3.45, change1D: 2.5, change1M: 15.2, change1Q: -5.8, change1Y: -12.5, vs10D: 5.2, vs20D: 8.5, vs200D: -8.2 },
-        { name: "Copper", price: 4.85, change1D: -0.6, change1M: 2.5, change1Q: 8.2, change1Y: 12.5, vs10D: -0.8, vs20D: 0.5, vs200D: 8.5 },
-        { name: "Platinum", price: 1025.50, change1D: 0.4, change1M: 3.2, change1Q: 5.8, change1Y: 8.5, vs10D: 0.5, vs20D: 1.2, vs200D: 5.2 },
-        { name: "Wheat", price: 545.25, change1D: -0.8, change1M: -5.2, change1Q: -12.5, change1Y: -18.5, vs10D: -1.2, vs20D: -2.5, vs200D: -15.2 },
-        { name: "Corn", price: 445.50, change1D: -0.5, change1M: -3.8, change1Q: -8.5, change1Y: -15.2, vs10D: -0.8, vs20D: -1.5, vs200D: -12.5 },
-      ];
-
-      const usaSectors = [
-        { name: "Technology", price: 100.00, change1D: -1.5, change1M: -1.8, change1Q: -2.5, change1Y: 18.5, vs10D: -2.2, vs20D: -2.0, vs200D: 8.5 },
-        { name: "Healthcare", price: 100.00, change1D: 0.2, change1M: 1.5, change1Q: 3.2, change1Y: 8.5, vs10D: 0.5, vs20D: 0.8, vs200D: 5.2 },
-        { name: "Financials", price: 100.00, change1D: 0.5, change1M: 2.8, change1Q: 5.5, change1Y: 22.5, vs10D: 0.8, vs20D: 1.2, vs200D: 15.2 },
-        { name: "Consumer Discretionary", price: 100.00, change1D: -0.8, change1M: -0.5, change1Q: 1.2, change1Y: 12.5, vs10D: -1.0, vs20D: -0.8, vs200D: 6.5 },
-        { name: "Industrials", price: 100.00, change1D: -0.3, change1M: 1.2, change1Q: 2.8, change1Y: 15.8, vs10D: -0.5, vs20D: 0.2, vs200D: 10.5 },
-        { name: "Energy", price: 100.00, change1D: -1.8, change1M: -5.5, change1Q: -12.5, change1Y: -8.5, vs10D: -2.5, vs20D: -4.2, vs200D: -5.2 },
-        { name: "Materials", price: 100.00, change1D: -0.5, change1M: 0.8, change1Q: 3.5, change1Y: 10.5, vs10D: -0.2, vs20D: 0.5, vs200D: 6.8 },
-        { name: "Real Estate", price: 100.00, change1D: 0.3, change1M: 1.8, change1Q: 2.5, change1Y: 5.8, vs10D: 0.5, vs20D: 0.8, vs200D: 2.5 },
-        { name: "Utilities", price: 100.00, change1D: 0.8, change1M: 3.5, change1Q: 8.5, change1Y: 18.5, vs10D: 1.2, vs20D: 2.0, vs200D: 12.5 },
-        { name: "Consumer Staples", price: 100.00, change1D: 0.2, change1M: 1.2, change1Q: 2.8, change1Y: 8.2, vs10D: 0.4, vs20D: 0.6, vs200D: 5.5 },
-        { name: "Communication Services", price: 100.00, change1D: -1.2, change1M: -2.5, change1Q: -1.8, change1Y: 15.2, vs10D: -1.8, vs20D: -2.2, vs200D: 8.2 },
-      ];
-
-      const usaThematics = [
-        { name: "Homebuilders", price: 100.00, change1D: 3.4, change1M: 8.5, change1Q: 12.5, change1Y: 35.2, vs10D: 4.2, vs20D: 5.5, vs200D: 28.5 },
-        { name: "Oil Producers", price: 100.00, change1D: 2.9, change1M: -3.5, change1Q: -8.5, change1Y: -5.2, vs10D: 1.5, vs20D: -1.2, vs200D: -2.5 },
-        { name: "Transportation", price: 100.00, change1D: 2.6, change1M: 4.2, change1Q: 8.5, change1Y: 18.5, vs10D: 2.8, vs20D: 3.5, vs200D: 12.5 },
-        { name: "Regional Banks", price: 100.00, change1D: 1.6, change1M: 5.8, change1Q: 12.5, change1Y: 28.5, vs10D: 2.2, vs20D: 3.8, vs200D: 22.5 },
-        { name: "Semiconductors", price: 100.00, change1D: -0.2, change1M: -5.2, change1Q: -8.5, change1Y: 25.8, vs10D: -2.5, vs20D: -4.2, vs200D: 15.2 },
-        { name: "Clean Energy", price: 100.00, change1D: 0.8, change1M: 2.5, change1Q: 5.8, change1Y: -12.5, vs10D: 1.2, vs20D: 1.8, vs200D: -8.5 },
-        { name: "Cybersecurity", price: 100.00, change1D: -0.5, change1M: 1.8, change1Q: 5.2, change1Y: 22.5, vs10D: -0.2, vs20D: 0.8, vs200D: 15.8 },
-        { name: "AI & Robotics", price: 100.00, change1D: -1.5, change1M: -3.8, change1Q: -5.2, change1Y: 28.5, vs10D: -2.8, vs20D: -3.5, vs200D: 18.5 },
-      ];
-
-      const forex = [
-        { name: "EUR/USD", price: 1.1285, change1D: 0.2, change1M: 2.5, change1Q: 4.8, change1Y: 8.5, vs10D: 0.5, vs20D: 1.2, vs200D: 5.2 },
-        { name: "GBP/USD", price: 1.3245, change1D: 0.1, change1M: 1.8, change1Q: 3.5, change1Y: 6.2, vs10D: 0.3, vs20D: 0.8, vs200D: 4.2 },
-        { name: "USD/JPY", price: 143.25, change1D: -0.3, change1M: -2.5, change1Q: -5.2, change1Y: -8.5, vs10D: -0.8, vs20D: -1.5, vs200D: -5.8 },
-        { name: "AUD/USD", price: 0.6485, change1D: -0.2, change1M: 1.2, change1Q: 2.8, change1Y: 3.5, vs10D: 0.2, vs20D: 0.5, vs200D: 2.2 },
-        { name: "USD/CHF", price: 0.8285, change1D: -0.1, change1M: -1.5, change1Q: -3.2, change1Y: -5.8, vs10D: -0.3, vs20D: -0.8, vs200D: -3.5 },
-        { name: "USD/CAD", price: 1.3825, change1D: 0.1, change1M: -0.8, change1Q: -1.5, change1Y: -2.5, vs10D: 0.2, vs20D: -0.2, vs200D: -1.2 },
-      ];
+      // Group by category
+      const byCategory = (category: string) => 
+        markets.filter((m: any) => m.category === category || m.categoryGroup === category).map(transformItem);
 
       const marketsFullData = {
-        globalMarkets,
-        futures,
-        commodities,
-        usaThematics,
-        usaSectors,
-        usaEqualWeight: usaSectors.map(s => ({ ...s, name: s.name + " (EW)" })),
-        asxSectors: [
-          { name: "Materials", price: 100.00, change1D: -3.3, change1M: -5.2, change1Q: -8.5, change1Y: -12.5, vs10D: -4.2, vs20D: -5.8, vs200D: -8.5 },
-          { name: "Consumer Discretionary", price: 100.00, change1D: 1.4, change1M: 3.5, change1Q: 5.8, change1Y: 12.5, vs10D: 1.8, vs20D: 2.5, vs200D: 8.5 },
-          { name: "Consumer Staples", price: 100.00, change1D: 1.0, change1M: 2.2, change1Q: 4.5, change1Y: 8.2, vs10D: 1.2, vs20D: 1.5, vs200D: 5.2 },
-          { name: "Financials", price: 100.00, change1D: 0.8, change1M: 2.5, change1Q: 5.2, change1Y: 15.8, vs10D: 1.0, vs20D: 1.8, vs200D: 12.5 },
-          { name: "Energy", price: 100.00, change1D: -1.2, change1M: -3.5, change1Q: -8.2, change1Y: -5.2, vs10D: -1.5, vs20D: -2.8, vs200D: -3.5 },
-          { name: "Healthcare", price: 100.00, change1D: 0.5, change1M: 1.8, change1Q: 3.5, change1Y: 10.5, vs10D: 0.8, vs20D: 1.2, vs200D: 6.8 },
-        ],
-        forex,
-        lastUpdated: "2 min ago",
+        globalMarkets: byCategory("Global Markets"),
+        futures: byCategory("Futures"),
+        commodities: byCategory("Commodities"),
+        usaThematics: byCategory("USA Thematics"),
+        usaSectors: byCategory("USA Sectors"),
+        usaEqualWeight: byCategory("USA Equal Weight Sectors"),
+        asxSectors: byCategory("ASX Sectors"),
+        forex: byCategory("Forex"),
+        crypto: byCategory("Crypto"),
+        bonds: byCategory("Bonds"),
+        lastUpdated: new Date().toLocaleTimeString(),
       };
 
       await storage.setCachedData("markets_full", marketsFullData, 2);
@@ -451,6 +398,31 @@ export async function registerRoutes(
     try {
       const ticker = req.params.ticker as string;
       
+      // Try Laser Beam Capital fundamental analysis API first
+      try {
+        const response = await fetch("https://api.laserbeamcapital.com/api/fundamental-analysis/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ticker: ticker.toUpperCase() }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json() as any;
+          return res.json({
+            summary: data.summary || data.analysis || `${ticker.toUpperCase()} analysis from Laser Beam Capital.`,
+            sentiment: data.recommendation?.toLowerCase() === "buy" ? "bullish" 
+              : data.recommendation?.toLowerCase() === "sell" ? "bearish" 
+              : "neutral",
+            keyPoints: data.keyPoints || data.highlights || ["Review the full analysis", "Consider your risk tolerance"],
+            recommendation: data.recommendation || "Hold",
+            fullAnalysis: data.analysis || data.report || "",
+          });
+        }
+      } catch (e) {
+        console.error("Laser Beam analysis error:", e);
+      }
+      
+      // Fallback to OpenRouter AI
       const completion = await openrouter.chat.completions.create({
         model: "moonshotai/kimi-k2.5",
         messages: [
@@ -569,76 +541,58 @@ export async function registerRoutes(
       }
 
       let marketNews: any[] = [];
-      let generalNews: any[] = [];
+      let portfolioNews: any[] = [];
 
+      // Fetch market news from Laser Beam Capital API
       try {
-        const braveUrl = `https://api.search.brave.com/res/v1/news/search?q=stock+market+today&count=10`;
-        const response = await fetchWithTimeout(braveUrl, {
-          headers: {
-            "Accept": "application/json",
-            "X-Subscription-Token": process.env.BRAVE_SEARCH_API_KEY || "",
-          },
-        }, 10000);
-        
+        const response = await fetch("https://api.laserbeamcapital.com/api/news/market");
         if (response.ok) {
           const data = await response.json() as any;
-          marketNews = (data.results || []).slice(0, 8).map((r: any) => ({
+          marketNews = (data.news || data || []).slice(0, 10).map((r: any) => ({
             title: r.title,
-            description: r.description,
-            url: r.url,
-            source: r.meta_url?.hostname || "News",
-            publishedAt: r.age || new Date().toISOString(),
+            description: r.summary || r.description || "",
+            url: r.url || "#",
+            source: r.source || "Market News",
+            publishedAt: r.publishedAt || r.date || new Date().toISOString(),
             category: "market",
           }));
         }
       } catch (e) {
-        console.error("Brave search error:", e);
+        console.error("Market news fetch error:", e);
       }
 
+      // Fetch portfolio news from Laser Beam Capital API  
       try {
-        const tavilyUrl = "https://api.tavily.com/search";
-        const response = await fetchWithTimeout(tavilyUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            api_key: process.env.TAVILY_API_KEY,
-            query: "business finance news today",
-            search_depth: "basic",
-            max_results: 8,
-          }),
-        }, 10000);
-
+        const response = await fetch("https://api.laserbeamcapital.com/api/news/portfolio");
         if (response.ok) {
           const data = await response.json() as any;
-          generalNews = (data.results || []).map((r: any) => ({
+          portfolioNews = (data.news || data || []).slice(0, 10).map((r: any) => ({
             title: r.title,
-            description: r.content?.slice(0, 200) || "",
-            url: r.url,
-            source: new URL(r.url).hostname,
-            publishedAt: new Date().toISOString(),
+            description: r.summary || r.description || "",
+            url: r.url || "#",
+            source: r.source || "Portfolio News",
+            publishedAt: r.publishedAt || r.date || new Date().toISOString(),
             category: "general",
           }));
         }
       } catch (e) {
-        console.error("Tavily error:", e);
+        console.error("Portfolio news fetch error:", e);
       }
 
       if (marketNews.length === 0) {
         marketNews = [
           { title: "Markets rally on tech earnings beat", description: "Major indices pushed higher as tech giants reported strong quarterly results.", url: "#", source: "Financial Times", publishedAt: new Date().toISOString(), category: "market" },
           { title: "Fed signals patience on rate cuts", description: "Central bank officials suggest they're in no rush to lower interest rates.", url: "#", source: "Reuters", publishedAt: new Date(Date.now() - 3600000).toISOString(), category: "market" },
-          { title: "Oil prices stabilize amid Middle East tensions", description: "Crude futures find support as geopolitical risks remain elevated.", url: "#", source: "Bloomberg", publishedAt: new Date(Date.now() - 7200000).toISOString(), category: "market" },
         ];
       }
 
-      if (generalNews.length === 0) {
-        generalNews = [
+      if (portfolioNews.length === 0) {
+        portfolioNews = [
           { title: "AI adoption accelerates across industries", description: "Companies are rapidly integrating artificial intelligence into their operations.", url: "#", source: "TechCrunch", publishedAt: new Date().toISOString(), category: "general" },
-          { title: "Consumer spending remains resilient", description: "Retail sales data shows continued strength in consumer demand.", url: "#", source: "CNBC", publishedAt: new Date(Date.now() - 3600000).toISOString(), category: "general" },
         ];
       }
 
-      const newsData = { market: marketNews, general: generalNews };
+      const newsData = { market: marketNews, general: portfolioNews };
       await storage.setCachedData("news", newsData, 10);
       res.json(newsData);
     } catch (error) {
