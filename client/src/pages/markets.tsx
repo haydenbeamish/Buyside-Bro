@@ -514,8 +514,6 @@ export default function MarketsPage() {
             <MarketsTable items={markets?.forex || []} isLoading={isLoading} />
           </TabsContent>
         </Tabs>
-
-        <MarketSummary />
       </div>
     </div>
   );
