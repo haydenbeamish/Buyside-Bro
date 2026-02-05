@@ -19,11 +19,12 @@ Preferred communication style: Simple, everyday language.
 - **Build Tool**: Vite for development and production builds
 - **Charts**: Recharts for data visualization
 
-### Visual Theme: Neon Terminal Aesthetic
-- **Color Scheme**: Black background with neon green (#00ff00) primary and orange (#ff8c00) accent colors
+### Visual Theme: Terminal Aesthetic
+- **Color Scheme**: Black background with white text as primary, orange (#ff8c00) for accents/buttons/logos
 - **Typography**: Orbitron font for display text (.display-font), JetBrains Mono for data/ticker (.ticker-font)
-- **Effects**: Glow effects on key elements, scanline overlay for terminal feel
-- **CSS Classes**: `.neon-green`, `.neon-orange`, `.neon-green-subtle`, `.display-font`, `.ticker-font`
+- **Percentage Colors**: Green (#22c55e) for positive values, red (#ff4444) for negative values
+- **Effects**: Subtle glow effects on buttons and logo, scanline overlay for terminal feel
+- **CSS Classes**: `.neon-orange`, `.neon-orange-subtle`, `.display-font`, `.ticker-font`, `.price-up`, `.price-down`
 
 ### Route Structure
 - **Landing Page** (`/`): Hero section with scrolling ticker tape, features cards, community feed, footer

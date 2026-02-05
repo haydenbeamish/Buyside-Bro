@@ -28,7 +28,7 @@ function TickerTape() {
   const duplicatedItems = [...tickerItems, ...tickerItems];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black/90 border-t border-green-900/50 py-2 z-50 overflow-hidden">
+    <div className="fixed bottom-0 left-0 right-0 bg-black/90 border-t border-zinc-800/50 py-2 z-50 overflow-hidden">
       <div className="ticker-scroll flex whitespace-nowrap">
         {duplicatedItems.map((item, i) => (
           <span key={i} className="inline-flex items-center mx-6 ticker-font text-sm">
@@ -45,28 +45,26 @@ function TickerTape() {
 
 function TopNav() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-green-900/30">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-zinc-800/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
-            <span className="display-font text-xl tracking-wider">
-              <span className="neon-green">BUY</span>
-              <span className="mx-1 neon-orange">SIDE</span>
-              <span className="neon-green">BRO</span>
+            <span className="display-font text-xl tracking-wider neon-orange">
+              BUY SIDE BRO
             </span>
           </div>
           
           <div className="hidden md:flex items-center gap-8">
-            <Link href="/dashboard" className="text-zinc-400 hover:text-green-400 transition-colors uppercase text-sm tracking-wide font-medium">
+            <Link href="/dashboard" className="text-zinc-400 hover:text-white transition-colors uppercase text-sm tracking-wide font-medium">
               Dashboard
             </Link>
-            <Link href="#features" className="text-zinc-400 hover:text-green-400 transition-colors uppercase text-sm tracking-wide font-medium">
+            <Link href="#features" className="text-zinc-400 hover:text-white transition-colors uppercase text-sm tracking-wide font-medium">
               Features
             </Link>
-            <Link href="#community" className="text-zinc-400 hover:text-green-400 transition-colors uppercase text-sm tracking-wide font-medium">
+            <Link href="#community" className="text-zinc-400 hover:text-white transition-colors uppercase text-sm tracking-wide font-medium">
               Community
             </Link>
-            <Link href="/dashboard" className="text-zinc-400 hover:text-green-400 transition-colors uppercase text-sm tracking-wide font-medium">
+            <Link href="/dashboard" className="text-zinc-400 hover:text-white transition-colors uppercase text-sm tracking-wide font-medium">
               Login
             </Link>
             <Link href="/dashboard">
@@ -97,9 +95,9 @@ function HeroSection() {
           
           <div className="lg:w-1/2 text-center lg:text-left">
             <h1 className="display-font text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              <span className="neon-green">YOUR TERMINAL,</span>
+              <span className="text-white">YOUR TERMINAL,</span>
               <br />
-              <span className="neon-orange">UNFILTERED.</span>
+              <span className="text-white">UNFILTERED.</span>
             </h1>
             <p className="text-zinc-400 text-lg md:text-xl mb-8 max-w-lg">
               Bro-level insights. Zero noise. All market edge.
@@ -138,7 +136,7 @@ function FeaturesSection() {
   return (
     <section id="features" className="py-20 px-4">
       <div className="max-w-5xl mx-auto">
-        <h2 className="display-font text-2xl md:text-3xl neon-green-subtle mb-12 uppercase tracking-wider">
+        <h2 className="display-font text-2xl md:text-3xl text-white mb-12 uppercase tracking-wider">
           Features
         </h2>
         
@@ -146,12 +144,12 @@ function FeaturesSection() {
           {features.map((feature, i) => (
             <div 
               key={i} 
-              className="terminal-card rounded-lg p-6 hover:border-green-500/50 transition-all duration-300"
+              className="terminal-card rounded-lg p-6 hover:border-orange-500/50 transition-all duration-300"
               data-testid={`card-feature-${i}`}
             >
               <div className="flex items-start gap-4">
-                <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
-                  <feature.icon className="w-6 h-6 text-green-500" />
+                <div className="p-3 rounded-lg bg-zinc-900/50 border border-zinc-700/50">
+                  <feature.icon className="w-6 h-6 text-zinc-400" />
                 </div>
                 <div>
                   <h3 className="display-font text-lg neon-orange-subtle mb-2">{feature.title}</h3>
@@ -177,7 +175,7 @@ function CommunityFeed() {
   return (
     <section id="community" className="py-20 px-4">
       <div className="max-w-5xl mx-auto">
-        <h2 className="display-font text-2xl md:text-3xl neon-green-subtle mb-8 uppercase tracking-wider">
+        <h2 className="display-font text-2xl md:text-3xl text-white mb-8 uppercase tracking-wider">
           Community Feed
         </h2>
         
@@ -195,10 +193,10 @@ function CommunityFeed() {
             <input
               type="text"
               placeholder="Type your message..."
-              className="flex-1 bg-black/50 border border-green-900/30 rounded px-4 py-2 text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-green-500/50 transition-colors"
+              className="flex-1 bg-black/50 border border-zinc-700/50 rounded px-4 py-2 text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-orange-500/50 transition-colors"
               data-testid="input-community-message"
             />
-            <button className="p-2 text-green-500 hover:text-green-400 transition-colors">
+            <button className="p-2 text-orange-500 hover:text-orange-400 transition-colors">
               <MessageSquare className="w-5 h-5" />
             </button>
           </div>
@@ -210,25 +208,23 @@ function CommunityFeed() {
 
 function Footer() {
   return (
-    <footer className="py-8 px-4 border-t border-green-900/30 mb-12">
+    <footer className="py-8 px-4 border-t border-zinc-800/50 mb-12">
       <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="display-font text-lg tracking-wider">
-          <span className="neon-green-subtle">BUY</span>
-          <span className="mx-1 neon-orange-subtle">SIDE</span>
-          <span className="neon-green-subtle">BRO</span>
+        <div className="display-font text-lg tracking-wider neon-orange-subtle">
+          BUY SIDE BRO
         </div>
         
         <div className="flex items-center gap-6 text-sm text-zinc-500">
-          <a href="#" className="hover:text-green-400 transition-colors">Contact</a>
-          <a href="#" className="hover:text-green-400 transition-colors">Terms</a>
-          <a href="#" className="hover:text-green-400 transition-colors">API</a>
+          <a href="#" className="hover:text-white transition-colors">Contact</a>
+          <a href="#" className="hover:text-white transition-colors">Terms</a>
+          <a href="#" className="hover:text-white transition-colors">API</a>
         </div>
         
         <div className="flex items-center gap-4">
-          <a href="#" className="text-zinc-500 hover:text-green-400 transition-colors">
+          <a href="#" className="text-zinc-500 hover:text-orange-400 transition-colors">
             <Twitter className="w-5 h-5" />
           </a>
-          <a href="#" className="text-zinc-500 hover:text-green-400 transition-colors">
+          <a href="#" className="text-zinc-500 hover:text-orange-400 transition-colors">
             <SiDiscord className="w-5 h-5" />
           </a>
         </div>

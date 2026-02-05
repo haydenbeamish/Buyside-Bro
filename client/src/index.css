@@ -4,53 +4,53 @@
 @tailwind components;
 @tailwind utilities;
 
-/* BUY SIDE BRO - NEON TERMINAL THEME */
+/* BUY SIDE BRO - TERMINAL THEME */
 :root {
   --neon-green: 120 100% 50%;
-  --neon-orange: 35 100% 50%;
-  --neon-green-glow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00;
-  --neon-orange-glow: 0 0 10px #ff8c00, 0 0 20px #ff8c00, 0 0 30px #ff8c00;
+  --neon-orange: 33 100% 50%;
+  --neon-green-glow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+  --neon-orange-glow: 0 0 10px #ff8c00, 0 0 20px #ff8c00;
   
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
   --opaque-button-border-intensity: -8;
-  --elevate-1: rgba(0,255,0, .05);
-  --elevate-2: rgba(0,255,0, .10);
+  --elevate-1: rgba(255,140,0, .08);
+  --elevate-2: rgba(255,140,0, .15);
   --background: 0 0% 2%;
-  --foreground: 120 100% 50%;
-  --border: 120 100% 20%;
-  --card: 0 0% 5%;
-  --card-foreground: 120 100% 50%;
-  --card-border: 120 100% 15%;
-  --sidebar: 0 0% 3%;
-  --sidebar-foreground: 120 100% 50%;
-  --sidebar-border: 120 100% 15%;
-  --sidebar-primary: 120 100% 50%;
+  --foreground: 0 0% 95%;
+  --border: 0 0% 20%;
+  --card: 0 0% 6%;
+  --card-foreground: 0 0% 95%;
+  --card-border: 0 0% 18%;
+  --sidebar: 0 0% 4%;
+  --sidebar-foreground: 0 0% 90%;
+  --sidebar-border: 0 0% 15%;
+  --sidebar-primary: 33 100% 50%;
   --sidebar-primary-foreground: 0 0% 0%;
-  --sidebar-accent: 120 100% 10%;
-  --sidebar-accent-foreground: 120 100% 50%;
-  --sidebar-ring: 120 100% 50%;
-  --popover: 0 0% 5%;
-  --popover-foreground: 120 100% 50%;
-  --popover-border: 120 100% 15%;
-  --primary: 120 100% 50%;
+  --sidebar-accent: 33 100% 15%;
+  --sidebar-accent-foreground: 0 0% 95%;
+  --sidebar-ring: 33 100% 50%;
+  --popover: 0 0% 6%;
+  --popover-foreground: 0 0% 95%;
+  --popover-border: 0 0% 18%;
+  --primary: 33 100% 50%;
   --primary-foreground: 0 0% 0%;
-  --secondary: 35 100% 50%;
-  --secondary-foreground: 0 0% 0%;
-  --muted: 0 0% 15%;
-  --muted-foreground: 120 40% 50%;
-  --accent: 35 100% 50%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 95%;
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 33 100% 50%;
   --accent-foreground: 0 0% 0%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --success: 120 100% 50%;
+  --success: 120 100% 40%;
   --success-foreground: 0 0% 0%;
-  --warning: 35 100% 50%;
+  --warning: 33 100% 50%;
   --warning-foreground: 0 0% 0%;
-  --input: 120 100% 15%;
-  --ring: 120 100% 50%;
-  --chart-1: 120 100% 50%;
-  --chart-2: 35 100% 50%;
+  --input: 0 0% 15%;
+  --ring: 33 100% 50%;
+  --chart-1: 120 100% 45%;
+  --chart-2: 33 100% 50%;
   --chart-3: 0 84% 60%;
   --chart-4: 200 100% 50%;
   --chart-5: 280 100% 50%;
@@ -77,11 +77,11 @@
 
 /* Dark mode is the default and only mode */
 .dark {
-  --button-outline: rgba(0,255,0, .15);
-  --badge-outline: rgba(0,255,0, .08);
+  --button-outline: rgba(255,140,0, .15);
+  --badge-outline: rgba(255,140,0, .08);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(0,255,0, .05);
-  --elevate-2: rgba(0,255,0, .10);
+  --elevate-1: rgba(255,140,0, .08);
+  --elevate-2: rgba(255,140,0, .15);
 }
 
 @layer base {
@@ -95,7 +95,7 @@
 
   body {
     @apply font-sans antialiased text-foreground;
-    background: radial-gradient(ellipse at center, #0a1a0a 0%, #000000 70%);
+    background: radial-gradient(ellipse at center, #0a0f0a 0%, #000000 70%);
     min-height: 100vh;
   }
 }
@@ -192,8 +192,8 @@
   }
 
   .neon-border {
-    border-color: #00ff00;
-    box-shadow: 0 0 5px #00ff00, inset 0 0 5px rgba(0, 255, 0, 0.1);
+    border-color: #ff8c00;
+    box-shadow: 0 0 5px #ff8c00, inset 0 0 5px rgba(255, 140, 0, 0.1);
   }
 
   .neon-border-orange {
@@ -217,8 +217,7 @@
   }
 
   .price-up {
-    color: #00ff00;
-    text-shadow: 0 0 3px #00ff00;
+    color: #22c55e;
   }
 
   .price-down {
@@ -244,9 +243,9 @@
   }
 
   .terminal-card {
-    background: rgba(0, 20, 0, 0.6);
-    border: 1px solid rgba(0, 255, 0, 0.2);
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.1), inset 0 0 20px rgba(0, 255, 0, 0.02);
+    background: rgba(20, 20, 20, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
   }
 
   .scanline {
