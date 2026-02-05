@@ -229,7 +229,7 @@ export async function registerRoutes(
         return res.json(cached);
       }
 
-      const response = await fetch("https://laserbeamcapital.replit.app/api/markets/summary");
+      const response = await fetch("https://api.laserbeamcapital.com/api/markets/summary");
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
