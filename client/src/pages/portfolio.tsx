@@ -407,7 +407,7 @@ export default function PortfolioPage() {
                 <Sparkles className="h-5 w-5 text-green-500" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-white mb-2">Quick Analysis</h3>
+                <h3 className="font-semibold text-white mb-2">Bro's Opinion</h3>
                 <p className="text-sm text-zinc-400 leading-relaxed">
                   {analysis.analysis}
                 </p>
