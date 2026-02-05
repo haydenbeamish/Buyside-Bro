@@ -23,6 +23,7 @@ function DashboardRoutes() {
         <Route path="/whats-up" component={WhatsUpPage} />
         <Route path="/dashboard" component={MarketsPage} />
         <Route path="/dashboard/subscription" component={SubscriptionPage} />
+        <Route path="/dashboard/chat" component={ChatPage} />
         <Route path="/portfolio" component={PortfolioPage} />
         <Route path="/analysis" component={AnalysisPage} />
         <Route path="/earnings" component={EarningsPage} />
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/whats-up" component={DashboardRoutes} />
       <Route path="/dashboard" component={DashboardRoutes} />
       <Route path="/dashboard/subscription" component={DashboardRoutes} />
+      <Route path="/dashboard/chat" component={DashboardRoutes} />
       <Route path="/portfolio" component={DashboardRoutes} />
       <Route path="/analysis" component={DashboardRoutes} />
       <Route path="/earnings" component={DashboardRoutes} />

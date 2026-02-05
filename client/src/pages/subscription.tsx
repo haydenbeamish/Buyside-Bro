@@ -80,7 +80,7 @@ export default function SubscriptionPage() {
     } else if (credits === "success") {
       toast({
         title: "Credits Added!",
-        description: "Your AI credits have been added to your account.",
+        description: "Your Bro Credits have been added to your account.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
       window.history.replaceState({}, "", "/dashboard/subscription");
@@ -278,17 +278,17 @@ export default function SubscriptionPage() {
             </CardFooter>
           </Card>
 
-          {/* AI Credits Section */}
+          {/* Bro Credits Section */}
           <Card className="mb-8 bg-zinc-900/50 border-zinc-800">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-white flex items-center gap-2">
                     <Coins className="w-5 h-5 text-yellow-500" />
-                    AI Credits
+                    Bro Credits
                   </CardTitle>
                   <CardDescription className="text-zinc-400">
-                    Credits for AI-powered stock analysis and chat
+                    Credits for Ask Bro chat and stock analysis
                   </CardDescription>
                 </div>
                 {creditsData?.isOverLimit && (
@@ -333,7 +333,7 @@ export default function SubscriptionPage() {
                   </span>
                 </div>
                 <p className="text-zinc-500 text-xs">
-                  Your subscription includes $5/month of AI credits. When exhausted, credits are deducted from purchased balance.
+                  Your subscription includes $5/month of Bro Credits. When exhausted, credits are deducted from purchased balance.
                 </p>
               </div>
 

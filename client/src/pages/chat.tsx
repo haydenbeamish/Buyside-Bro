@@ -213,22 +213,22 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] max-h-[calc(100vh-64px)] bg-black">
-      <div className="flex-1 flex flex-col bg-black">
+    <div className="flex h-[calc(100vh-64px)] max-h-[calc(100vh-64px)] bg-black overflow-hidden">
+      <div className="flex-1 flex flex-col bg-black overflow-hidden">
         {messages.length === 0 && !isStreaming ? (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <div className="max-w-md text-center space-y-6">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-500/10 border border-green-500/30 mx-auto">
-                <span className="text-3xl font-bold text-green-500 display-font">AB</span>
+          <div className="flex-1 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+            <div className="w-full max-w-md text-center space-y-4 sm:space-y-6 px-2">
+              <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-green-500/10 border border-green-500/30 mx-auto">
+                <span className="text-2xl sm:text-3xl font-bold text-green-500 display-font">AB</span>
               </div>
               <div>
-                <h2 className="text-3xl font-bold text-white mb-2 display-font tracking-wide">
+                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 display-font tracking-wide">
                   ASK BRO
                 </h2>
-                <p className="text-green-400 text-sm uppercase tracking-widest mb-3">
+                <p className="text-green-400 text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest mb-3 break-words">
                   Autonomous Financial Research Agent
                 </p>
-                <p className="text-zinc-500 text-sm">
+                <p className="text-zinc-500 text-xs sm:text-sm px-2">
                   Ask complex financial questions. Your bro thinks, plans, and researches using real-time market data to give you data-backed answers.
                 </p>
               </div>
@@ -240,7 +240,7 @@ export default function ChatPage() {
                       key={i}
                       variant="outline"
                       size="sm"
-                      className="text-xs border-green-900/50 bg-zinc-900 hover:bg-green-900/20 hover:border-green-500/50 text-zinc-300 text-left justify-start h-auto py-2 px-3"
+                      className="text-xs border-green-900/50 bg-zinc-900 hover:bg-green-900/20 hover:border-green-500/50 text-zinc-300 text-left justify-start h-auto py-2 px-3 whitespace-normal break-words"
                       onClick={() => handleSuggestedQuestion(q)}
                       data-testid={`suggested-question-${i}`}
                     >
