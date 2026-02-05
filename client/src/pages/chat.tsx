@@ -138,10 +138,10 @@ export default function ChatPage() {
   };
 
   const suggestedQuestions = [
-    "What are the key factors driving the market today?",
-    "Explain the P/E ratio and why it matters",
-    "What's the difference between growth and value investing?",
-    "How should I think about portfolio diversification?",
+    "Compare Apple and Microsoft's revenue growth over the last 3 years",
+    "What is Tesla's current P/E ratio and how does it compare to the auto industry?",
+    "Analyze NVIDIA's operating margins and free cash flow trends",
+    "What are the key financial metrics for Amazon's cloud business?",
   ];
 
   return (
@@ -205,37 +205,39 @@ export default function ChatPage() {
         {!activeConversationId ? (
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="max-w-md text-center space-y-6">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10 mx-auto">
-                <Sparkles className="h-8 w-8 text-amber-500" />
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-500/10 border border-green-500/30 mx-auto">
+                <span className="text-4xl font-bold text-green-500 display-font">D</span>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white mb-2">
-                  Ask Bro Anything
+                <h2 className="text-3xl font-bold text-white mb-2 display-font tracking-wide">
+                  DEXTER
                 </h2>
-                <p className="text-zinc-500">
-                  Your AI-powered financial assistant. Ask about markets, stocks,
-                  investment strategies, or anything finance-related.
+                <p className="text-green-400 text-sm uppercase tracking-widest mb-3">
+                  Autonomous Financial Research Agent
+                </p>
+                <p className="text-zinc-500 text-sm">
+                  Ask complex financial questions. Dexter thinks, plans, and researches using real-time market data to give you data-backed answers.
                 </p>
               </div>
               <Button
                 onClick={() => createMutation.mutate()}
                 size="lg"
                 disabled={createMutation.isPending}
-                className="bg-zinc-800 hover:bg-zinc-700 text-white"
+                className="bg-green-500 hover:bg-green-400 text-black font-bold uppercase tracking-wider"
                 data-testid="button-start-chat"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Start a Conversation
+                Start Research
               </Button>
               <div className="space-y-2">
-                <p className="text-xs text-zinc-500">Try asking:</p>
+                <p className="text-xs text-zinc-500 uppercase tracking-wide">Example queries:</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {suggestedQuestions.slice(0, 2).map((q, i) => (
                     <Button
                       key={i}
                       variant="outline"
                       size="sm"
-                      className="text-xs border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300"
+                      className="text-xs border-green-900/50 bg-zinc-900 hover:bg-green-900/20 hover:border-green-500/50 text-zinc-300"
                       onClick={() => {
                         createMutation.mutate();
                         setInputValue(q);
@@ -278,13 +280,13 @@ export default function ChatPage() {
                           className={
                             msg.role === "user"
                               ? "bg-zinc-700"
-                              : "bg-amber-500/10"
+                              : "bg-green-500/10"
                           }
                         >
                           {msg.role === "user" ? (
                             <User className="h-4 w-4 text-zinc-300" />
                           ) : (
-                            <Sparkles className="h-4 w-4 text-amber-500" />
+                            <span className="text-sm font-bold text-green-500">D</span>
                           )}
                         </AvatarFallback>
                       </Avatar>
@@ -312,8 +314,8 @@ export default function ChatPage() {
                 {streamingMessage && (
                   <div className="flex gap-3">
                     <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarFallback className="bg-amber-500/10">
-                        <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
+                      <AvatarFallback className="bg-green-500/10">
+                        <span className="text-sm font-bold text-green-500 animate-pulse">D</span>
                       </AvatarFallback>
                     </Avatar>
                     <div className="max-w-[80%] rounded-lg p-3 bg-zinc-900 border border-zinc-800">

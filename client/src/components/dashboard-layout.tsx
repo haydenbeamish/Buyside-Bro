@@ -15,7 +15,7 @@ const navItems = [
   { path: "/analysis", label: "Analysis", icon: TrendingUp },
   { path: "/earnings", label: "Earnings", icon: Calendar },
   { path: "/news", label: "News", icon: Newspaper },
-  { path: "/chat", label: "Ask Bro", icon: MessageSquare },
+  { path: "/chat", label: "Dexter", icon: MessageSquare },
 ];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {

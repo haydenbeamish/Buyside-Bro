@@ -27,7 +27,7 @@ const navItems = [
   { title: "Analysis", url: "/analysis", icon: TrendingUp },
   { title: "Earnings", url: "/earnings", icon: Calendar },
   { title: "News", url: "/news", icon: Newspaper },
-  { title: "Ask Bro", url: "/chat", icon: MessageSquare },
+  { title: "Dexter", url: "/chat", icon: MessageSquare },
 ];
 
 export function AppSidebar() {
