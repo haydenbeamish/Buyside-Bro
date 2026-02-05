@@ -333,10 +333,10 @@ function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Product</h4>
             <div className="space-y-2">
-              <Link href="/dashboard/markets"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Markets</span></Link>
-              <Link href="/dashboard/portfolio"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Portfolio</span></Link>
-              <Link href="/dashboard/analysis"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Analysis</span></Link>
-              <Link href="/dashboard/news"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">News</span></Link>
+              <Link href="/dashboard"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Markets</span></Link>
+              <Link href="/portfolio"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Portfolio</span></Link>
+              <Link href="/analysis"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Analysis</span></Link>
+              <Link href="/news"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">News</span></Link>
             </div>
           </div>
 
