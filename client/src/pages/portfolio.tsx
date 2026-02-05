@@ -19,6 +19,8 @@ import {
   TrendingDown,
   Trash2,
   Sparkles,
+  X,
+  Loader2,
 } from "lucide-react";
 import type { PortfolioHolding } from "@shared/schema";
 import {
@@ -28,6 +30,8 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import logoImg from "@assets/image_1770292490089.png";
+import ReactMarkdown from "react-markdown";
 
 interface PortfolioStats {
   totalValue: number;
@@ -48,8 +52,97 @@ function PercentDisplay({ value }: { value: number }) {
   );
 }
 
+function BroReviewModal({ 
+  isOpen, 
+  onClose, 
+  review, 
+  isLoading 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  review: string | null;
+  isLoading: boolean;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-50 w-full max-w-4xl max-h-[85vh] mx-4 bg-zinc-900 border border-green-500/30 rounded-lg shadow-[0_0_30px_rgba(0,255,0,0.2)] overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-green-900/30">
+          <div className="flex items-center gap-3">
+            <img src={logoImg} alt="Buy Side Bro" className="w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(0,255,0,0.5)]" />
+            <div>
+              <h2 className="text-lg font-semibold text-white display-font">Your Bro's Opinion</h2>
+              <p className="text-xs text-zinc-500">Professional Portfolio Review</p>
+            </div>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onClose}
+            className="text-zinc-400 hover:text-white"
+            data-testid="button-close-review"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+        
+        <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="relative">
+                <img 
+                  src={logoImg} 
+                  alt="Loading" 
+                  className="w-20 h-20 object-contain animate-pulse drop-shadow-[0_0_20px_rgba(0,255,0,0.5)]" 
+                />
+                <Loader2 className="absolute -bottom-2 -right-2 w-6 h-6 text-green-500 animate-spin" />
+              </div>
+              <p className="mt-4 text-zinc-400">Your bro is analyzing your portfolio...</p>
+              <p className="text-xs text-zinc-600 mt-1">This may take a moment</p>
+            </div>
+          ) : review ? (
+            <div className="prose prose-invert prose-green max-w-none">
+              <ReactMarkdown
+                components={{
+                  h1: ({children}) => <h1 className="text-2xl font-bold text-green-400 mb-4 display-font">{children}</h1>,
+                  h2: ({children}) => <h2 className="text-xl font-semibold text-green-400 mt-6 mb-3 display-font">{children}</h2>,
+                  h3: ({children}) => <h3 className="text-lg font-semibold text-white mt-4 mb-2">{children}</h3>,
+                  p: ({children}) => <p className="text-zinc-300 mb-3 leading-relaxed">{children}</p>,
+                  ul: ({children}) => <ul className="list-disc list-inside text-zinc-300 mb-4 space-y-1">{children}</ul>,
+                  ol: ({children}) => <ol className="list-decimal list-inside text-zinc-300 mb-4 space-y-1">{children}</ol>,
+                  li: ({children}) => <li className="text-zinc-300">{children}</li>,
+                  strong: ({children}) => <strong className="text-white font-semibold">{children}</strong>,
+                  table: ({children}) => (
+                    <div className="overflow-x-auto my-4">
+                      <table className="w-full text-sm border border-green-900/30 rounded-lg overflow-hidden">{children}</table>
+                    </div>
+                  ),
+                  thead: ({children}) => <thead className="bg-green-900/20">{children}</thead>,
+                  th: ({children}) => <th className="px-3 py-2 text-left text-green-400 font-semibold border-b border-green-900/30">{children}</th>,
+                  td: ({children}) => <td className="px-3 py-2 text-zinc-300 border-b border-zinc-800/50">{children}</td>,
+                  code: ({children}) => <code className="bg-zinc-800 px-1.5 py-0.5 rounded text-green-400 text-sm">{children}</code>,
+                  blockquote: ({children}) => <blockquote className="border-l-4 border-green-500 pl-4 italic text-zinc-400 my-4">{children}</blockquote>,
+                }}
+              >
+                {review}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-zinc-500">
+              No review available. Please try again.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PortfolioPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [newHolding, setNewHolding] = useState({
     ticker: "",
     shares: "",
@@ -69,6 +162,25 @@ export default function PortfolioPage() {
     queryKey: ["/api/portfolio/analysis"],
     enabled: !!holdings && holdings.length > 0,
   });
+
+  const reviewMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/portfolio/review");
+      return res.json();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to get your bro's opinion. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleGetBroOpinion = () => {
+    setIsReviewOpen(true);
+    reviewMutation.mutate();
+  };
 
   const addMutation = useMutation({
     mutationFn: async (data: { ticker: string; shares: string; avgCost: string }) => {
@@ -126,74 +238,89 @@ export default function PortfolioPage() {
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-4xl font-bold tracking-tight" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+          <h1 className="text-4xl font-bold tracking-tight display-font neon-green-subtle">
             PORTFOLIO
           </h1>
-          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800" data-testid="button-add-position">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Position
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
-              <DialogHeader>
-                <DialogTitle>Add New Position</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleAddHolding} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="ticker" className="text-zinc-300">Ticker Symbol</Label>
-                  <Input
-                    id="ticker"
-                    placeholder="AAPL"
-                    value={newHolding.ticker}
-                    onChange={(e) => setNewHolding({ ...newHolding, ticker: e.target.value })}
-                    className="bg-zinc-800 border-zinc-700 text-white font-mono uppercase"
-                    data-testid="input-ticker"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="shares" className="text-zinc-300">Number of Shares</Label>
-                  <Input
-                    id="shares"
-                    type="number"
-                    step="0.0001"
-                    placeholder="100"
-                    value={newHolding.shares}
-                    onChange={(e) => setNewHolding({ ...newHolding, shares: e.target.value })}
-                    className="bg-zinc-800 border-zinc-700 text-white font-mono"
-                    data-testid="input-shares"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="avgCost" className="text-zinc-300">Average Cost per Share</Label>
-                  <Input
-                    id="avgCost"
-                    type="number"
-                    step="0.01"
-                    placeholder="150.00"
-                    value={newHolding.avgCost}
-                    onChange={(e) => setNewHolding({ ...newHolding, avgCost: e.target.value })}
-                    className="bg-zinc-800 border-zinc-700 text-white font-mono"
-                    data-testid="input-avg-cost"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-zinc-700 hover:bg-zinc-600"
-                  disabled={addMutation.isPending}
-                  data-testid="button-submit-position"
-                >
-                  {addMutation.isPending ? "Adding..." : "Add Position"}
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleGetBroOpinion}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-green-500/50 bg-green-900/20 hover:bg-green-900/40 hover:border-green-500 transition-all group"
+              disabled={reviewMutation.isPending}
+              data-testid="button-get-bro-opinion"
+            >
+              <img 
+                src={logoImg} 
+                alt="Buy Side Bro" 
+                className="w-6 h-6 object-contain group-hover:drop-shadow-[0_0_8px_rgba(0,255,0,0.6)] transition-all" 
+              />
+              <span className="text-green-400 text-sm font-medium">Get Your Bro's Opinion</span>
+            </button>
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-green-900/50 bg-zinc-900 hover:bg-zinc-800 hover:border-green-500/50" data-testid="button-add-position">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Position
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="bg-zinc-900 border-green-900/30 text-white">
+                <DialogHeader>
+                  <DialogTitle>Add New Position</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleAddHolding} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ticker" className="text-zinc-300">Ticker Symbol</Label>
+                    <Input
+                      id="ticker"
+                      placeholder="AAPL"
+                      value={newHolding.ticker}
+                      onChange={(e) => setNewHolding({ ...newHolding, ticker: e.target.value })}
+                      className="bg-zinc-800 border-zinc-700 text-white font-mono uppercase"
+                      data-testid="input-ticker"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="shares" className="text-zinc-300">Number of Shares</Label>
+                    <Input
+                      id="shares"
+                      type="number"
+                      step="0.0001"
+                      placeholder="100"
+                      value={newHolding.shares}
+                      onChange={(e) => setNewHolding({ ...newHolding, shares: e.target.value })}
+                      className="bg-zinc-800 border-zinc-700 text-white font-mono"
+                      data-testid="input-shares"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="avgCost" className="text-zinc-300">Average Cost per Share</Label>
+                    <Input
+                      id="avgCost"
+                      type="number"
+                      step="0.01"
+                      placeholder="150.00"
+                      value={newHolding.avgCost}
+                      onChange={(e) => setNewHolding({ ...newHolding, avgCost: e.target.value })}
+                      className="bg-zinc-800 border-zinc-700 text-white font-mono"
+                      data-testid="input-avg-cost"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-green-600 hover:bg-green-500 text-black font-semibold"
+                    disabled={addMutation.isPending}
+                    data-testid="button-submit-position"
+                  >
+                    {addMutation.isPending ? "Adding..." : "Add Position"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4">
             <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Total Value</p>
             {statsLoading ? (
               <Skeleton className="h-8 w-28 bg-zinc-800" />
@@ -203,7 +330,7 @@ export default function PortfolioPage() {
               </p>
             )}
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4">
             <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Total Gain</p>
             {statsLoading ? (
               <Skeleton className="h-8 w-28 bg-zinc-800" />
@@ -216,7 +343,7 @@ export default function PortfolioPage() {
               </div>
             )}
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4">
             <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Day Change</p>
             {statsLoading ? (
               <Skeleton className="h-8 w-28 bg-zinc-800" />
@@ -236,7 +363,7 @@ export default function PortfolioPage() {
               </div>
             )}
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4">
             <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Positions</p>
             {holdingsLoading ? (
               <Skeleton className="h-8 w-12 bg-zinc-800" />
@@ -247,13 +374,13 @@ export default function PortfolioPage() {
         </div>
 
         {analysis && (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 mb-8">
+          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-6 mb-8">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
-                <Sparkles className="h-5 w-5 text-amber-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
+                <Sparkles className="h-5 w-5 text-green-500" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-white mb-2">AI Portfolio Analysis</h3>
+                <h3 className="font-semibold text-white mb-2">Quick Analysis</h3>
                 <p className="text-sm text-zinc-400 leading-relaxed">
                   {analysis.analysis}
                 </p>
@@ -263,8 +390,8 @@ export default function PortfolioPage() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-lg">
-            <div className="p-4 border-b border-zinc-800">
+          <div className="lg:col-span-2 bg-zinc-900 border border-green-900/30 rounded-lg">
+            <div className="p-4 border-b border-green-900/30">
               <h2 className="text-lg font-semibold">Holdings</h2>
             </div>
             <div className="overflow-x-auto">
@@ -277,7 +404,7 @@ export default function PortfolioPage() {
               ) : holdings && holdings.length > 0 ? (
                 <table className="w-full text-sm" data-testid="holdings-table">
                   <thead>
-                    <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase">
+                    <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
                       <th className="px-4 py-3 text-left font-medium">Symbol</th>
                       <th className="px-4 py-3 text-right font-medium">Shares</th>
                       <th className="px-4 py-3 text-right font-medium">Avg Cost</th>
@@ -297,7 +424,7 @@ export default function PortfolioPage() {
                       return (
                         <tr 
                           key={holding.id} 
-                          className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors"
+                          className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
                           data-testid={`holding-row-${holding.ticker}`}
                         >
                           <td className="px-4 py-3">
@@ -350,7 +477,7 @@ export default function PortfolioPage() {
                   <Button 
                     onClick={() => setIsAddOpen(true)}
                     variant="outline"
-                    className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+                    className="border-green-900/50 bg-zinc-800 hover:bg-zinc-700 hover:border-green-500/50"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Position
@@ -360,8 +487,8 @@ export default function PortfolioPage() {
             </div>
           </div>
 
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
-            <div className="p-4 border-b border-zinc-800">
+          <div className="bg-zinc-900 border border-green-900/30 rounded-lg">
+            <div className="p-4 border-b border-green-900/30">
               <h2 className="text-lg font-semibold">Allocation</h2>
             </div>
             <div className="p-4">
@@ -404,6 +531,13 @@ export default function PortfolioPage() {
           </div>
         </div>
       </div>
+
+      <BroReviewModal 
+        isOpen={isReviewOpen}
+        onClose={() => setIsReviewOpen(false)}
+        review={reviewMutation.data?.review || null}
+        isLoading={reviewMutation.isPending}
+      />
     </div>
   );
 }

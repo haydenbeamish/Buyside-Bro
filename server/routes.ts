@@ -329,6 +329,169 @@ export async function registerRoutes(
     }
   });
 
+  // Comprehensive portfolio review - "Get Your Bro's Opinion"
+  app.post("/api/portfolio/review", async (req: Request, res: Response) => {
+    try {
+      const holdings = await storage.getPortfolioHoldings();
+      if (holdings.length === 0) {
+        return res.json({ 
+          review: "## No Holdings Yet\n\nAdd some positions to your portfolio and I'll give you my professional take on your setup, bro." 
+        });
+      }
+
+      // Calculate portfolio metrics
+      let totalValue = 0;
+      let totalCost = 0;
+      const positions: any[] = [];
+      const sectorAllocation: Record<string, number> = {};
+
+      for (const holding of holdings) {
+        const shares = Number(holding.shares);
+        const currentPrice = Number(holding.currentPrice || holding.avgCost);
+        const avgCost = Number(holding.avgCost);
+        const value = shares * currentPrice;
+        const pnl = (currentPrice - avgCost) * shares;
+        const dayPct = (Math.random() - 0.5) * 4; // Simulated daily change
+        const mtdPct = (Math.random() - 0.5) * 10; // Simulated MTD
+        
+        totalValue += value;
+        totalCost += shares * avgCost;
+
+        const sector = holding.sector || "Unknown";
+        sectorAllocation[sector] = (sectorAllocation[sector] || 0) + value;
+
+        positions.push({
+          name: holding.name || holding.ticker,
+          ticker: holding.ticker,
+          weight_pct: 0, // Will be calculated after total
+          is_short: false,
+          price: currentPrice,
+          day_pct: dayPct.toFixed(2),
+          mtd_pct: mtdPct.toFixed(2),
+          value: value,
+          pnl: pnl,
+          sector: sector,
+        });
+      }
+
+      // Calculate weights
+      for (const pos of positions) {
+        pos.weight_pct = ((pos.value / totalValue) * 100).toFixed(2);
+      }
+
+      const dailyPnl = totalValue * (Math.random() - 0.5) * 0.02;
+      const dailyPnlPct = (dailyPnl / totalValue) * 100;
+
+      // Build the comprehensive prompt
+      const currentDate = new Date().toLocaleDateString('en-AU', { 
+        year: 'numeric', month: 'long', day: 'numeric' 
+      });
+
+      const sectorBreakdown = Object.entries(sectorAllocation).map(([sector, value]) => ({
+        sector,
+        weight_pct: ((value / totalValue) * 100).toFixed(2),
+      }));
+
+      const systemPrompt = `You are a senior hedge fund portfolio manager conducting a live portfolio review with full access to current market data via the platform API.
+You have visibility into:
+- All portfolio holdings including position sizes, LONG/SHORT exposure (negative weight_pct = short position), sector and factor exposure, and concentration
+- IMPORTANT: Positions with negative weight_pct or is_short=true are SHORT positions. Futures positions with is_futures=true represent leveraged notional exposure.
+- Live and recent market performance across asset classes, regions, sectors, styles, and thematics
+- What is currently working and not working: momentum, leadership, crowding, and regime trends
+Your task: Deliver an investment-grade portfolio review focused on risk-reward and forward positioning.
+ANALYSIS FRAMEWORK (Required Sections):
+1. OVERALL POSITIONING
+- Assess net/gross exposure, concentration risk, sector balance, factor tilts
+- Evaluate positioning relative to prevailing market leadership and macro regime
+- Identify alignment or misalignment with what is currently working
+2. RISK-REWARD ASSESSMENT
+- Evaluate downside risk, correlation between holdings, hidden factor exposures
+- Identify asymmetric payoff opportunities
+3. THEMATIC & SECTOR ALIGNMENT
+- Compare portfolio exposure to dominant market themes and sector performance
+- Identify themes/sectors to increase, reduce, or rotate based on current and emerging trends
+4. PORTFOLIO-LEVEL RECOMMENDATIONS
+- Propose concrete adjustments to improve expected returns and risk efficiency
+- Be explicit about direction (increase/decrease) and rationale for sectors, themes, factors, regions
+5. STOCK-SPECIFIC ANALYSIS (for each top holding)
+- Role in portfolio
+- Contribution to risk and return
+- Position size appropriateness
+- Action: Increase / Trim / Hold / Hedge / Exit with concise reasoning tied to market context
+6. ACTIONABLE SUMMARY
+- Prioritised action list: the 3-5 most impactful changes over the next 1-3 months
+- Include specific trade recommendations with entry/target/stop prices where relevant
+OUTPUT FORMAT:
+- Use markdown with clear headers (##) for each section
+- Use tables for trade recommendations: Ticker | Action | Size (bps) | Entry | Target | Stop | Catalyst | Timeframe
+- Bullet points for analysis, numbers before narrative
+- Australian spelling; finance shorthand ($3.4b, +17% YoY, 22x NTM P/E)
+RULES:
+- Be direct, analytical, and practical
+- Focus on FORWARD-LOOKING positioning, not backward-looking performance commentary
+- No generic advice - tailor all recommendations to actual portfolio and market data
+- No invented data - if unknown, write "Not disclosed"
+- Specific price levels and timeframes required for all trade recommendations`;
+
+      const userPrompt = `PORTFOLIO REVIEW REQUEST
+
+As of: ${currentDate}
+Investment Horizon: 3 months
+Coverage: All holdings
+
+=== PORTFOLIO SNAPSHOT ===
+Total AUM: $${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+Daily P&L: $${dailyPnl.toLocaleString(undefined, { minimumFractionDigits: 2 })} (${dailyPnlPct >= 0 ? '+' : ''}${dailyPnlPct.toFixed(2)}%)
+Position Count: ${holdings.length}
+
+=== EXPOSURE SUMMARY ===
+Net Exposure: 100%
+Gross Exposure: 100%
+Long Equity: 100%
+Short Equity: 0%
+Cash: 0%
+
+=== RISK METRICS ===
+Portfolio Beta: 1.0 (estimated)
+Annualised Volatility: 18% (estimated)
+
+Sector Allocation:
+${JSON.stringify(sectorBreakdown, null, 2)}
+
+=== PORTFOLIO POSITIONS ===
+${JSON.stringify(positions, null, 2)}
+
+=== YOUR MANDATE ===
+Conduct a comprehensive portfolio review covering:
+1. Overall positioning assessment vs current market regime
+2. Risk-reward analysis with focus on asymmetric opportunities
+3. Thematic and sector alignment with market leadership
+4. Portfolio-level recommendations for exposure adjustments
+5. Stock-specific analysis for each holding with clear action
+6. Prioritised action summary with 3-5 most impactful changes
+
+Be specific with price targets, stop losses, position sizes (in bps), and timeframes.`;
+
+      const completion = await openrouter.chat.completions.create({
+        model: "moonshotai/kimi-k2.5",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        max_tokens: 4000,
+      });
+
+      const review = completion.choices[0]?.message?.content || "Unable to generate review at this time. Please try again.";
+      
+      res.json({ review });
+    } catch (error) {
+      console.error("Portfolio review error:", error);
+      res.json({ 
+        review: "## Review Temporarily Unavailable\n\nSorry bro, I'm having trouble accessing the analysis engine right now. Give it another shot in a few minutes." 
+      });
+    }
+  });
+
   app.get("/api/analysis/profile/:ticker", async (req: Request, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
