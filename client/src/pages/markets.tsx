@@ -45,7 +45,7 @@ function TickerTape({ items }: { items: MarketItem[] }) {
     let scrollPos = 0;
     
     const scroll = () => {
-      scrollPos += 0.5;
+      scrollPos += 1.5;
       if (scrollPos >= scrollContainer.scrollWidth / 2) {
         scrollPos = 0;
       }
@@ -92,6 +92,67 @@ function PercentCell({ value }: { value: number | undefined }) {
     <td className={`px-3 py-2 text-right font-mono text-sm ${color}`}>
       {value >= 0 ? '+' : ''}{value.toFixed(1)}%
     </td>
+  );
+}
+
+function GroupedSection({ title, items }: { title: string; items: MarketItem[] }) {
+  return (
+    <div className="mb-6">
+      <div className="border-l-2 border-amber-500 pl-3 mb-3">
+        <h3 className="text-amber-500 font-semibold text-sm uppercase tracking-wide">{title}</h3>
+      </div>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-zinc-500 text-xs uppercase border-b border-zinc-800">
+            <th className="px-3 py-2 text-left font-medium">Name</th>
+            <th className="px-3 py-2 text-right font-medium">Price</th>
+            <th className="px-3 py-2 text-right font-medium">1D%</th>
+            <th className="px-3 py-2 text-right font-medium">1M%</th>
+            <th className="px-3 py-2 text-right font-medium">1Q%</th>
+            <th className="px-3 py-2 text-right font-medium">1Y%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.name} className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors">
+              <td className="px-3 py-2 font-medium text-zinc-200">{item.name}</td>
+              <td className="px-3 py-2 text-right font-mono text-zinc-300">
+                {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </td>
+              <PercentCell value={item.change1D} />
+              <PercentCell value={item.change1M} />
+              <PercentCell value={item.change1Q} />
+              <PercentCell value={item.change1Y} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function FuturesGroupedView({ futures, commodities, forex, isLoading }: { 
+  futures: MarketItem[]; 
+  commodities: MarketItem[]; 
+  forex: MarketItem[];
+  isLoading: boolean;
+}) {
+  if (isLoading) {
+    return (
+      <div className="space-y-2 p-4">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full bg-zinc-800" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto" data-testid="futures-grouped-view">
+      <GroupedSection title="Markets" items={futures} />
+      <GroupedSection title="Commodities" items={commodities} />
+      <GroupedSection title="Currencies" items={forex} />
+    </div>
   );
 }
 
@@ -294,7 +355,12 @@ export default function MarketsPage() {
             <MarketsTable items={markets?.globalMarkets || []} isLoading={isLoading} />
           </TabsContent>
           <TabsContent value="futures">
-            <MarketsTable items={markets?.futures || []} isLoading={isLoading} />
+            <FuturesGroupedView 
+              futures={markets?.futures || []} 
+              commodities={markets?.commodities || []}
+              forex={markets?.forex || []}
+              isLoading={isLoading} 
+            />
           </TabsContent>
           <TabsContent value="commodities">
             <MarketsTable items={markets?.commodities || []} isLoading={isLoading} />
