@@ -210,6 +210,52 @@ export async function registerRoutes(
     }
   });
 
+  // Stock search endpoint using FMP API
+  app.get("/api/stocks/search", async (req: Request, res: Response) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || query.length < 1) {
+        return res.json([]);
+      }
+
+      // Try search-ticker endpoint (ticker-only search - may be free tier)
+      const fmpUrl = `https://financialmodelingprep.com/api/v3/search-ticker?query=${encodeURIComponent(query)}&limit=15&apikey=${process.env.FMP_API_KEY}`;
+      const response = await fetchWithTimeout(fmpUrl, {}, 5000);
+      
+      if (!response.ok) {
+        // Fallback: try to validate the ticker directly as a quote
+        const quoteUrl = `https://financialmodelingprep.com/api/v3/quote/${encodeURIComponent(query.toUpperCase())}?apikey=${process.env.FMP_API_KEY}`;
+        const quoteRes = await fetchWithTimeout(quoteUrl, {}, 5000);
+        if (quoteRes.ok) {
+          const quoteData = await quoteRes.json();
+          if (Array.isArray(quoteData) && quoteData.length > 0) {
+            return res.json(quoteData.map((q: any) => ({
+              symbol: q.symbol,
+              name: q.name || q.symbol,
+              exchange: q.exchange || '',
+              currency: 'USD'
+            })));
+          }
+        }
+        return res.json([]);
+      }
+
+      const data = await response.json();
+      // Filter and format results
+      const results = (data || []).map((item: any) => ({
+        symbol: item.symbol,
+        name: item.name,
+        exchange: item.exchangeShortName || item.exchange,
+        currency: item.currency
+      })).filter((item: any) => item.symbol && item.name);
+
+      res.json(results);
+    } catch (error) {
+      console.error("Stock search error:", error);
+      res.json([]);
+    }
+  });
+
   app.post("/api/portfolio", async (req: Request, res: Response) => {
     try {
       const validation = insertPortfolioHoldingSchema.safeParse(req.body);

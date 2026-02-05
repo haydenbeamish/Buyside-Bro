@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import {
   Sparkles,
   X,
   Loader2,
+  Search,
 } from "lucide-react";
 import type { PortfolioHolding } from "@shared/schema";
 import {
@@ -54,6 +55,70 @@ interface EnrichedHolding extends PortfolioHolding {
 }
 
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+
+interface StockSearchResult {
+  symbol: string;
+  name: string;
+  exchange: string;
+  currency: string;
+}
+
+function StockTickerInput({ 
+  value, 
+  onSelect 
+}: { 
+  value: string; 
+  onSelect: (symbol: string) => void;
+}) {
+  const [ticker, setTicker] = useState(value);
+
+  const popularStocks = [
+    { symbol: 'AAPL', name: 'Apple' },
+    { symbol: 'MSFT', name: 'Microsoft' },
+    { symbol: 'GOOGL', name: 'Alphabet' },
+    { symbol: 'AMZN', name: 'Amazon' },
+    { symbol: 'NVDA', name: 'NVIDIA' },
+    { symbol: 'TSLA', name: 'Tesla' },
+    { symbol: 'META', name: 'Meta' },
+    { symbol: 'JPM', name: 'JPMorgan' },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+        <Input
+          placeholder="Enter ticker symbol (e.g., AAPL)"
+          value={ticker}
+          onChange={(e) => {
+            const val = e.target.value.toUpperCase();
+            setTicker(val);
+            onSelect(val);
+          }}
+          className="bg-zinc-800 border-zinc-700 text-white font-mono uppercase pl-10"
+          data-testid="input-stock-ticker"
+        />
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {popularStocks.map((stock) => (
+          <button
+            key={stock.symbol}
+            type="button"
+            onClick={() => {
+              setTicker(stock.symbol);
+              onSelect(stock.symbol);
+            }}
+            className="px-2 py-1 text-xs font-mono bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded text-zinc-300 hover:text-green-400 transition-colors"
+            data-testid={`quick-select-${stock.symbol}`}
+          >
+            {stock.symbol}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-zinc-500">Type any ticker symbol from global exchanges</p>
+    </div>
+  );
+}
 
 function formatMarketCap(value: number | null): string {
   if (!value) return "-";
@@ -283,15 +348,14 @@ export default function PortfolioPage() {
                 </DialogHeader>
                 <form onSubmit={handleAddHolding} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="ticker" className="text-zinc-300">Ticker Symbol</Label>
-                    <Input
-                      id="ticker"
-                      placeholder="AAPL"
+                    <Label className="text-zinc-300">Stock Ticker</Label>
+                    <StockTickerInput
                       value={newHolding.ticker}
-                      onChange={(e) => setNewHolding({ ...newHolding, ticker: e.target.value })}
-                      className="bg-zinc-800 border-zinc-700 text-white font-mono uppercase"
-                      data-testid="input-ticker"
+                      onSelect={(symbol) => setNewHolding({ ...newHolding, ticker: symbol })}
                     />
+                    {newHolding.ticker && (
+                      <p className="text-xs text-green-400 font-mono">Selected: {newHolding.ticker}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="shares" className="text-zinc-300">Number of Shares</Label>
