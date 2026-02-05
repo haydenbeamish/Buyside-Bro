@@ -960,6 +960,44 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Deep analysis async job endpoints using Laser Beam Capital API
+  // Route used by earnings page (POST body with ticker and mode)
+  app.post("/api/fundamental-analysis/jobs", async (req: Request, res: Response) => {
+    try {
+      const { ticker, mode } = req.body;
+      if (!ticker) {
+        return res.status(400).json({ error: "Ticker is required" });
+      }
+      const upperTicker = ticker.toUpperCase();
+      
+      const response = await fetch("https://api.laserbeamcapital.com/api/fundamental-analysis/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          ticker: upperTicker,
+          mode: mode || "preview",
+          model: "moonshotai/kimi-k2-instruct"
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Analysis job creation failed:", response.status, errorText);
+        return res.status(500).json({ error: "Failed to start analysis job" });
+      }
+      
+      const data = await response.json() as any;
+      res.json({ 
+        jobId: data.jobId || data.id,
+        status: "pending",
+        ticker: upperTicker
+      });
+    } catch (error) {
+      console.error("Analysis job error:", error);
+      res.status(500).json({ error: "Failed to start analysis" });
+    }
+  });
+
+  // Route used by analysis page (ticker in URL params)
   app.post("/api/analysis/deep/:ticker", async (req: Request, res: Response) => {
     try {
       const ticker = (req.params.ticker as string).toUpperCase();
@@ -980,7 +1018,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.status(500).json({ error: "Failed to start analysis job" });
       }
       
-      const data = await response.json();
+      const data = await response.json() as any;
       res.json({ 
         jobId: data.jobId || data.id,
         status: "pending",

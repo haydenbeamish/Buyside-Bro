@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -23,8 +24,6 @@ import {
   Minus,
   Building2,
 } from "lucide-react";
-import { useRef, useCallback } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 
@@ -739,13 +738,21 @@ function AILoadingAnimation({ ticker }: { ticker: string }) {
 }
 
 export default function AnalysisPage() {
+  const searchString = useSearch();
+  const urlParams = new URLSearchParams(searchString);
+  const urlTicker = urlParams.get("ticker");
+  const urlJobId = urlParams.get("jobId");
+
   const [searchTicker, setSearchTicker] = useState("");
-  const [activeTicker, setActiveTicker] = useState<string | null>(null);
-  const [deepJobId, setDeepJobId] = useState<string | null>(null);
-  const [deepJobStatus, setDeepJobStatus] = useState<JobStatus | null>(null);
+  const [activeTicker, setActiveTicker] = useState<string | null>(urlTicker || null);
+  const [deepJobId, setDeepJobId] = useState<string | null>(urlJobId || null);
+  const [deepJobStatus, setDeepJobStatus] = useState<JobStatus | null>(
+    urlJobId ? { jobId: urlJobId, status: "pending", progress: 0, message: "Starting analysis..." } : null
+  );
   const [deepResult, setDeepResult] = useState<DeepAnalysisResult | null>(null);
   const [deepError, setDeepError] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const skipNextAutoStart = useRef(!!urlJobId);
 
   const { data: profile, isLoading: profileLoading } = useQuery<StockProfile>({
     queryKey: ["/api/analysis/profile", activeTicker],
@@ -832,7 +839,10 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     if (activeTicker) {
-      // Clear any existing polling interval before starting new analysis
+      if (skipNextAutoStart.current) {
+        skipNextAutoStart.current = false;
+        return;
+      }
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
@@ -843,7 +853,6 @@ export default function AnalysisPage() {
       setDeepError(null);
       startDeepAnalysis.mutate(activeTicker);
     }
-    // Cleanup on unmount
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
