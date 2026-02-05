@@ -13,7 +13,16 @@ import {
   TrendingUp,
   BarChart3,
   DollarSign,
+  Loader2,
 } from "lucide-react";
+import { useRef } from "react";
+
+interface StockSearchResult {
+  symbol: string;
+  name: string;
+  exchange: string;
+  type: string;
+}
 
 interface StockProfile {
   symbol: string;
@@ -51,6 +60,115 @@ function PercentDisplay({ value }: { value: number }) {
     <span className={`font-mono ${color}`}>
       {value >= 0 ? "+" : ""}{value.toFixed(2)}%
     </span>
+  );
+}
+
+function StockSearchInput({ 
+  value, 
+  onSelect,
+  onSubmit
+}: { 
+  value: string; 
+  onSelect: (symbol: string) => void;
+  onSubmit: (symbol: string) => void;
+}) {
+  const [query, setQuery] = useState(value);
+  const [results, setResults] = useState<StockSearchResult[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const searchStocks = async () => {
+      if (query.length < 1) {
+        setResults([]);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/stocks/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        setResults(data);
+        if (data.length > 0) setIsOpen(true);
+      } catch (e) {
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const debounce = setTimeout(searchStocks, 300);
+    return () => clearTimeout(debounce);
+  }, [query]);
+
+  const handleSelect = (stock: StockSearchResult) => {
+    setQuery(stock.symbol);
+    onSelect(stock.symbol);
+    onSubmit(stock.symbol);
+    setIsOpen(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && query.trim()) {
+      e.preventDefault();
+      onSubmit(query.toUpperCase().trim());
+      setIsOpen(false);
+    }
+  };
+
+  return (
+    <div ref={containerRef} className="relative flex-1">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+        <Input
+          placeholder="Search stocks... (e.g., Apple, TSLA)"
+          value={query}
+          onChange={(e) => {
+            const val = e.target.value.toUpperCase();
+            setQuery(val);
+            onSelect(val);
+          }}
+          onFocus={() => results.length > 0 && setIsOpen(true)}
+          onKeyDown={handleKeyDown}
+          className="pl-10 bg-zinc-900 border-zinc-800 text-white font-mono uppercase"
+          data-testid="input-search-ticker"
+        />
+        {isLoading && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 animate-spin" />
+        )}
+      </div>
+      {isOpen && results.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl">
+          {results.map((stock, idx) => (
+            <button
+              key={`${stock.symbol}-${idx}`}
+              type="button"
+              onClick={() => handleSelect(stock)}
+              className="w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0"
+              data-testid={`stock-result-${stock.symbol}`}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-green-400">{stock.symbol}</span>
+                  <span className="text-xs text-zinc-500 bg-zinc-700 px-1.5 py-0.5 rounded">{stock.exchange}</span>
+                </div>
+                <p className="text-sm text-zinc-400 truncate">{stock.name}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -168,13 +286,6 @@ export default function AnalysisPage() {
     enabled: !!activeTicker,
   });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTicker.trim()) {
-      setActiveTicker(searchTicker.toUpperCase().trim());
-    }
-  };
-
   const formatMarketCap = (value: number) => {
     if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
     if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
@@ -201,27 +312,22 @@ export default function AnalysisPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSearch} className="flex gap-2 max-w-md mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-            <Input
-              type="search"
-              placeholder="Enter ticker symbol (e.g., AAPL)"
-              value={searchTicker}
-              onChange={(e) => setSearchTicker(e.target.value)}
-              className="pl-10 bg-zinc-900 border-zinc-800 text-white font-mono uppercase placeholder:normal-case placeholder:font-sans"
-              data-testid="input-search-ticker"
-            />
-          </div>
+        <div className="flex gap-2 max-w-md mb-8">
+          <StockSearchInput
+            value={searchTicker}
+            onSelect={(symbol) => setSearchTicker(symbol)}
+            onSubmit={(symbol) => setActiveTicker(symbol)}
+          />
           <Button 
-            type="submit" 
+            type="button" 
             variant="outline"
             className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+            onClick={() => searchTicker.trim() && setActiveTicker(searchTicker.toUpperCase().trim())}
             data-testid="button-search"
           >
             <ArrowRight className="h-4 w-4" />
           </Button>
-        </form>
+        </div>
 
         {!activeTicker ? (
           <div className="bg-zinc-900 border border-zinc-800 border-dashed rounded-lg py-16 text-center">

@@ -1,0 +1,61 @@
+Deep Analysis Workflow
+1. Data Gathering (Parallel)
+The service fetches data from multiple sources:
+
+Company Overview - From Alpha Vantage (name, sector, description)
+Financial Statements - Income statement, balance sheet, cash flow
+Financial Metrics - P/E, EPS, margins, growth rates
+Current Price - Live stock price
+Analyst Estimates - Forward EPS from FMP API
+News - Recent company news from Alpha Vantage
+Web Search - Tavily AI search for recent developments
+2. Mode Detection
+Automatically determines analysis mode based on earnings timing:
+
+preview - Earnings within 7 days (focus on expectations)
+review - Earnings just reported (focus on results vs expectations)
+deep_dive - Default comprehensive analysis
+3. AI Analysis (via OpenRouter)
+System Prompt:
+
+You are a hedge fund equity analyst producing research for a portfolio manager.
+**Current Mode: DEEP_DIVE**
+**COMPANY DEEP DIVE MODE**
+Perform a comprehensive analysis:
+- Business model and competitive position
+- AI exposure and strategic initiatives
+- Financial quality and trajectory
+- Valuation across multiple frameworks
+- Catalysts, risks, and investment thesis
+**Style Guidelines:**
+- Use Australian English spelling
+- Use finance shorthand: $3.4b, +17% YoY, 22x NTM P/E
+- Lead with numbers, direction, and significance
+- Be concise - 2-3 page equivalent maximum
+- Stay forward-looking and valuation-driven
+**Output Structure:**
+## Executive Summary
+## Financial Snapshot
+## Forward Outlook
+## Valuation Analysis
+## Key Risks & Catalysts
+## Investment Thesis
+4. Recommendation Generation
+Generates Buy/Hold/Sell with:
+
+Confidence score (0-100%)
+Target price
+Upside/downside percentage
+Key reasoning
+Time horizon
+API Endpoints
+Async (Recommended):
+
+POST /api/fundamental-analysis/jobs
+Body: { "ticker": "AAPL", "model": "moonshotai/kimi-k2-instruct" }
+GET /api/fundamental-analysis/jobs/{jobId}  // Poll status
+GET /api/fundamental-analysis/jobs/{jobId}/result  // Get result
+Sync (Long wait):
+
+POST /api/fundamental-analysis/analyze
+Body: { "ticker": "AAPL" }
