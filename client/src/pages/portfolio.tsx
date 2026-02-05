@@ -270,19 +270,6 @@ export default function PortfolioPage() {
             PORTFOLIO
           </h1>
           <div className="flex items-center gap-3">
-            <button 
-              onClick={handleGetBroOpinion}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-green-500/50 bg-green-900/20 hover:bg-green-900/40 hover:border-green-500 transition-all group"
-              disabled={reviewMutation.isPending}
-              data-testid="button-get-bro-opinion"
-            >
-              <img 
-                src={logoImg} 
-                alt="Buy Side Bro" 
-                className="w-6 h-6 object-contain group-hover:drop-shadow-[0_0_8px_rgba(0,255,0,0.6)] transition-all" 
-              />
-              <span className="text-green-400 text-sm font-medium">Get Your Bro's Opinion</span>
-            </button>
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="border-green-900/50 bg-zinc-900 hover:bg-zinc-800 hover:border-green-500/50" data-testid="button-add-position">
@@ -416,11 +403,25 @@ export default function PortfolioPage() {
           </div>
         )}
 
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Holdings</h2>
+          <button 
+            onClick={handleGetBroOpinion}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-green-500/50 bg-green-900/20 hover:bg-green-900/40 hover:border-green-500 transition-all group"
+            disabled={reviewMutation.isPending}
+            data-testid="button-get-bro-opinion"
+          >
+            <img 
+              src={logoImg} 
+              alt="Buy Side Bro" 
+              className="w-6 h-6 object-contain group-hover:drop-shadow-[0_0_8px_rgba(0,255,0,0.6)] transition-all" 
+            />
+            <span className="text-green-400 text-sm font-medium">Get Your Bro's Opinion</span>
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-zinc-900 border border-green-900/30 rounded-lg">
-            <div className="p-4 border-b border-green-900/30">
-              <h2 className="text-lg font-semibold">Holdings</h2>
-            </div>
             <div className="overflow-x-auto relative">
               {holdingsLoading ? (
                 <div className="p-4 space-y-2">
