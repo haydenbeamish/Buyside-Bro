@@ -376,6 +376,19 @@ function Footer() {
             </a>
           </div>
         </div>
+
+        {/* Disclaimers */}
+        <div className="mt-8 pt-6 border-t border-zinc-800">
+          <p className="text-zinc-600 text-xs leading-relaxed text-center max-w-4xl mx-auto">
+            <strong className="text-zinc-500">Disclaimer:</strong> Buy Side Bro is for informational purposes only and does not constitute financial, investment, trading, or other advice. 
+            The information provided should not be relied upon for making investment decisions. Past performance is not indicative of future results. 
+            Always conduct your own research and consult with a qualified financial advisor before making any investment decisions. 
+            Trading stocks, options, and other securities involves risk and may result in substantial losses. You should only invest money you can afford to lose.
+          </p>
+          <p className="text-zinc-700 text-xs text-center mt-4">
+            Buy Side Bro is not a registered broker-dealer or investment advisor. Market data may be delayed.
+          </p>
+        </div>
       </div>
     </footer>
   );
