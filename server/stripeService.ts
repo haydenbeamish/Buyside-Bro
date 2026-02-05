@@ -107,6 +107,57 @@ export class StripeService {
       .where(eq(users.stripeCustomerId, customerId));
     return user;
   }
+
+  async createCreditPurchaseSession(
+    priceId: string,
+    userId: string,
+    customerId?: string,
+    successUrl?: string,
+    cancelUrl?: string
+  ) {
+    const stripe = await getUncachableStripeClient();
+    
+    const sessionConfig: any = {
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: 'payment',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: {
+        userId,
+        type: 'credit_purchase',
+      },
+    };
+
+    if (customerId) {
+      sessionConfig.customer = customerId;
+    }
+
+    return await stripe.checkout.sessions.create(sessionConfig);
+  }
+
+  async listCreditPacks() {
+    const result = await db.execute(
+      sql`
+        SELECT 
+          p.id as product_id,
+          p.name as product_name,
+          p.description as product_description,
+          p.active as product_active,
+          p.metadata as product_metadata,
+          pr.id as price_id,
+          pr.unit_amount,
+          pr.currency,
+          pr.active as price_active
+        FROM stripe.products p
+        LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
+        WHERE p.active = true
+        AND p.metadata->>'type' = 'credit_pack'
+        ORDER BY pr.unit_amount ASC
+      `
+    );
+    return result.rows;
+  }
 }
 
 export const stripeService = new StripeService();

@@ -7,6 +7,15 @@ import OpenAI from "openai";
 import { isAuthenticated, authStorage } from "./replit_integrations/auth";
 import { stripeService } from "./stripeService";
 import { getStripePublishableKey } from "./stripeClient";
+import { 
+  getUserCredits, 
+  recordUsage, 
+  getUserUsageHistory, 
+  getNewsFeed, 
+  addNewsFeedItem,
+  getMarketEventTitle,
+  checkAndDeductCredits
+} from "./creditService";
 
 const LASER_BEAM_API = "https://laserbeamcapital.replit.app";
 
@@ -1244,6 +1253,171 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     } catch (error) {
       console.error("Error creating portal session:", error);
       res.status(500).json({ error: "Failed to create portal session" });
+    }
+  });
+
+  // Credit tracking API endpoints
+  app.get("/api/credits", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const credits = await getUserCredits(userId);
+      res.json(credits);
+    } catch (error) {
+      console.error("Error fetching credits:", error);
+      res.status(500).json({ error: "Failed to fetch credits" });
+    }
+  });
+
+  app.get("/api/credits/usage", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const limit = parseInt(req.query.limit as string) || 50;
+      const usage = await getUserUsageHistory(userId, limit);
+      res.json({ usage });
+    } catch (error) {
+      console.error("Error fetching usage history:", error);
+      res.status(500).json({ error: "Failed to fetch usage history" });
+    }
+  });
+
+  app.post("/api/credits/purchase", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const user = await authStorage.getUser(userId);
+      const { priceId } = req.body;
+
+      if (!priceId) {
+        return res.status(400).json({ error: "Price ID required" });
+      }
+
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+      const host = req.get("host");
+      const successUrl = `${protocol}://${host}/dashboard/subscription?credits=success`;
+      const cancelUrl = `${protocol}://${host}/dashboard/subscription?credits=cancelled`;
+
+      const session = await stripeService.createCreditPurchaseSession(
+        priceId,
+        userId,
+        user?.stripeCustomerId || undefined,
+        successUrl,
+        cancelUrl
+      );
+
+      res.json({ sessionId: session.id, url: session.url });
+    } catch (error) {
+      console.error("Error creating credit purchase session:", error);
+      res.status(500).json({ error: "Failed to create checkout session" });
+    }
+  });
+
+  app.get("/api/credits/packs", async (req: Request, res: Response) => {
+    try {
+      const rows = await stripeService.listCreditPacks();
+      
+      const packs = rows.map((row: any) => ({
+        id: row.product_id,
+        name: row.product_name,
+        description: row.product_description,
+        priceId: row.price_id,
+        amount: row.unit_amount,
+        currency: row.currency,
+        credits: row.product_metadata?.credits || 0,
+      }));
+
+      res.json({ packs });
+    } catch (error) {
+      console.error("Error fetching credit packs:", error);
+      res.json({ packs: [] });
+    }
+  });
+
+  // Newsfeed API endpoints
+  app.get("/api/newsfeed", async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 20;
+      const items = await getNewsFeed(limit);
+      res.json({ items });
+    } catch (error) {
+      console.error("Error fetching newsfeed:", error);
+      res.status(500).json({ error: "Failed to fetch newsfeed" });
+    }
+  });
+
+  app.post("/api/newsfeed", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { title, content, market, eventType, source, metadata } = req.body;
+      
+      if (!title || !content || !market || !eventType) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const item = await addNewsFeedItem({
+        title,
+        content,
+        market,
+        eventType,
+        source: source || "manual",
+        publishedAt: new Date(),
+        metadata,
+      });
+
+      res.json(item);
+    } catch (error) {
+      console.error("Error adding newsfeed item:", error);
+      res.status(500).json({ error: "Failed to add newsfeed item" });
+    }
+  });
+
+  // Market summary generation endpoint (can be called by scheduler)
+  app.post("/api/newsfeed/generate-summary", async (req: Request, res: Response) => {
+    try {
+      const { market, eventType } = req.body;
+      
+      if (!market || !eventType) {
+        return res.status(400).json({ error: "Market and eventType required" });
+      }
+
+      // Fetch market summary from Laser Beam API
+      let summaryContent = "";
+      try {
+        const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/market-summary`);
+        if (response.ok) {
+          summaryContent = await response.text();
+        }
+      } catch (e) {
+        console.error("Failed to fetch market summary:", e);
+      }
+
+      if (!summaryContent) {
+        summaryContent = `Market update for ${market}. Check the markets tab for latest prices and performance data.`;
+      }
+
+      const title = getMarketEventTitle(market, eventType);
+      
+      const item = await addNewsFeedItem({
+        title,
+        content: summaryContent,
+        market,
+        eventType,
+        source: "system",
+        publishedAt: new Date(),
+        metadata: { generatedAt: new Date().toISOString() },
+      });
+
+      res.json(item);
+    } catch (error) {
+      console.error("Error generating market summary:", error);
+      res.status(500).json({ error: "Failed to generate market summary" });
     }
   });
 
