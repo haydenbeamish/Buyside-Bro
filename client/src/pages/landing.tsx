@@ -4,10 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { 
   TrendingUp, BarChart3, 
   Twitter, Menu, X, Calendar, Briefcase, Bot, Newspaper,
-  ArrowRight
+  ArrowRight, CheckCircle2
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import logoImg from "@assets/image_1770291732587.png";
+import heroImg from "@assets/image_1770293552326.png";
 
 interface TickerItem {
   symbol: string;
@@ -113,32 +114,42 @@ function TopNav() {
 }
 
 function HeroSection() {
+  const valueProps = [
+    "Real-time global market data",
+    "AI-powered stock analysis",
+    "Portfolio tracking & insights",
+    "Zero Bloomberg terminal fees"
+  ];
+
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 pb-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-16">
           <div className="lg:w-1/2 flex justify-center order-2 lg:order-1">
             <img 
-              src={logoImg} 
+              src={heroImg} 
               alt="Buy Side Bro" 
-              className="w-64 h-64 md:w-80 md:h-80 lg:w-[28rem] lg:h-[28rem] object-contain drop-shadow-[0_0_40px_rgba(0,255,0,0.4)]"
-              data-testid="img-logo"
+              className="w-72 h-72 md:w-96 md:h-96 lg:w-[32rem] lg:h-[32rem] object-contain drop-shadow-[0_0_50px_rgba(0,255,0,0.4)]"
+              data-testid="img-hero"
             />
           </div>
           
           <div className="lg:w-1/2 text-center lg:text-left order-1 lg:order-2">
-            <h1 className="display-font text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 leading-tight">
-              <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">The Buy Side's</span>
-              <br />
-              <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">Best Kept Secret.</span>
+            <h1 className="display-font text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 leading-tight text-white">
+              Markets. Stocks.<br />Portfolios. Sorted.
             </h1>
-            <p className="text-zinc-300 text-lg md:text-xl lg:text-2xl mb-6 font-medium">
-              Institutional-grade insights. For those in the know.
+            <p className="text-green-400 text-xl md:text-2xl mb-8 display-font italic">
+              The Buy Side Terminal. Rebuilt.
             </p>
             
-            <p className="text-zinc-400 text-base md:text-lg mb-8 leading-relaxed max-w-xl">
-              A streamlined terminal built for the modern analyst. We cut the noise to give you unfiltered real-time data, AI-driven intelligence, and a true edge in the market. No bloat. Just signal.
-            </p>
+            <div className="space-y-3 mb-8">
+              {valueProps.map((prop, i) => (
+                <div key={i} className="flex items-center gap-3 justify-center lg:justify-start">
+                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-zinc-300 text-sm md:text-base">{prop}</span>
+                </div>
+              ))}
+            </div>
 
             <Link href="/dashboard">
               <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)]" data-testid="button-launch-terminal">
