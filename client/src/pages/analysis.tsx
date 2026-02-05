@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,10 @@ import {
   Search,
   ArrowRight,
   Sparkles,
+  Brain,
+  TrendingUp,
+  BarChart3,
+  DollarSign,
 } from "lucide-react";
 
 interface StockProfile {
@@ -47,6 +51,101 @@ function PercentDisplay({ value }: { value: number }) {
     <span className={`font-mono ${color}`}>
       {value >= 0 ? "+" : ""}{value.toFixed(2)}%
     </span>
+  );
+}
+
+function AILoadingAnimation({ ticker }: { ticker: string }) {
+  const loadingMessages = [
+    "Analyzing fundamentals...",
+    "Crunching the numbers...",
+    "Reading SEC filings...",
+    "Evaluating market position...",
+    "Assessing growth potential...",
+  ];
+  
+  const [messageIndex, setMessageIndex] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [loadingMessages.length]);
+
+  return (
+    <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-green-950/20 border border-green-500/30 rounded-lg p-6 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,0,0.05),transparent_70%)]" />
+      
+      <div className="relative flex items-start gap-4">
+        <div className="relative">
+          <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
+            <Brain className="h-6 w-6 text-green-500 animate-pulse" />
+          </div>
+          <div className="absolute inset-0 rounded-full border-2 border-green-500/30 animate-ping" />
+        </div>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="font-semibold text-white">Bro's Brain is Working</h3>
+            <Badge variant="outline" className="border-green-500/50 text-green-400 animate-pulse">
+              analyzing {ticker}
+            </Badge>
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <span className="text-sm text-green-400 font-mono animate-pulse">
+                {loadingMessages[messageIndex]}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { icon: TrendingUp, label: "Trends" },
+                { icon: BarChart3, label: "Metrics" },
+                { icon: DollarSign, label: "Value" },
+                { icon: Sparkles, label: "Insights" },
+              ].map((item, i) => (
+                <div 
+                  key={item.label}
+                  className="bg-zinc-800/50 rounded-lg p-2 flex flex-col items-center gap-1 border border-zinc-700/50"
+                  style={{ 
+                    animation: 'pulse 2s ease-in-out infinite',
+                    animationDelay: `${i * 200}ms`
+                  }}
+                >
+                  <item.icon className="h-4 w-4 text-zinc-500" />
+                  <span className="text-xs text-zinc-600">{item.label}</span>
+                </div>
+              ))}
+            </div>
+            
+            <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-green-500 via-green-400 to-green-500 rounded-full"
+                style={{
+                  width: '60%',
+                  animation: 'loading-bar 2s ease-in-out infinite',
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <style>{`
+        @keyframes loading-bar {
+          0% { width: 0%; opacity: 0.5; }
+          50% { width: 70%; opacity: 1; }
+          100% { width: 100%; opacity: 0.5; }
+        }
+      `}</style>
+    </div>
   );
 }
 
@@ -209,16 +308,7 @@ export default function AnalysisPage() {
             ) : null}
 
             {aiLoading ? (
-              <div className="bg-zinc-900 border border-amber-500/20 rounded-lg p-6">
-                <div className="flex items-start gap-3">
-                  <Skeleton className="h-10 w-10 rounded-full bg-zinc-800" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-40 bg-zinc-800" />
-                    <Skeleton className="h-4 w-full bg-zinc-800" />
-                    <Skeleton className="h-4 w-3/4 bg-zinc-800" />
-                  </div>
-                </div>
-              </div>
+              <AILoadingAnimation ticker={activeTicker || ""} />
             ) : aiAnalysis ? (
               <div className="bg-zinc-900 border border-amber-500/20 rounded-lg p-6">
                 <div className="flex items-start gap-3">
