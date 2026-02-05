@@ -685,6 +685,97 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
+  // Historical price data for 1-year chart
+  app.get("/api/analysis/history/:ticker", async (req: Request, res: Response) => {
+    try {
+      const ticker = (req.params.ticker as string).toUpperCase();
+      const fmpUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${ticker}?timeseries=365&apikey=${process.env.FMP_API_KEY}`;
+      
+      const response = await fetch(fmpUrl);
+      if (!response.ok) {
+        throw new Error(`FMP API error: ${response.status}`);
+      }
+      
+      const data = await response.json() as any;
+      const historical = data.historical || [];
+      
+      // Return last 365 days of data, reversed so oldest first
+      const chartData = historical.slice(0, 365).reverse().map((d: any) => ({
+        date: d.date,
+        price: d.close,
+        volume: d.volume,
+      }));
+      
+      res.json({ ticker, data: chartData });
+    } catch (error) {
+      console.error("Historical price error:", error);
+      res.status(500).json({ error: "Failed to fetch historical data" });
+    }
+  });
+
+  // Forward metrics (P/E, EPS growth)
+  app.get("/api/analysis/forward/:ticker", async (req: Request, res: Response) => {
+    try {
+      const ticker = (req.params.ticker as string).toUpperCase();
+      
+      // Fetch price quote, key metrics, and analyst estimates
+      const quoteUrl = `https://financialmodelingprep.com/api/v3/quote/${ticker}?apikey=${process.env.FMP_API_KEY}`;
+      const estimatesUrl = `https://financialmodelingprep.com/api/v3/analyst-estimates/${ticker}?limit=2&apikey=${process.env.FMP_API_KEY}`;
+      const ratiosUrl = `https://financialmodelingprep.com/api/v3/ratios-ttm/${ticker}?apikey=${process.env.FMP_API_KEY}`;
+      
+      const [quoteRes, estimatesRes, ratiosRes] = await Promise.all([
+        fetch(quoteUrl),
+        fetch(estimatesUrl),
+        fetch(ratiosUrl),
+      ]);
+      
+      const quotes = quoteRes.ok ? await quoteRes.json() : [];
+      const estimates = estimatesRes.ok ? await estimatesRes.json() : [];
+      const ratios = ratiosRes.ok ? await ratiosRes.json() : [];
+      
+      const quote = quotes[0] || {};
+      const r = ratios[0] || {};
+      const currentPrice = quote.price || null;
+      
+      // Calculate forward EPS growth from analyst estimates (year-over-year)
+      let forwardEpsGrowth: number | null = null;
+      if (estimates.length >= 2) {
+        const currentYearEps = estimates[0]?.estimatedEpsAvg;
+        const nextYearEps = estimates[1]?.estimatedEpsAvg;
+        if (typeof currentYearEps === 'number' && typeof nextYearEps === 'number' && currentYearEps !== 0) {
+          forwardEpsGrowth = ((nextYearEps - currentYearEps) / Math.abs(currentYearEps)) * 100;
+        }
+      }
+      
+      // Forward P/E = Current Price / Estimated Forward EPS
+      let forwardPE: number | null = null;
+      if (estimates.length > 0 && currentPrice) {
+        const forwardEps = estimates[0]?.estimatedEpsAvg;
+        if (typeof forwardEps === 'number' && forwardEps > 0) {
+          forwardPE = currentPrice / forwardEps;
+        }
+      }
+      
+      // PEG Ratio: use TTM ratio or calculate from forward P/E and growth
+      let pegRatio: number | null = r.pegRatioTTM ?? null;
+      if (pegRatio === null && forwardPE !== null && forwardEpsGrowth !== null && forwardEpsGrowth > 0) {
+        pegRatio = forwardPE / forwardEpsGrowth;
+      }
+      
+      res.json({
+        ticker,
+        forwardPE,
+        forwardEpsGrowth,
+        pegRatio,
+        currentEps: r.netIncomePerShareTTM ?? null,
+        estimatedEps: estimates[0]?.estimatedEpsAvg ?? null,
+      });
+    } catch (error) {
+      console.error("Forward metrics error:", error);
+      res.status(500).json({ error: "Failed to fetch forward metrics" });
+    }
+  });
+
   app.get("/api/analysis/ai/:ticker", async (req: Request, res: Response) => {
     try {
       const ticker = req.params.ticker as string;

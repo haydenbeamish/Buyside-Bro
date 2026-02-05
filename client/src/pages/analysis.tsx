@@ -21,10 +21,12 @@ import {
   ThumbsUp,
   ThumbsDown,
   Minus,
+  Building2,
 } from "lucide-react";
 import { useRef, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 
 interface StockSearchResult {
   symbol: string;
@@ -84,6 +86,208 @@ interface JobStatus {
   status: "pending" | "processing" | "completed" | "failed";
   progress: number;
   message: string;
+}
+
+interface HistoricalPrice {
+  date: string;
+  price: number;
+  volume: number;
+}
+
+interface HistoricalData {
+  ticker: string;
+  data: HistoricalPrice[];
+}
+
+interface ForwardMetrics {
+  ticker: string;
+  forwardPE: number | null;
+  forwardEpsGrowth: number | null;
+  pegRatio: number | null;
+  currentEps: number | null;
+  estimatedEps: number | null;
+}
+
+function StockChart({ data, isLoading }: { data?: HistoricalData; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <div className="flex items-center justify-between mb-4">
+          <Skeleton className="h-5 w-32 bg-zinc-800" />
+          <Skeleton className="h-4 w-24 bg-zinc-800" />
+        </div>
+        <Skeleton className="h-48 w-full bg-zinc-800" />
+      </div>
+    );
+  }
+
+  if (!data?.data?.length) {
+    return (
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <p className="text-zinc-500 text-center py-8">No chart data available</p>
+      </div>
+    );
+  }
+
+  const chartData = data.data;
+  const firstPrice = chartData[0]?.price || 0;
+  const lastPrice = chartData[chartData.length - 1]?.price || 0;
+  const priceChange = lastPrice - firstPrice;
+  const percentChange = firstPrice > 0 ? (priceChange / firstPrice) * 100 : 0;
+  const isPositive = percentChange >= 0;
+  const chartColor = isPositive ? "#22c55e" : "#ef4444";
+
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-white">1 Year Price Chart</h3>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-zinc-400">1Y Return:</span>
+          <span className={`font-mono font-semibold ${isPositive ? "text-green-500" : "text-red-500"}`}>
+            {isPositive ? "+" : ""}{percentChange.toFixed(1)}%
+          </span>
+        </div>
+      </div>
+      <div className="h-48">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+            <defs>
+              <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={chartColor} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis 
+              dataKey="date" 
+              tick={{ fill: '#71717a', fontSize: 10 }}
+              tickFormatter={(val) => {
+                const d = new Date(val);
+                return d.toLocaleDateString('en-US', { month: 'short' });
+              }}
+              interval={60}
+              axisLine={{ stroke: '#27272a' }}
+              tickLine={false}
+            />
+            <YAxis 
+              domain={['auto', 'auto']}
+              tick={{ fill: '#71717a', fontSize: 10 }}
+              tickFormatter={(val) => `$${val.toFixed(0)}`}
+              width={50}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              contentStyle={{ 
+                backgroundColor: '#18181b', 
+                border: '1px solid #27272a',
+                borderRadius: '8px',
+                padding: '8px 12px'
+              }}
+              labelStyle={{ color: '#a1a1aa', marginBottom: '4px' }}
+              formatter={(value: number) => [`$${value.toFixed(2)}`, 'Price']}
+              labelFormatter={(label) => new Date(label).toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric',
+                year: 'numeric'
+              })}
+            />
+            <Area 
+              type="monotone" 
+              dataKey="price" 
+              stroke={chartColor}
+              strokeWidth={2}
+              fill="url(#chartGradient)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function KeyInfoCard({ 
+  profile, 
+  forwardMetrics,
+  profileLoading,
+  metricsLoading 
+}: { 
+  profile?: StockProfile;
+  forwardMetrics?: ForwardMetrics;
+  profileLoading: boolean;
+  metricsLoading: boolean;
+}) {
+  const formatMarketCap = (value: number) => {
+    if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
+    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+    return `$${value.toLocaleString()}`;
+  };
+
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+      <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+        <Building2 className="h-4 w-4 text-green-500" />
+        Key Information
+      </h3>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Market Cap</p>
+          {profileLoading ? (
+            <Skeleton className="h-6 w-20 bg-zinc-800" />
+          ) : (
+            <p className="font-mono font-bold text-white">
+              {profile?.marketCap != null ? formatMarketCap(profile.marketCap) : "—"}
+            </p>
+          )}
+        </div>
+        <div>
+          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Forward P/E</p>
+          {metricsLoading ? (
+            <Skeleton className="h-6 w-16 bg-zinc-800" />
+          ) : (
+            <p className="font-mono font-bold text-white">
+              {forwardMetrics?.forwardPE != null ? forwardMetrics.forwardPE.toFixed(1) + "x" : "—"}
+            </p>
+          )}
+        </div>
+        <div>
+          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Forward EPS Growth</p>
+          {metricsLoading ? (
+            <Skeleton className="h-6 w-16 bg-zinc-800" />
+          ) : (
+            <p className={`font-mono font-bold ${(forwardMetrics?.forwardEpsGrowth ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+              {forwardMetrics?.forwardEpsGrowth != null 
+                ? `${forwardMetrics.forwardEpsGrowth >= 0 ? "+" : ""}${forwardMetrics.forwardEpsGrowth.toFixed(1)}%` 
+                : "—"}
+            </p>
+          )}
+        </div>
+        <div>
+          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">PEG Ratio</p>
+          {metricsLoading ? (
+            <Skeleton className="h-6 w-16 bg-zinc-800" />
+          ) : (
+            <p className="font-mono font-bold text-white">
+              {forwardMetrics?.pegRatio != null ? forwardMetrics.pegRatio.toFixed(2) : "—"}
+            </p>
+          )}
+        </div>
+      </div>
+      {profileLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-full bg-zinc-800" />
+          <Skeleton className="h-4 w-3/4 bg-zinc-800" />
+        </div>
+      ) : profile?.description ? (
+        <div>
+          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">About</p>
+          <p className="text-sm text-zinc-400 leading-relaxed line-clamp-4">
+            {profile.description}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function RecommendationBadge({ action, confidence }: { action: string; confidence: number }) {
@@ -527,6 +731,16 @@ export default function AnalysisPage() {
     enabled: !!activeTicker,
   });
 
+  const { data: historicalData, isLoading: chartLoading } = useQuery<HistoricalData>({
+    queryKey: ["/api/analysis/history", activeTicker],
+    enabled: !!activeTicker,
+  });
+
+  const { data: forwardMetrics, isLoading: metricsLoading } = useQuery<ForwardMetrics>({
+    queryKey: ["/api/analysis/forward", activeTicker],
+    enabled: !!activeTicker,
+  });
+
   const startDeepAnalysis = useMutation({
     mutationFn: async (ticker: string) => {
       const res = await apiRequest("POST", `/api/analysis/deep/${ticker}`);
@@ -734,13 +948,25 @@ export default function AnalysisPage() {
                     <PercentDisplay value={profile.changesPercentage} />
                   </div>
                 </div>
-                {profile.description && (
-                  <p className="mt-4 text-sm text-zinc-500 leading-relaxed line-clamp-3">
-                    {profile.description}
-                  </p>
-                )}
               </div>
             ) : null}
+
+            {/* Chart and Key Info Section - loads immediately while deep analysis runs */}
+            {activeTicker && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2">
+                  <StockChart data={historicalData} isLoading={chartLoading} />
+                </div>
+                <div className="lg:col-span-1">
+                  <KeyInfoCard 
+                    profile={profile} 
+                    forwardMetrics={forwardMetrics}
+                    profileLoading={profileLoading}
+                    metricsLoading={metricsLoading}
+                  />
+                </div>
+              </div>
+            )}
 
             {deepError ? (
               <div className="bg-zinc-900 border border-red-500/30 rounded-lg p-6">
