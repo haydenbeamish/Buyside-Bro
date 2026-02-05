@@ -70,52 +70,92 @@ function StockTickerInput({
   value: string; 
   onSelect: (symbol: string) => void;
 }) {
-  const [ticker, setTicker] = useState(value);
+  const [query, setQuery] = useState(value);
+  const [results, setResults] = useState<StockSearchResult[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const popularStocks = [
-    { symbol: 'AAPL', name: 'Apple' },
-    { symbol: 'MSFT', name: 'Microsoft' },
-    { symbol: 'GOOGL', name: 'Alphabet' },
-    { symbol: 'AMZN', name: 'Amazon' },
-    { symbol: 'NVDA', name: 'NVIDIA' },
-    { symbol: 'TSLA', name: 'Tesla' },
-    { symbol: 'META', name: 'Meta' },
-    { symbol: 'JPM', name: 'JPMorgan' },
-  ];
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const searchStocks = async () => {
+      if (query.length < 1) {
+        setResults([]);
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/stocks/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        setResults(data);
+        if (data.length > 0) setIsOpen(true);
+      } catch (e) {
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const debounce = setTimeout(searchStocks, 300);
+    return () => clearTimeout(debounce);
+  }, [query]);
+
+  const handleSelect = (stock: StockSearchResult) => {
+    setQuery(stock.symbol);
+    onSelect(stock.symbol);
+    setIsOpen(false);
+  };
 
   return (
-    <div className="space-y-3">
+    <div ref={containerRef} className="relative">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
         <Input
-          placeholder="Enter ticker symbol (e.g., AAPL)"
-          value={ticker}
+          placeholder="Search stocks... (e.g., Apple, TSLA)"
+          value={query}
           onChange={(e) => {
             const val = e.target.value.toUpperCase();
-            setTicker(val);
+            setQuery(val);
             onSelect(val);
           }}
+          onFocus={() => results.length > 0 && setIsOpen(true)}
           className="bg-zinc-800 border-zinc-700 text-white font-mono uppercase pl-10"
-          data-testid="input-stock-ticker"
+          data-testid="input-stock-search"
         />
+        {isLoading && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 animate-spin" />
+        )}
       </div>
-      <div className="flex flex-wrap gap-1.5">
-        {popularStocks.map((stock) => (
-          <button
-            key={stock.symbol}
-            type="button"
-            onClick={() => {
-              setTicker(stock.symbol);
-              onSelect(stock.symbol);
-            }}
-            className="px-2 py-1 text-xs font-mono bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded text-zinc-300 hover:text-green-400 transition-colors"
-            data-testid={`quick-select-${stock.symbol}`}
-          >
-            {stock.symbol}
-          </button>
-        ))}
-      </div>
-      <p className="text-xs text-zinc-500">Type any ticker symbol from global exchanges</p>
+      {isOpen && results.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl">
+          {results.map((stock, idx) => (
+            <button
+              key={`${stock.symbol}-${idx}`}
+              type="button"
+              onClick={() => handleSelect(stock)}
+              className="w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0"
+              data-testid={`stock-result-${stock.symbol}`}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-semibold text-green-400">{stock.symbol}</span>
+                  <span className="text-xs text-zinc-500 bg-zinc-700 px-1.5 py-0.5 rounded">{stock.exchange}</span>
+                </div>
+                <p className="text-sm text-zinc-400 truncate">{stock.name}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

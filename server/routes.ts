@@ -210,7 +210,7 @@ export async function registerRoutes(
     }
   });
 
-  // Stock search endpoint using FMP API
+  // Stock search endpoint using Laser Beam Capital API
   app.get("/api/stocks/search", async (req: Request, res: Response) => {
     try {
       const query = req.query.q as string;
@@ -218,36 +218,22 @@ export async function registerRoutes(
         return res.json([]);
       }
 
-      // Try search-ticker endpoint (ticker-only search - may be free tier)
-      const fmpUrl = `https://financialmodelingprep.com/api/v3/search-ticker?query=${encodeURIComponent(query)}&limit=15&apikey=${process.env.FMP_API_KEY}`;
-      const response = await fetchWithTimeout(fmpUrl, {}, 5000);
+      const searchUrl = `https://api.laserbeamcapital.com/api/ticker-search?q=${encodeURIComponent(query)}`;
+      const response = await fetch(searchUrl);
       
       if (!response.ok) {
-        // Fallback: try to validate the ticker directly as a quote
-        const quoteUrl = `https://financialmodelingprep.com/api/v3/quote/${encodeURIComponent(query.toUpperCase())}?apikey=${process.env.FMP_API_KEY}`;
-        const quoteRes = await fetchWithTimeout(quoteUrl, {}, 5000);
-        if (quoteRes.ok) {
-          const quoteData = await quoteRes.json();
-          if (Array.isArray(quoteData) && quoteData.length > 0) {
-            return res.json(quoteData.map((q: any) => ({
-              symbol: q.symbol,
-              name: q.name || q.symbol,
-              exchange: q.exchange || '',
-              currency: 'USD'
-            })));
-          }
-        }
+        console.log("Ticker search failed:", response.status);
         return res.json([]);
       }
 
       const data = await response.json();
-      // Filter and format results
-      const results = (data || []).map((item: any) => ({
-        symbol: item.symbol,
+      // Format results from Laser Beam API
+      const results = (data.results || []).map((item: any) => ({
+        symbol: item.ticker,
         name: item.name,
-        exchange: item.exchangeShortName || item.exchange,
-        currency: item.currency
-      })).filter((item: any) => item.symbol && item.name);
+        exchange: item.exchange,
+        type: item.type
+      }));
 
       res.json(results);
     } catch (error) {
