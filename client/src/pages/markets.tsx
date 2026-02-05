@@ -1,342 +1,340 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MarketCard } from "@/components/market-card";
-import { SectorBadge } from "@/components/sector-badge";
-import { PriceChange } from "@/components/price-change";
-import { MarketGridSkeleton, ChartSkeleton } from "@/components/loading-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  TrendingUp,
-  TrendingDown,
-  Zap,
-  Globe,
-  BarChart3,
-  Sparkles,
-  Clock,
-} from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from "recharts";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 
-interface MarketIndex {
-  symbol: string;
+interface MarketItem {
   name: string;
   price: number;
-  change: number;
-  changePercent: number;
+  change1D: number;
+  change1M?: number;
+  change1Q?: number;
+  change1Y?: number;
+  vs10D?: number;
+  vs20D?: number;
+  vs200D?: number;
+}
+
+interface MarketsData {
+  globalMarkets: MarketItem[];
+  futures: MarketItem[];
+  commodities: MarketItem[];
+  usaThematics: MarketItem[];
+  usaSectors: MarketItem[];
+  usaEqualWeight: MarketItem[];
+  asxSectors: MarketItem[];
+  forex: MarketItem[];
+  lastUpdated: string;
 }
 
 interface MarketSummary {
   summary: string;
-  sentiment: "bullish" | "bearish" | "neutral";
+  sentiment: string;
   generatedAt: string;
 }
 
-interface SectorPerformance {
-  name: string;
-  change: number;
+function TickerTape({ items }: { items: MarketItem[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+    
+    let animationId: number;
+    let scrollPos = 0;
+    
+    const scroll = () => {
+      scrollPos += 0.5;
+      if (scrollPos >= scrollContainer.scrollWidth / 2) {
+        scrollPos = 0;
+      }
+      scrollContainer.scrollLeft = scrollPos;
+      animationId = requestAnimationFrame(scroll);
+    };
+    
+    animationId = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(animationId);
+  }, [items]);
+
+  const duplicatedItems = [...items, ...items];
+
+  return (
+    <div className="bg-black border-b border-zinc-800 overflow-hidden">
+      <div 
+        ref={scrollRef}
+        className="flex whitespace-nowrap py-2 overflow-x-hidden"
+        style={{ scrollBehavior: 'auto' }}
+      >
+        {duplicatedItems.map((item, idx) => (
+          <div 
+            key={`${item.name}-${idx}`}
+            className="flex items-center gap-2 px-4 border-r border-zinc-800"
+          >
+            <span className="text-zinc-400 text-sm font-medium">{item.name}</span>
+            <span className="text-white text-sm font-mono">
+              {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className={`text-sm font-mono ${item.change1D >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              {item.change1D >= 0 ? '+' : ''}{item.change1D.toFixed(2)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-interface MarketsData {
-  indices: MarketIndex[];
-  futures: MarketIndex[];
-  commodities: MarketIndex[];
-  sectors: SectorPerformance[];
-  crypto: MarketIndex[];
+function PercentCell({ value }: { value: number | undefined }) {
+  if (value === undefined || value === null) return <td className="px-3 py-2 text-zinc-500">-</td>;
+  const color = value >= 0 ? 'text-green-500' : 'text-red-500';
+  return (
+    <td className={`px-3 py-2 text-right font-mono text-sm ${color}`}>
+      {value >= 0 ? '+' : ''}{value.toFixed(1)}%
+    </td>
+  );
+}
+
+function MarketsTable({ items, isLoading }: { items: MarketItem[]; isLoading: boolean }) {
+  const [sortField, setSortField] = useState<string>('change1D');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('desc');
+    }
+  };
+
+  const sortedItems = [...items].sort((a, b) => {
+    const aVal = (a as any)[sortField] ?? 0;
+    const bVal = (b as any)[sortField] ?? 0;
+    return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2 p-4">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full bg-zinc-800" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm" data-testid="markets-table">
+        <thead>
+          <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase">
+            <th className="px-3 py-3 text-left font-medium">Name</th>
+            <th className="px-3 py-3 text-right font-medium">Price</th>
+            <th 
+              className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
+              onClick={() => handleSort('change1D')}
+            >
+              1D% {sortField === 'change1D' && (sortDir === 'desc' ? '▼' : '▲')}
+            </th>
+            <th 
+              className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
+              onClick={() => handleSort('change1M')}
+            >
+              1M% {sortField === 'change1M' && (sortDir === 'desc' ? '▼' : '▲')}
+            </th>
+            <th 
+              className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
+              onClick={() => handleSort('change1Q')}
+            >
+              1Q% {sortField === 'change1Q' && (sortDir === 'desc' ? '▼' : '▲')}
+            </th>
+            <th 
+              className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
+              onClick={() => handleSort('change1Y')}
+            >
+              1Y% {sortField === 'change1Y' && (sortDir === 'desc' ? '▼' : '▲')}
+            </th>
+            <th 
+              className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
+              onClick={() => handleSort('vs10D')}
+            >
+              VS 10D {sortField === 'vs10D' && (sortDir === 'desc' ? '▼' : '▲')}
+            </th>
+            <th 
+              className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
+              onClick={() => handleSort('vs20D')}
+            >
+              VS 20D {sortField === 'vs20D' && (sortDir === 'desc' ? '▼' : '▲')}
+            </th>
+            <th 
+              className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
+              onClick={() => handleSort('vs200D')}
+            >
+              VS 200D {sortField === 'vs200D' && (sortDir === 'desc' ? '▼' : '▲')}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedItems.map((item, idx) => (
+            <tr 
+              key={item.name} 
+              className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors"
+              data-testid={`market-row-${idx}`}
+            >
+              <td className="px-3 py-2 font-medium text-zinc-200">{item.name}</td>
+              <td className="px-3 py-2 text-right font-mono text-zinc-300">
+                {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </td>
+              <PercentCell value={item.change1D} />
+              <PercentCell value={item.change1M} />
+              <PercentCell value={item.change1Q} />
+              <PercentCell value={item.change1Y} />
+              <PercentCell value={item.vs10D} />
+              <PercentCell value={item.vs20D} />
+              <PercentCell value={item.vs200D} />
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 export default function MarketsPage() {
-  const { data: markets, isLoading: marketsLoading } = useQuery<MarketsData>({
-    queryKey: ["/api/markets"],
+  const [summaryOpen, setSummaryOpen] = useState(true);
+  
+  const { data: markets, isLoading } = useQuery<MarketsData>({
+    queryKey: ["/api/markets/full"],
     refetchInterval: 60000,
   });
 
-  const { data: summary, isLoading: summaryLoading } = useQuery<MarketSummary>({
+  const { data: summary } = useQuery<MarketSummary>({
     queryKey: ["/api/markets/summary"],
     refetchInterval: 300000,
   });
 
-  const mockChartData = Array.from({ length: 24 }, (_, i) => ({
-    time: `${i}:00`,
-    value: 4500 + Math.random() * 100 - 50 + (i * 2),
-  }));
+  const tickerItems = markets?.globalMarkets || [];
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-            <Globe className="h-7 w-7 text-primary" />
-            Markets
+    <div className="min-h-screen bg-black text-white">
+      <TickerTape items={tickerItems} />
+      
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-4xl font-bold tracking-tight" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+            MARKETS
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Real-time market data and AI-powered insights
-          </p>
+          <span className="text-zinc-500 text-sm">
+            {markets?.lastUpdated || '2 min ago'}
+          </span>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Clock className="h-4 w-4" />
-          <span>Last updated: {new Date().toLocaleTimeString()}</span>
+
+        <Tabs defaultValue="global" className="w-full">
+          <TabsList className="bg-transparent border-b border-zinc-800 w-full justify-start rounded-none h-auto p-0 mb-6">
+            <TabsTrigger 
+              value="global" 
+              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              data-testid="tab-global-markets"
+            >
+              Global Markets
+            </TabsTrigger>
+            <TabsTrigger 
+              value="futures"
+              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              data-testid="tab-futures"
+            >
+              Futures
+            </TabsTrigger>
+            <TabsTrigger 
+              value="commodities"
+              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              data-testid="tab-commodities"
+            >
+              Commodities
+            </TabsTrigger>
+            <TabsTrigger 
+              value="usa-thematics"
+              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              data-testid="tab-usa-thematics"
+            >
+              USA Thematics
+            </TabsTrigger>
+            <TabsTrigger 
+              value="usa-sectors"
+              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              data-testid="tab-usa-sectors"
+            >
+              USA Sectors
+            </TabsTrigger>
+            <TabsTrigger 
+              value="usa-equal"
+              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              data-testid="tab-usa-equal"
+            >
+              USA Equal Weight Sectors
+            </TabsTrigger>
+            <TabsTrigger 
+              value="asx-sectors"
+              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              data-testid="tab-asx-sectors"
+            >
+              ASX Sectors
+            </TabsTrigger>
+            <TabsTrigger 
+              value="forex"
+              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              data-testid="tab-forex"
+            >
+              Forex
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="global">
+            <MarketsTable items={markets?.globalMarkets || []} isLoading={isLoading} />
+          </TabsContent>
+          <TabsContent value="futures">
+            <MarketsTable items={markets?.futures || []} isLoading={isLoading} />
+          </TabsContent>
+          <TabsContent value="commodities">
+            <MarketsTable items={markets?.commodities || []} isLoading={isLoading} />
+          </TabsContent>
+          <TabsContent value="usa-thematics">
+            <MarketsTable items={markets?.usaThematics || []} isLoading={isLoading} />
+          </TabsContent>
+          <TabsContent value="usa-sectors">
+            <MarketsTable items={markets?.usaSectors || []} isLoading={isLoading} />
+          </TabsContent>
+          <TabsContent value="usa-equal">
+            <MarketsTable items={markets?.usaEqualWeight || []} isLoading={isLoading} />
+          </TabsContent>
+          <TabsContent value="asx-sectors">
+            <MarketsTable items={markets?.asxSectors || []} isLoading={isLoading} />
+          </TabsContent>
+          <TabsContent value="forex">
+            <MarketsTable items={markets?.forex || []} isLoading={isLoading} />
+          </TabsContent>
+        </Tabs>
+
+        <div className="mt-8 border-t border-zinc-800 pt-6">
+          <button 
+            onClick={() => setSummaryOpen(!summaryOpen)}
+            className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors w-full justify-between"
+            data-testid="button-toggle-summary"
+          >
+            <span className="text-sm font-medium uppercase tracking-wide">Market Summary</span>
+            {summaryOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+          
+          {summaryOpen && summary && (
+            <div className="mt-4 text-zinc-400 text-sm leading-relaxed space-y-4">
+              <div>
+                <h3 className="text-amber-500 font-semibold mb-2">US Overnight Market Movements</h3>
+                <p className="text-zinc-300">{summary.summary}</p>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
-
-      {summaryLoading ? (
-        <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-3">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : summary ? (
-        <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Sparkles className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold text-foreground">AI Market Summary</h3>
-                  <Badge
-                    variant="secondary"
-                    className={
-                      summary.sentiment === "bullish"
-                        ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                        : summary.sentiment === "bearish"
-                        ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                        : "bg-muted text-muted-foreground"
-                    }
-                  >
-                    {summary.sentiment === "bullish" && <TrendingUp className="h-3 w-3 mr-1" />}
-                    {summary.sentiment === "bearish" && <TrendingDown className="h-3 w-3 mr-1" />}
-                    {summary.sentiment}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {summary.summary}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Tabs defaultValue="indices" className="w-full">
-        <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="indices" data-testid="tab-indices">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Indices
-          </TabsTrigger>
-          <TabsTrigger value="futures" data-testid="tab-futures">
-            <Zap className="h-4 w-4 mr-2" />
-            Futures
-          </TabsTrigger>
-          <TabsTrigger value="commodities" data-testid="tab-commodities">
-            Commodities
-          </TabsTrigger>
-          <TabsTrigger value="sectors" data-testid="tab-sectors">
-            Sectors
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="indices" className="mt-4">
-          {marketsLoading ? (
-            <MarketGridSkeleton count={8} />
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {markets?.indices?.map((index) => (
-                <MarketCard
-                  key={index.symbol}
-                  symbol={index.symbol}
-                  name={index.name}
-                  price={index.price}
-                  change={index.change}
-                  changePercent={index.changePercent}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="futures" className="mt-4">
-          {marketsLoading ? (
-            <MarketGridSkeleton count={6} />
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {markets?.futures?.map((future) => (
-                <MarketCard
-                  key={future.symbol}
-                  symbol={future.symbol}
-                  name={future.name}
-                  price={future.price}
-                  change={future.change}
-                  changePercent={future.changePercent}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="commodities" className="mt-4">
-          {marketsLoading ? (
-            <MarketGridSkeleton count={6} />
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {markets?.commodities?.map((commodity) => (
-                <MarketCard
-                  key={commodity.symbol}
-                  symbol={commodity.symbol}
-                  name={commodity.name}
-                  price={commodity.price}
-                  change={commodity.change}
-                  changePercent={commodity.changePercent}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="sectors" className="mt-4">
-          {marketsLoading ? (
-            <div className="flex flex-wrap gap-2">
-              {Array.from({ length: 11 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-32" />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {markets?.sectors?.map((sector) => (
-                <SectorBadge
-                  key={sector.name}
-                  name={sector.name}
-                  change={sector.change}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-2 pb-2">
-            <CardTitle className="text-lg font-semibold">S&P 500 Today</CardTitle>
-            <PriceChange value={0.42} size="sm" />
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={mockChartData}>
-                <defs>
-                  <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="time"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  domain={["auto", "auto"]}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  width={45}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--popover))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorValue)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-semibold">Top Movers</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {marketsLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <Skeleton className="h-4 w-16" />
-                  <Skeleton className="h-4 w-20" />
-                </div>
-              ))
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Gainers
-                  </p>
-                  {[
-                    { symbol: "NVDA", change: 4.2 },
-                    { symbol: "TSLA", change: 3.1 },
-                    { symbol: "AMD", change: 2.8 },
-                  ].map((stock) => (
-                    <div
-                      key={stock.symbol}
-                      className="flex items-center justify-between py-1"
-                    >
-                      <span className="font-mono font-medium text-sm">
-                        {stock.symbol}
-                      </span>
-                      <PriceChange value={stock.change} size="sm" />
-                    </div>
-                  ))}
-                </div>
-                <div className="space-y-2 pt-2 border-t border-border">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Losers
-                  </p>
-                  {[
-                    { symbol: "BA", change: -2.4 },
-                    { symbol: "INTC", change: -1.8 },
-                    { symbol: "WBA", change: -1.5 },
-                  ].map((stock) => (
-                    <div
-                      key={stock.symbol}
-                      className="flex items-center justify-between py-1"
-                    >
-                      <span className="font-mono font-medium text-sm">
-                        {stock.symbol}
-                      </span>
-                      <PriceChange value={stock.change} size="sm" />
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
