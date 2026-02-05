@@ -19,9 +19,12 @@ import {
   TrendingDown,
   Trash2,
   Sparkles,
-  X,
   Loader2,
   Search,
+  BarChart3,
+  Target,
+  AlertTriangle,
+  CheckCircle,
 } from "lucide-react";
 import type { PortfolioHolding } from "@shared/schema";
 import {
@@ -183,89 +186,56 @@ function PercentDisplay({ value }: { value: number }) {
   );
 }
 
-function BroReviewModal({ 
-  isOpen, 
-  onClose, 
-  review, 
-  isLoading 
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  review: string | null;
-  isLoading: boolean;
-}) {
-  if (!isOpen) return null;
+function ThinkingLoader() {
+  const [statusIndex, setStatusIndex] = useState(0);
+  const statuses = [
+    "Analyzing your positions...",
+    "Reviewing sector allocation...",
+    "Checking risk exposure...",
+    "Evaluating diversification...",
+    "Researching your holdings...",
+    "Preparing recommendations...",
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStatusIndex((prev) => (prev + 1) % statuses.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-50 w-full max-w-4xl max-h-[85vh] mx-4 bg-zinc-900 border border-green-500/30 rounded-lg shadow-[0_0_30px_rgba(0,255,0,0.2)] overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-green-900/30">
-          <div className="flex items-center gap-3">
-            <img src={logoImg} alt="Buy Side Bro" className="w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(0,255,0,0.5)]" />
-            <div>
-              <h2 className="text-lg font-semibold text-white display-font">Your Bro's Opinion</h2>
-              <p className="text-xs text-zinc-500">Professional Portfolio Review</p>
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="relative mb-6">
+        <img 
+          src={logoImg} 
+          alt="Loading" 
+          className="w-20 h-20 object-contain animate-pulse drop-shadow-[0_0_20px_rgba(0,255,0,0.5)]" 
+        />
+        <Loader2 className="absolute -bottom-2 -right-2 w-6 h-6 text-green-500 animate-spin" />
+      </div>
+      <p className="text-lg text-green-400 font-medium mb-2">Bro is thinking...</p>
+      <p className="text-sm text-zinc-400 animate-pulse">{statuses[statusIndex]}</p>
+      
+      <div className="flex items-center gap-8 mt-8">
+        {[
+          { icon: BarChart3, label: "Analysis" },
+          { icon: Target, label: "Targets" },
+          { icon: AlertTriangle, label: "Risks" },
+          { icon: CheckCircle, label: "Actions" },
+        ].map((item, idx) => (
+          <div key={item.label} className="flex flex-col items-center gap-2">
+            <div className={`p-3 rounded-full bg-zinc-800 border border-green-900/50 ${idx <= statusIndex % 4 ? 'border-green-500/50' : ''}`}>
+              <item.icon className={`w-5 h-5 ${idx <= statusIndex % 4 ? 'text-green-500' : 'text-zinc-600'}`} />
             </div>
+            <span className={`text-xs ${idx <= statusIndex % 4 ? 'text-green-400' : 'text-zinc-600'}`}>{item.label}</span>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onClose}
-            className="text-zinc-400 hover:text-white"
-            data-testid="button-close-review"
-          >
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-        
-        <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="relative">
-                <img 
-                  src={logoImg} 
-                  alt="Loading" 
-                  className="w-20 h-20 object-contain animate-pulse drop-shadow-[0_0_20px_rgba(0,255,0,0.5)]" 
-                />
-                <Loader2 className="absolute -bottom-2 -right-2 w-6 h-6 text-green-500 animate-spin" />
-              </div>
-              <p className="mt-4 text-zinc-400">Your bro is analyzing your portfolio...</p>
-              <p className="text-xs text-zinc-600 mt-1">This may take a moment</p>
-            </div>
-          ) : review ? (
-            <div className="prose prose-invert prose-green max-w-none">
-              <ReactMarkdown
-                components={{
-                  h1: ({children}) => <h1 className="text-2xl font-bold text-green-400 mb-4 display-font">{children}</h1>,
-                  h2: ({children}) => <h2 className="text-xl font-semibold text-green-400 mt-6 mb-3 display-font">{children}</h2>,
-                  h3: ({children}) => <h3 className="text-lg font-semibold text-white mt-4 mb-2">{children}</h3>,
-                  p: ({children}) => <p className="text-zinc-300 mb-3 leading-relaxed">{children}</p>,
-                  ul: ({children}) => <ul className="list-disc list-inside text-zinc-300 mb-4 space-y-1">{children}</ul>,
-                  ol: ({children}) => <ol className="list-decimal list-inside text-zinc-300 mb-4 space-y-1">{children}</ol>,
-                  li: ({children}) => <li className="text-zinc-300">{children}</li>,
-                  strong: ({children}) => <strong className="text-white font-semibold">{children}</strong>,
-                  table: ({children}) => (
-                    <div className="overflow-x-auto my-4">
-                      <table className="w-full text-sm border border-green-900/30 rounded-lg overflow-hidden">{children}</table>
-                    </div>
-                  ),
-                  thead: ({children}) => <thead className="bg-green-900/20">{children}</thead>,
-                  th: ({children}) => <th className="px-3 py-2 text-left text-green-400 font-semibold border-b border-green-900/30">{children}</th>,
-                  td: ({children}) => <td className="px-3 py-2 text-zinc-300 border-b border-zinc-800/50">{children}</td>,
-                  code: ({children}) => <code className="bg-zinc-800 px-1.5 py-0.5 rounded text-green-400 text-sm">{children}</code>,
-                  blockquote: ({children}) => <blockquote className="border-l-4 border-green-500 pl-4 italic text-zinc-400 my-4">{children}</blockquote>,
-                }}
-              >
-                {review}
-              </ReactMarkdown>
-            </div>
-          ) : (
-            <div className="text-center py-12 text-zinc-500">
-              No review available. Please try again.
-            </div>
-          )}
-        </div>
+        ))}
+      </div>
+      
+      <div className="w-64 h-1 bg-zinc-800 rounded-full mt-8 overflow-hidden">
+        <div className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full animate-[loading_2s_ease-in-out_infinite]" 
+             style={{ width: '60%' }} />
       </div>
     </div>
   );
@@ -273,13 +243,13 @@ function BroReviewModal({
 
 export default function PortfolioPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [newHolding, setNewHolding] = useState({
     ticker: "",
     shares: "",
     avgCost: "",
   });
   const { toast } = useToast();
+  const broSectionRef = useRef<HTMLDivElement>(null);
 
   const { data: holdings, isLoading: holdingsLoading } = useQuery<EnrichedHolding[]>({
     queryKey: ["/api/portfolio/enriched"],
@@ -300,6 +270,11 @@ export default function PortfolioPage() {
       const res = await apiRequest("POST", "/api/portfolio/review");
       return res.json();
     },
+    onSuccess: () => {
+      setTimeout(() => {
+        broSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    },
     onError: () => {
       toast({
         title: "Error",
@@ -310,8 +285,10 @@ export default function PortfolioPage() {
   });
 
   const handleGetBroOpinion = () => {
-    setIsReviewOpen(true);
     reviewMutation.mutate();
+    setTimeout(() => {
+      broSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const addMutation = useMutation({
@@ -498,7 +475,7 @@ export default function PortfolioPage() {
                 <Sparkles className="h-5 w-5 text-green-500" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-white mb-2">Bro's Opinion</h3>
+                <h3 className="font-semibold text-white mb-2">Quick Take</h3>
                 <p className="text-sm text-zinc-400 leading-relaxed">
                   {analysis.analysis}
                 </p>
@@ -507,24 +484,9 @@ export default function PortfolioPage() {
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Holdings</h2>
-          <button 
-            onClick={handleGetBroOpinion}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-green-500/50 bg-green-900/20 hover:bg-green-900/40 hover:border-green-500 transition-all group"
-            disabled={reviewMutation.isPending}
-            data-testid="button-get-bro-opinion"
-          >
-            <img 
-              src={logoImg} 
-              alt="Buy Side Bro" 
-              className="w-6 h-6 object-contain group-hover:drop-shadow-[0_0_8px_rgba(0,255,0,0.6)] transition-all" 
-            />
-            <span className="text-green-400 text-sm font-medium">Get Your Bro's Opinion</span>
-          </button>
-        </div>
+        <h2 className="text-lg font-semibold mb-4">Holdings</h2>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="lg:col-span-2 bg-zinc-900 border border-green-900/30 rounded-lg">
             <div className="overflow-x-auto relative">
               {holdingsLoading ? (
@@ -565,16 +527,12 @@ export default function PortfolioPage() {
                           data-testid={`holding-row-${holding.ticker}`}
                         >
                           <td className="px-3 py-2.5 sticky left-0 bg-zinc-900 z-10">
-                            <span className="font-mono font-semibold text-zinc-200">
-                              {holding.ticker}
-                            </span>
-                            {holding.name && (
-                              <p className="text-xs text-zinc-500 truncate max-w-[100px]">
-                                {holding.name}
-                              </p>
-                            )}
+                            <div className="flex flex-col">
+                              <span className="font-mono font-semibold text-green-400">{holding.ticker}</span>
+                              <span className="text-xs text-zinc-500 truncate max-w-[120px]">{holding.name || holding.ticker}</span>
+                            </div>
                           </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
+                          <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap">
                             ${currentPrice.toFixed(2)}
                           </td>
                           <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
@@ -687,14 +645,102 @@ export default function PortfolioPage() {
             </div>
           </div>
         </div>
-      </div>
 
-      <BroReviewModal 
-        isOpen={isReviewOpen}
-        onClose={() => setIsReviewOpen(false)}
-        review={reviewMutation.data?.review || null}
-        isLoading={reviewMutation.isPending}
-      />
+        {/* Bro's Analysis Section */}
+        <div ref={broSectionRef} className="bg-zinc-900 border border-green-500/30 rounded-lg shadow-[0_0_20px_rgba(0,255,0,0.1)]">
+          <div className="flex items-center justify-between p-4 border-b border-green-900/30">
+            <div className="flex items-center gap-3">
+              <img src={logoImg} alt="Buy Side Bro" className="w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(0,255,0,0.5)]" />
+              <div>
+                <h2 className="text-lg font-semibold text-white display-font">Your Bro's Opinion</h2>
+                <p className="text-xs text-zinc-500">Professional Portfolio Review</p>
+              </div>
+            </div>
+            {!reviewMutation.isPending && !reviewMutation.data && (
+              <button 
+                onClick={handleGetBroOpinion}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-green-500/50 bg-green-900/20 hover:bg-green-900/40 hover:border-green-500 transition-all group"
+                disabled={reviewMutation.isPending || !holdings || holdings.length === 0}
+                data-testid="button-get-bro-opinion"
+              >
+                <Sparkles className="w-4 h-4 text-green-400 group-hover:drop-shadow-[0_0_8px_rgba(0,255,0,0.6)] transition-all" />
+                <span className="text-green-400 text-sm font-medium">Get Your Bro's Opinion</span>
+              </button>
+            )}
+          </div>
+          
+          <div className="p-6">
+            {reviewMutation.isPending ? (
+              <ThinkingLoader />
+            ) : reviewMutation.data?.review ? (
+              <div className="prose prose-invert prose-green max-w-none">
+                <ReactMarkdown
+                  components={{
+                    h1: ({children}) => <h1 className="text-2xl font-bold text-green-400 mb-4 display-font">{children}</h1>,
+                    h2: ({children}) => <h2 className="text-xl font-semibold text-green-400 mt-6 mb-3 display-font">{children}</h2>,
+                    h3: ({children}) => <h3 className="text-lg font-semibold text-white mt-4 mb-2">{children}</h3>,
+                    p: ({children}) => <p className="text-zinc-300 mb-3 leading-relaxed">{children}</p>,
+                    ul: ({children}) => <ul className="list-disc list-inside text-zinc-300 mb-4 space-y-1">{children}</ul>,
+                    ol: ({children}) => <ol className="list-decimal list-inside text-zinc-300 mb-4 space-y-1">{children}</ol>,
+                    li: ({children}) => <li className="text-zinc-300">{children}</li>,
+                    strong: ({children}) => <strong className="text-white font-semibold">{children}</strong>,
+                    table: ({children}) => (
+                      <div className="overflow-x-auto my-4">
+                        <table className="w-full text-sm border border-green-900/30 rounded-lg overflow-hidden">{children}</table>
+                      </div>
+                    ),
+                    thead: ({children}) => <thead className="bg-green-900/20">{children}</thead>,
+                    th: ({children}) => <th className="px-3 py-2 text-left text-green-400 font-semibold border-b border-green-900/30">{children}</th>,
+                    td: ({children}) => <td className="px-3 py-2 text-zinc-300 border-b border-zinc-800/50">{children}</td>,
+                    code: ({children}) => <code className="bg-zinc-800 px-1.5 py-0.5 rounded text-green-400 text-sm">{children}</code>,
+                    blockquote: ({children}) => <blockquote className="border-l-4 border-green-500 pl-4 italic text-zinc-400 my-4">{children}</blockquote>,
+                  }}
+                >
+                  {reviewMutation.data.review}
+                </ReactMarkdown>
+                
+                <div className="mt-6 pt-4 border-t border-green-900/30 flex justify-end">
+                  <button 
+                    onClick={handleGetBroOpinion}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-green-500/50 bg-green-900/20 hover:bg-green-900/40 hover:border-green-500 transition-all text-sm"
+                    data-testid="button-refresh-opinion"
+                  >
+                    <Sparkles className="w-4 h-4 text-green-400" />
+                    <span className="text-green-400 font-medium">Refresh Analysis</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="flex justify-center mb-4">
+                  <img 
+                    src={logoImg} 
+                    alt="Buy Side Bro" 
+                    className="w-16 h-16 object-contain opacity-50" 
+                  />
+                </div>
+                <p className="text-zinc-500 mb-2">Ready to review your portfolio</p>
+                <p className="text-zinc-600 text-sm mb-6">
+                  {holdings && holdings.length > 0 
+                    ? "Click the button above to get a detailed analysis of your holdings"
+                    : "Add some holdings first to get your bro's expert opinion"
+                  }
+                </p>
+                {holdings && holdings.length > 0 && (
+                  <button 
+                    onClick={handleGetBroOpinion}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-green-500/50 bg-green-900/20 hover:bg-green-900/40 hover:border-green-500 transition-all group"
+                    data-testid="button-get-bro-opinion-center"
+                  >
+                    <Sparkles className="w-5 h-5 text-green-400 group-hover:drop-shadow-[0_0_8px_rgba(0,255,0,0.6)] transition-all" />
+                    <span className="text-green-400 font-medium">Get Your Bro's Opinion</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
