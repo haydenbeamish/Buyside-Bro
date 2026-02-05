@@ -30,8 +30,8 @@ interface MarketsData {
 
 interface MarketSummary {
   summary: string;
-  sentiment: string;
   generatedAt: string;
+  cached?: boolean;
 }
 
 function TickerTape({ items }: { items: MarketItem[] }) {
@@ -393,11 +393,14 @@ export default function MarketsPage() {
           </button>
           
           {summaryOpen && summary && (
-            <div className="mt-4 text-zinc-400 text-sm leading-relaxed space-y-4">
-              <div>
-                <h3 className="text-amber-500 font-semibold mb-2">US Overnight Market Movements</h3>
-                <p className="text-zinc-300">{summary.summary}</p>
-              </div>
+            <div className="mt-4 text-zinc-400 text-sm leading-relaxed">
+              <div 
+                className="text-zinc-300 whitespace-pre-wrap [&_b]:text-amber-500 [&_b]:font-semibold"
+                dangerouslySetInnerHTML={{ __html: summary.summary }}
+              />
+              <p className="text-zinc-600 text-xs mt-3">
+                Last updated: {new Date(summary.generatedAt).toLocaleString()}
+              </p>
             </div>
           )}
         </div>

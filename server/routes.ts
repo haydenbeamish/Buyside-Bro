@@ -229,31 +229,16 @@ export async function registerRoutes(
         return res.json(cached);
       }
 
-      const completion = await openrouter.chat.completions.create({
-        model: "moonshotai/kimi-k2.5",
-        messages: [
-          {
-            role: "system",
-            content: "You are a friendly financial analyst providing brief market summaries. Keep it casual but informative, like explaining to a friend. Max 2-3 sentences."
-          },
-          {
-            role: "user",
-            content: "Give a brief summary of the current market conditions and sentiment. Be concise and casual."
-          }
-        ],
-        max_tokens: 200,
-      });
-
-      const summary = completion.choices[0]?.message?.content || "Markets are doing their thing today. Check the numbers above for details.";
+      const response = await fetch("https://laserbeamcapital.replit.app/api/markets/summary");
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
       
+      const data = await response.json();
       const summaryData = {
-        summary,
-        sentiment: summary.toLowerCase().includes("down") || summary.toLowerCase().includes("decline") || summary.toLowerCase().includes("bear")
-          ? "bearish"
-          : summary.toLowerCase().includes("up") || summary.toLowerCase().includes("gain") || summary.toLowerCase().includes("bull")
-          ? "bullish"
-          : "neutral",
-        generatedAt: new Date().toISOString(),
+        summary: data.summary,
+        generatedAt: data.generatedAt || new Date().toISOString(),
+        cached: data.cached || false,
       };
 
       await storage.setCachedData("market_summary", summaryData, 5);
@@ -261,9 +246,9 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Market summary error:", error);
       res.json({
-        summary: "Markets are mixed today with tech leading gains while energy lags. Keep an eye on Fed commentary later this week.",
-        sentiment: "neutral",
+        summary: "<b>US Overnight</b>\nMarkets are mixed today with tech leading gains while energy lags. Keep an eye on Fed commentary later this week.",
         generatedAt: new Date().toISOString(),
+        cached: false,
       });
     }
   });
