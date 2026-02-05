@@ -131,10 +131,8 @@ function GroupedSection({ title, items }: { title: string; items: MarketItem[] }
   );
 }
 
-function FuturesGroupedView({ futures, commodities, forex, isLoading }: { 
+function FuturesGroupedView({ futures, isLoading }: { 
   futures: MarketItem[]; 
-  commodities: MarketItem[]; 
-  forex: MarketItem[];
   isLoading: boolean;
 }) {
   if (isLoading) {
@@ -147,11 +145,27 @@ function FuturesGroupedView({ futures, commodities, forex, isLoading }: {
     );
   }
 
+  // Categorize futures by type
+  const marketKeywords = ['VIX', 'Nasdaq', 'Hang Seng', 'Russell', 'S&P', 'Euro Stoxx', 'CSI'];
+  const currencyKeywords = ['Yen', 'Dollar', 'Pound', 'Euro ', 'JPY', 'AUD', 'GBP', 'EUR'];
+  
+  const marketFutures = futures.filter(f => 
+    marketKeywords.some(k => f.name.includes(k)) || f.name.includes('Index')
+  );
+  
+  const currencyFutures = futures.filter(f => 
+    currencyKeywords.some(k => f.name.includes(k)) && !marketKeywords.some(k => f.name.includes(k))
+  );
+  
+  const commodityFutures = futures.filter(f => 
+    !marketFutures.includes(f) && !currencyFutures.includes(f)
+  );
+
   return (
     <div className="overflow-x-auto" data-testid="futures-grouped-view">
-      <GroupedSection title="Markets" items={futures} />
-      <GroupedSection title="Commodities" items={commodities} />
-      <GroupedSection title="Currencies" items={forex} />
+      <GroupedSection title="Markets" items={marketFutures} />
+      <GroupedSection title="Commodities" items={commodityFutures} />
+      <GroupedSection title="Currencies" items={currencyFutures} />
     </div>
   );
 }
@@ -357,8 +371,6 @@ export default function MarketsPage() {
           <TabsContent value="futures">
             <FuturesGroupedView 
               futures={markets?.futures || []} 
-              commodities={markets?.commodities || []}
-              forex={markets?.forex || []}
               isLoading={isLoading} 
             />
           </TabsContent>
