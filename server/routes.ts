@@ -259,6 +259,102 @@ export async function registerRoutes(
     }
   });
 
+  // Enriched portfolio data with market data from FMP
+  app.get("/api/portfolio/enriched", async (req: Request, res: Response) => {
+    try {
+      const holdings = await storage.getPortfolioHoldings();
+      if (holdings.length === 0) {
+        return res.json([]);
+      }
+
+      const tickers = holdings.map(h => h.ticker.toUpperCase()).join(",");
+      
+      // Fetch quote data for all tickers
+      const quoteUrl = `https://financialmodelingprep.com/api/v3/quote/${tickers}?apikey=${process.env.FMP_API_KEY}`;
+      
+      // Fetch key metrics for P/E, EPS, etc.
+      let quotes: any[] = [];
+      let profiles: any[] = [];
+      let earningsCalendar: any[] = [];
+      
+      try {
+        const [quoteRes, profileRes] = await Promise.all([
+          fetchWithTimeout(quoteUrl, {}, 8000),
+          fetchWithTimeout(`https://financialmodelingprep.com/api/v3/profile/${tickers}?apikey=${process.env.FMP_API_KEY}`, {}, 8000),
+        ]);
+        
+        if (quoteRes.ok) {
+          quotes = await quoteRes.json() as any[];
+        }
+        if (profileRes.ok) {
+          profiles = await profileRes.json() as any[];
+        }
+
+        // Fetch earnings calendar for next 60 days
+        const today = new Date();
+        const futureDate = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
+        const fromDate = today.toISOString().split('T')[0];
+        const toDate = futureDate.toISOString().split('T')[0];
+        const earningsUrl = `https://financialmodelingprep.com/api/v3/earning_calendar?from=${fromDate}&to=${toDate}&apikey=${process.env.FMP_API_KEY}`;
+        const earningsRes = await fetchWithTimeout(earningsUrl, {}, 8000);
+        if (earningsRes.ok) {
+          earningsCalendar = await earningsRes.json() as any[];
+        }
+      } catch (e) {
+        console.error("Failed to fetch FMP data:", e);
+      }
+
+      // Create lookup maps
+      const quoteMap = new Map(quotes.map((q: any) => [q.symbol?.toUpperCase(), q]));
+      const profileMap = new Map(profiles.map((p: any) => [p.symbol?.toUpperCase(), p]));
+      const earningsMap = new Map<string, string>();
+      
+      // Find next earnings for each ticker
+      for (const earning of earningsCalendar) {
+        const symbol = earning.symbol?.toUpperCase();
+        if (symbol && !earningsMap.has(symbol)) {
+          earningsMap.set(symbol, earning.date);
+        }
+      }
+
+      // Enrich holdings
+      const enrichedHoldings = holdings.map(holding => {
+        const ticker = holding.ticker.toUpperCase();
+        const quote = quoteMap.get(ticker) || {};
+        const profile = profileMap.get(ticker) || {};
+        
+        const shares = Number(holding.shares);
+        const avgCost = Number(holding.avgCost);
+        const currentPrice = quote.price || Number(holding.currentPrice || avgCost);
+        const dayChangePercent = quote.changesPercentage || 0;
+        const previousClose = quote.previousClose || currentPrice;
+        const dayPnL = shares * (currentPrice - previousClose);
+        const totalPnL = shares * (currentPrice - avgCost);
+        const value = shares * currentPrice;
+        const pnlPercent = avgCost > 0 ? ((currentPrice - avgCost) / avgCost) * 100 : 0;
+        
+        return {
+          ...holding,
+          currentPrice,
+          dayChangePercent,
+          value,
+          dayPnL,
+          totalPnL,
+          pnlPercent,
+          marketCap: profile.mktCap || null,
+          pe: profile.pe || quote.pe || null,
+          epsGrowth: profile.epsGrowth || null,
+          nextEarnings: earningsMap.get(ticker) || null,
+        };
+      });
+
+      res.json(enrichedHoldings);
+    } catch (error) {
+      console.error("Enriched portfolio error:", error);
+      res.status(500).json({ error: "Failed to fetch enriched portfolio" });
+    }
+  });
+
   app.get("/api/portfolio/stats", async (req: Request, res: Response) => {
     try {
       const holdings = await storage.getPortfolioHoldings();

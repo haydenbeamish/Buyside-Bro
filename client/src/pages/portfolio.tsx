@@ -41,7 +41,33 @@ interface PortfolioStats {
   dayChangePercent: number;
 }
 
+interface EnrichedHolding extends PortfolioHolding {
+  dayChangePercent: number;
+  value: number;
+  dayPnL: number;
+  totalPnL: number;
+  pnlPercent: number;
+  marketCap: number | null;
+  pe: number | null;
+  epsGrowth: number | null;
+  nextEarnings: string | null;
+}
+
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+
+function formatMarketCap(value: number | null): string {
+  if (!value) return "-";
+  if (value >= 1e12) return `$${(value / 1e12).toFixed(1)}T`;
+  if (value >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
+  if (value >= 1e6) return `$${(value / 1e6).toFixed(1)}M`;
+  return `$${value.toLocaleString()}`;
+}
+
+function formatEarningsDate(date: string | null): string {
+  if (!date) return "-";
+  const d = new Date(date);
+  return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+}
 
 function PercentDisplay({ value }: { value: number }) {
   const color = value >= 0 ? "text-green-500" : "text-red-500";
@@ -150,8 +176,9 @@ export default function PortfolioPage() {
   });
   const { toast } = useToast();
 
-  const { data: holdings, isLoading: holdingsLoading } = useQuery<PortfolioHolding[]>({
-    queryKey: ["/api/portfolio"],
+  const { data: holdings, isLoading: holdingsLoading } = useQuery<EnrichedHolding[]>({
+    queryKey: ["/api/portfolio/enriched"],
+    refetchInterval: 60000,
   });
 
   const { data: stats, isLoading: statsLoading } = useQuery<PortfolioStats>({
@@ -192,7 +219,7 @@ export default function PortfolioPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolio"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolio/enriched"] });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolio/stats"] });
       setIsAddOpen(false);
       setNewHolding({ ticker: "", shares: "", avgCost: "" });
@@ -215,7 +242,7 @@ export default function PortfolioPage() {
       await apiRequest("DELETE", `/api/portfolio/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolio"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolio/enriched"] });
       queryClient.invalidateQueries({ queryKey: ["/api/portfolio/stats"] });
       toast({
         title: "Position removed",
@@ -394,7 +421,7 @@ export default function PortfolioPage() {
             <div className="p-4 border-b border-green-900/30">
               <h2 className="text-lg font-semibold">Holdings</h2>
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto relative">
               {holdingsLoading ? (
                 <div className="p-4 space-y-2">
                   {Array.from({ length: 5 }).map((_, i) => (
@@ -405,12 +432,19 @@ export default function PortfolioPage() {
                 <table className="w-full text-sm" data-testid="holdings-table">
                   <thead>
                     <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
-                      <th className="px-4 py-3 text-left font-medium">Symbol</th>
-                      <th className="px-4 py-3 text-right font-medium">Shares</th>
-                      <th className="px-4 py-3 text-right font-medium">Avg Cost</th>
-                      <th className="px-4 py-3 text-right font-medium">Current</th>
-                      <th className="px-4 py-3 text-right font-medium">Gain/Loss</th>
-                      <th className="px-4 py-3 w-12"></th>
+                      <th className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-10 min-w-[100px]">Ticker</th>
+                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Price</th>
+                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Cost</th>
+                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">% P&L</th>
+                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Day %</th>
+                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Qty</th>
+                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Value</th>
+                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Day P&L</th>
+                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Total P&L</th>
+                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Mkt Cap</th>
+                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">P/E</th>
+                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Earnings</th>
+                      <th className="px-3 py-3 w-10"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -418,8 +452,6 @@ export default function PortfolioPage() {
                       const currentPrice = Number(holding.currentPrice || holding.avgCost);
                       const avgCost = Number(holding.avgCost);
                       const shares = Number(holding.shares);
-                      const gainPercent = ((currentPrice - avgCost) / avgCost) * 100;
-                      const gainValue = (currentPrice - avgCost) * shares;
 
                       return (
                         <tr 
@@ -427,43 +459,63 @@ export default function PortfolioPage() {
                           className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
                           data-testid={`holding-row-${holding.ticker}`}
                         >
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2.5 sticky left-0 bg-zinc-900 z-10">
                             <span className="font-mono font-semibold text-zinc-200">
                               {holding.ticker}
                             </span>
                             {holding.name && (
-                              <p className="text-xs text-zinc-500 truncate max-w-[120px]">
+                              <p className="text-xs text-zinc-500 truncate max-w-[100px]">
                                 {holding.name}
                               </p>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-right font-mono text-zinc-300">
-                            {shares.toLocaleString()}
-                          </td>
-                          <td className="px-4 py-3 text-right font-mono text-zinc-300">
-                            ${avgCost.toFixed(2)}
-                          </td>
-                          <td className="px-4 py-3 text-right font-mono text-zinc-300">
+                          <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
                             ${currentPrice.toFixed(2)}
                           </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex flex-col items-end">
-                              <span className={`font-mono text-sm ${gainValue >= 0 ? "text-green-500" : "text-red-500"}`}>
-                                {gainValue >= 0 ? "+" : ""}${Math.abs(gainValue).toFixed(2)}
-                              </span>
-                              <PercentDisplay value={gainPercent} />
-                            </div>
+                          <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
+                            ${avgCost.toFixed(2)}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                            <PercentDisplay value={holding.pnlPercent || 0} />
+                          </td>
+                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                            <PercentDisplay value={holding.dayChangePercent || 0} />
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
+                            {shares.toLocaleString()}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
+                            ${(holding.value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </td>
+                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                            <span className={`font-mono text-sm ${(holding.dayPnL || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                              {(holding.dayPnL || 0) >= 0 ? "+" : ""}${Math.abs(holding.dayPnL || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                            <span className={`font-mono text-sm ${(holding.totalPnL || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                              {(holding.totalPnL || 0) >= 0 ? "+" : ""}${Math.abs(holding.totalPnL || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
+                            {formatMarketCap(holding.marketCap)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
+                            {holding.pe ? holding.pe.toFixed(1) : "-"}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
+                            {formatEarningsDate(holding.nextEarnings)}
+                          </td>
+                          <td className="px-3 py-2.5">
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => deleteMutation.mutate(holding.id)}
                               disabled={deleteMutation.isPending}
-                              className="text-zinc-500 hover:text-red-500"
+                              className="text-zinc-500 hover:text-red-500 h-7 w-7"
                               data-testid={`button-delete-${holding.ticker}`}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </td>
                         </tr>
