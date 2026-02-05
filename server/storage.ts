@@ -1,38 +1,78 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { db } from "./db";
+import { portfolioHoldings, watchlist, marketCache } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
+import type { PortfolioHolding, InsertPortfolioHolding, WatchlistItem, InsertWatchlistItem } from "@shared/schema";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getPortfolioHoldings(): Promise<PortfolioHolding[]>;
+  getPortfolioHolding(id: number): Promise<PortfolioHolding | undefined>;
+  createPortfolioHolding(holding: InsertPortfolioHolding): Promise<PortfolioHolding>;
+  updatePortfolioHolding(id: number, holding: Partial<InsertPortfolioHolding>): Promise<PortfolioHolding | undefined>;
+  deletePortfolioHolding(id: number): Promise<void>;
+  
+  getWatchlist(): Promise<WatchlistItem[]>;
+  addToWatchlist(item: InsertWatchlistItem): Promise<WatchlistItem>;
+  removeFromWatchlist(id: number): Promise<void>;
+  
+  getCachedData(key: string): Promise<unknown | null>;
+  setCachedData(key: string, data: unknown, expiresInMinutes: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+class DatabaseStorage implements IStorage {
+  async getPortfolioHoldings(): Promise<PortfolioHolding[]> {
+    return db.select().from(portfolioHoldings).orderBy(desc(portfolioHoldings.createdAt));
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getPortfolioHolding(id: number): Promise<PortfolioHolding | undefined> {
+    const [holding] = await db.select().from(portfolioHoldings).where(eq(portfolioHoldings.id, id));
+    return holding;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async createPortfolioHolding(holding: InsertPortfolioHolding): Promise<PortfolioHolding> {
+    const [newHolding] = await db.insert(portfolioHoldings).values(holding).returning();
+    return newHolding;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async updatePortfolioHolding(id: number, holding: Partial<InsertPortfolioHolding>): Promise<PortfolioHolding | undefined> {
+    const [updated] = await db.update(portfolioHoldings)
+      .set({ ...holding, updatedAt: new Date() })
+      .where(eq(portfolioHoldings.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deletePortfolioHolding(id: number): Promise<void> {
+    await db.delete(portfolioHoldings).where(eq(portfolioHoldings.id, id));
+  }
+
+  async getWatchlist(): Promise<WatchlistItem[]> {
+    return db.select().from(watchlist).orderBy(desc(watchlist.addedAt));
+  }
+
+  async addToWatchlist(item: InsertWatchlistItem): Promise<WatchlistItem> {
+    const [newItem] = await db.insert(watchlist).values(item).returning();
+    return newItem;
+  }
+
+  async removeFromWatchlist(id: number): Promise<void> {
+    await db.delete(watchlist).where(eq(watchlist.id, id));
+  }
+
+  async getCachedData(key: string): Promise<unknown | null> {
+    const [cached] = await db.select().from(marketCache).where(eq(marketCache.cacheKey, key));
+    if (!cached) return null;
+    if (new Date() > cached.expiresAt) {
+      await db.delete(marketCache).where(eq(marketCache.cacheKey, key));
+      return null;
+    }
+    return cached.data;
+  }
+
+  async setCachedData(key: string, data: unknown, expiresInMinutes: number): Promise<void> {
+    const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+    await db.delete(marketCache).where(eq(marketCache.cacheKey, key));
+    await db.insert(marketCache).values({ cacheKey: key, data, expiresAt });
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
