@@ -113,39 +113,10 @@ export async function registerRoutes(
       }
       
       const marketsData = {
-        indices: data.indices || [
-          { symbol: "SPY", name: "S&P 500", price: 4567.89, change: 12.34, changePercent: 0.27 },
-          { symbol: "QQQ", name: "Nasdaq 100", price: 15234.56, change: -23.45, changePercent: -0.15 },
-          { symbol: "DIA", name: "Dow Jones", price: 35678.90, change: 45.67, changePercent: 0.13 },
-          { symbol: "IWM", name: "Russell 2000", price: 1987.65, change: -5.43, changePercent: -0.27 },
-          { symbol: "VIX", name: "Volatility Index", price: 15.67, change: -0.45, changePercent: -2.79 },
-          { symbol: "DXY", name: "US Dollar Index", price: 104.32, change: 0.23, changePercent: 0.22 },
-        ],
-        futures: data.futures || [
-          { symbol: "ES", name: "S&P 500 Futures", price: 4570.25, change: 8.50, changePercent: 0.19 },
-          { symbol: "NQ", name: "Nasdaq Futures", price: 15280.00, change: -15.75, changePercent: -0.10 },
-          { symbol: "YM", name: "Dow Futures", price: 35720.00, change: 35.00, changePercent: 0.10 },
-          { symbol: "RTY", name: "Russell Futures", price: 1992.30, change: -2.80, changePercent: -0.14 },
-        ],
-        commodities: data.commodities || [
-          { symbol: "GC", name: "Gold", price: 2045.30, change: 12.50, changePercent: 0.61 },
-          { symbol: "SI", name: "Silver", price: 24.87, change: 0.34, changePercent: 1.38 },
-          { symbol: "CL", name: "Crude Oil WTI", price: 78.45, change: -1.23, changePercent: -1.54 },
-          { symbol: "NG", name: "Natural Gas", price: 2.89, change: 0.05, changePercent: 1.76 },
-        ],
-        sectors: data.sectors || [
-          { name: "Technology", change: 1.24 },
-          { name: "Healthcare", change: -0.45 },
-          { name: "Financials", change: 0.67 },
-          { name: "Consumer Disc", change: 0.89 },
-          { name: "Energy", change: -1.23 },
-          { name: "Industrials", change: 0.34 },
-          { name: "Materials", change: 0.56 },
-          { name: "Utilities", change: -0.12 },
-          { name: "Real Estate", change: -0.78 },
-          { name: "Comm Services", change: 0.91 },
-          { name: "Consumer Staples", change: 0.23 },
-        ],
+        indices: data.indices || FALLBACK_INDICES,
+        futures: data.futures || FALLBACK_FUTURES,
+        commodities: data.commodities || FALLBACK_COMMODITIES,
+        sectors: data.sectors || FALLBACK_SECTORS,
         crypto: data.crypto || [],
       };
 
@@ -154,25 +125,10 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Markets API error:", error);
       res.json({
-        indices: [
-          { symbol: "SPY", name: "S&P 500", price: 4567.89, change: 12.34, changePercent: 0.27 },
-          { symbol: "QQQ", name: "Nasdaq 100", price: 15234.56, change: -23.45, changePercent: -0.15 },
-          { symbol: "DIA", name: "Dow Jones", price: 35678.90, change: 45.67, changePercent: 0.13 },
-          { symbol: "IWM", name: "Russell 2000", price: 1987.65, change: -5.43, changePercent: -0.27 },
-        ],
-        futures: [
-          { symbol: "ES", name: "S&P 500 Futures", price: 4570.25, change: 8.50, changePercent: 0.19 },
-          { symbol: "NQ", name: "Nasdaq Futures", price: 15280.00, change: -15.75, changePercent: -0.10 },
-        ],
-        commodities: [
-          { symbol: "GC", name: "Gold", price: 2045.30, change: 12.50, changePercent: 0.61 },
-          { symbol: "CL", name: "Crude Oil", price: 78.45, change: -1.23, changePercent: -1.54 },
-        ],
-        sectors: [
-          { name: "Technology", change: 1.24 },
-          { name: "Healthcare", change: -0.45 },
-          { name: "Financials", change: 0.67 },
-        ],
+        indices: FALLBACK_INDICES.slice(0, 4),
+        futures: FALLBACK_FUTURES.slice(0, 2),
+        commodities: FALLBACK_COMMODITIES.slice(0, 2),
+        sectors: FALLBACK_SECTORS.slice(0, 3),
         crypto: [],
       });
     }
@@ -185,48 +141,48 @@ export async function registerRoutes(
         return res.json(cached);
       }
 
-      const response = await fetch("https://api.laserbeamcapital.com/api/markets");
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      // Request deduplication: if a fetch is already in progress, wait for it
+      const cacheKey = "markets_full_fetch";
+      let fetchPromise = pendingRequests.get(cacheKey);
+      
+      if (!fetchPromise) {
+        fetchPromise = (async () => {
+          const response = await fetch("https://api.laserbeamcapital.com/api/markets");
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          const markets = data.markets || [];
+
+          // Group by category using module-scope transformMarketItem
+          const byCategory = (category: string) => 
+            markets.filter((m: any) => m.category === category || m.categoryGroup === category).map(transformMarketItem);
+
+          const marketsFullData = {
+            globalMarkets: byCategory("Global Markets"),
+            futures: byCategory("Futures"),
+            commodities: byCategory("Commodities"),
+            usaThematics: byCategory("USA Thematics"),
+            usaSectors: byCategory("USA Sectors"),
+            usaEqualWeight: byCategory("USA Equal Weight Sectors"),
+            asxSectors: byCategory("ASX Sectors"),
+            forex: byCategory("Forex"),
+            crypto: byCategory("Crypto"),
+            bonds: byCategory("Bonds"),
+            lastUpdated: new Date().toLocaleTimeString(),
+          };
+
+          await storage.setCachedData("markets_full", marketsFullData, 2);
+          return marketsFullData;
+        })();
+        
+        pendingRequests.set(cacheKey, fetchPromise);
+        fetchPromise.finally(() => pendingRequests.delete(cacheKey));
       }
 
-      const data = await response.json();
-      const markets = data.markets || [];
-      
-      // Transform external API data to match frontend expected format
-      const transformItem = (item: any) => ({
-        name: item.name,
-        ticker: item.ticker,
-        price: item.lastPrice || 0,
-        change1D: item.chgDay || 0,
-        change1M: item.chgMonth || 0,
-        change1Q: item.chgQtr || 0,
-        change1Y: item.chgYear || 0,
-        vs10D: item.pxVs10d || 0,
-        vs20D: item.pxVs20d || 0,
-        vs200D: item.pxVs200d || 0,
-      });
-
-      // Group by category
-      const byCategory = (category: string) => 
-        markets.filter((m: any) => m.category === category || m.categoryGroup === category).map(transformItem);
-
-      const marketsFullData = {
-        globalMarkets: byCategory("Global Markets"),
-        futures: byCategory("Futures"),
-        commodities: byCategory("Commodities"),
-        usaThematics: byCategory("USA Thematics"),
-        usaSectors: byCategory("USA Sectors"),
-        usaEqualWeight: byCategory("USA Equal Weight Sectors"),
-        asxSectors: byCategory("ASX Sectors"),
-        forex: byCategory("Forex"),
-        crypto: byCategory("Crypto"),
-        bonds: byCategory("Bonds"),
-        lastUpdated: new Date().toLocaleTimeString(),
-      };
-
-      await storage.setCachedData("markets_full", marketsFullData, 2);
-      res.json(marketsFullData);
+      const data = await fetchPromise;
+      res.json(data);
     } catch (error) {
       console.error("Markets full API error:", error);
       res.status(500).json({ error: "Failed to fetch markets data" });
@@ -374,9 +330,18 @@ export async function registerRoutes(
       let earningsCalendar: any[] = [];
       
       try {
-        const [quoteRes, profileRes] = await Promise.all([
+        // Build earnings calendar URL upfront so all 3 requests can run in parallel
+        const today = new Date();
+        const futureDate = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
+        const fromDate = today.toISOString().split('T')[0];
+        const toDate = futureDate.toISOString().split('T')[0];
+        const earningsUrl = `https://financialmodelingprep.com/api/v3/earning_calendar?from=${fromDate}&to=${toDate}&apikey=${process.env.FMP_API_KEY}`;
+
+        // Parallelize all 3 API calls for faster response
+        const [quoteRes, profileRes, earningsRes] = await Promise.all([
           fetchWithTimeout(quoteUrl, {}, 8000),
           fetchWithTimeout(`https://financialmodelingprep.com/api/v3/profile/${tickers}?apikey=${process.env.FMP_API_KEY}`, {}, 8000),
+          fetchWithTimeout(earningsUrl, {}, 8000),
         ]);
         
         if (quoteRes.ok) {
@@ -385,14 +350,6 @@ export async function registerRoutes(
         if (profileRes.ok) {
           profiles = await profileRes.json() as any[];
         }
-
-        // Fetch earnings calendar for next 60 days
-        const today = new Date();
-        const futureDate = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
-        const fromDate = today.toISOString().split('T')[0];
-        const toDate = futureDate.toISOString().split('T')[0];
-        const earningsUrl = `https://financialmodelingprep.com/api/v3/earning_calendar?from=${fromDate}&to=${toDate}&apikey=${process.env.FMP_API_KEY}`;
-        const earningsRes = await fetchWithTimeout(earningsUrl, {}, 8000);
         if (earningsRes.ok) {
           earningsCalendar = await earningsRes.json() as any[];
         }

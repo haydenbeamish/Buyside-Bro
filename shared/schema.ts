@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, decimal, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, decimal, timestamp, jsonb, boolean, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -94,7 +94,10 @@ export const usageLogs = pgTable("usage_logs", {
   costCents: integer("cost_cents").default(0).notNull(), // Cost in cents
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("usage_logs_user_id_idx").on(table.userId),
+  createdAtIdx: index("usage_logs_created_at_idx").on(table.createdAt),
+}));
 
 export const insertUsageLogSchema = createInsertSchema(usageLogs).omit({
   id: true,
@@ -115,7 +118,9 @@ export const newsFeed = pgTable("news_feed", {
   source: text("source").default("system"), // 'system', 'email', 'manual'
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => ({
+  publishedAtIdx: index("news_feed_published_at_idx").on(table.publishedAt),
+}));
 
 export const insertNewsFeedSchema = createInsertSchema(newsFeed).omit({
   id: true,

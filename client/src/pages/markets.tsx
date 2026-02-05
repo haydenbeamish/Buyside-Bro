@@ -32,13 +32,20 @@ interface MarketsData {
 
 function TickerTape({ items }: { items: MarketItem[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const itemsRef = useRef<MarketItem[]>(items);
   
+  // Update ref when items change without restarting animation
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+  
+  // Animation effect runs once on mount, doesn't restart when data refreshes
   useEffect(() => {
     const scrollContainer = scrollRef.current;
     if (!scrollContainer) return;
     
     let animationId: number;
-    let scrollPos = 0;
+    let scrollPos = scrollContainer.scrollLeft || 0;
     
     const scroll = () => {
       scrollPos += 1.5;
@@ -51,7 +58,7 @@ function TickerTape({ items }: { items: MarketItem[] }) {
     
     animationId = requestAnimationFrame(scroll);
     return () => cancelAnimationFrame(animationId);
-  }, [items]);
+  }, []);
 
   const duplicatedItems = [...items, ...items];
 
