@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -146,12 +145,12 @@ export default function ChatPage() {
   ];
 
   return (
-    <div className="flex h-[calc(100vh-64px)] max-h-[calc(100vh-64px)]">
-      <div className="hidden md:flex w-64 flex-col border-r border-border bg-card/50">
-        <div className="p-4 border-b border-border">
+    <div className="flex h-[calc(100vh-64px)] max-h-[calc(100vh-64px)] bg-black">
+      <div className="hidden md:flex w-64 flex-col border-r border-zinc-800 bg-zinc-950">
+        <div className="p-4 border-b border-zinc-800">
           <Button
             onClick={() => createMutation.mutate()}
-            className="w-full"
+            className="w-full bg-zinc-800 hover:bg-zinc-700 text-white"
             disabled={createMutation.isPending}
             data-testid="button-new-chat"
           >
@@ -163,26 +162,26 @@ export default function ChatPage() {
           <div className="p-2 space-y-1">
             {conversationsLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
+                <Skeleton key={i} className="h-10 w-full bg-zinc-800" />
               ))
             ) : conversations && conversations.length > 0 ? (
               conversations.map((conv) => (
                 <div
                   key={conv.id}
-                  className={`flex items-center gap-2 p-2 rounded-md cursor-pointer group hover-elevate ${
+                  className={`flex items-center gap-2 p-2 rounded-md cursor-pointer group hover:bg-zinc-800 transition-colors ${
                     activeConversationId === conv.id
-                      ? "bg-sidebar-accent"
+                      ? "bg-zinc-800"
                       : ""
                   }`}
                   onClick={() => setActiveConversationId(conv.id)}
                   data-testid={`conversation-${conv.id}`}
                 >
-                  <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <span className="text-sm truncate flex-1">{conv.title}</span>
+                  <MessageSquare className="h-4 w-4 text-zinc-500 flex-shrink-0" />
+                  <span className="text-sm text-zinc-300 truncate flex-1">{conv.title}</span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 text-zinc-500 hover:text-red-500"
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteMutation.mutate(conv.id);
@@ -194,7 +193,7 @@ export default function ChatPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-muted-foreground p-2">
+              <p className="text-sm text-zinc-500 p-2">
                 No conversations yet
               </p>
             )}
@@ -202,18 +201,18 @@ export default function ChatPage() {
         </ScrollArea>
       </div>
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col bg-black">
         {!activeConversationId ? (
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="max-w-md text-center space-y-6">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mx-auto">
-                <Sparkles className="h-8 w-8 text-primary" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10 mx-auto">
+                <Sparkles className="h-8 w-8 text-amber-500" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-foreground mb-2">
+                <h2 className="text-2xl font-bold text-white mb-2">
                   Ask Bro Anything
                 </h2>
-                <p className="text-muted-foreground">
+                <p className="text-zinc-500">
                   Your AI-powered financial assistant. Ask about markets, stocks,
                   investment strategies, or anything finance-related.
                 </p>
@@ -222,20 +221,21 @@ export default function ChatPage() {
                 onClick={() => createMutation.mutate()}
                 size="lg"
                 disabled={createMutation.isPending}
+                className="bg-zinc-800 hover:bg-zinc-700 text-white"
                 data-testid="button-start-chat"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Start a Conversation
               </Button>
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Try asking:</p>
+                <p className="text-xs text-zinc-500">Try asking:</p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {suggestedQuestions.slice(0, 2).map((q, i) => (
                     <Button
                       key={i}
                       variant="outline"
                       size="sm"
-                      className="text-xs"
+                      className="text-xs border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300"
                       onClick={() => {
                         createMutation.mutate();
                         setInputValue(q);
@@ -257,10 +257,10 @@ export default function ChatPage() {
                   <div className="space-y-4">
                     {Array.from({ length: 3 }).map((_, i) => (
                       <div key={i} className="flex gap-3">
-                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full bg-zinc-800" />
                         <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-full" />
-                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-4 w-full bg-zinc-800" />
+                          <Skeleton className="h-4 w-3/4 bg-zinc-800" />
                         </div>
                       </div>
                     ))}
@@ -277,35 +277,33 @@ export default function ChatPage() {
                         <AvatarFallback
                           className={
                             msg.role === "user"
-                              ? "bg-primary/10"
-                              : "bg-accent/10"
+                              ? "bg-zinc-700"
+                              : "bg-amber-500/10"
                           }
                         >
                           {msg.role === "user" ? (
-                            <User className="h-4 w-4" />
+                            <User className="h-4 w-4 text-zinc-300" />
                           ) : (
-                            <Sparkles className="h-4 w-4 text-primary" />
+                            <Sparkles className="h-4 w-4 text-amber-500" />
                           )}
                         </AvatarFallback>
                       </Avatar>
-                      <Card
-                        className={`max-w-[80%] ${
+                      <div
+                        className={`max-w-[80%] rounded-lg p-3 ${
                           msg.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : ""
+                            ? "bg-zinc-800 text-white"
+                            : "bg-zinc-900 border border-zinc-800 text-zinc-300"
                         }`}
                       >
-                        <CardContent className="p-3">
-                          <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                            {msg.content}
-                          </p>
-                        </CardContent>
-                      </Card>
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                          {msg.content}
+                        </p>
+                      </div>
                     </div>
                   ))
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-zinc-500 text-sm">
                       Start the conversation by sending a message.
                     </p>
                   </div>
@@ -314,17 +312,15 @@ export default function ChatPage() {
                 {streamingMessage && (
                   <div className="flex gap-3">
                     <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarFallback className="bg-accent/10">
-                        <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                      <AvatarFallback className="bg-amber-500/10">
+                        <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
                       </AvatarFallback>
                     </Avatar>
-                    <Card className="max-w-[80%]">
-                      <CardContent className="p-3">
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                          {streamingMessage}
-                        </p>
-                      </CardContent>
-                    </Card>
+                    <div className="max-w-[80%] rounded-lg p-3 bg-zinc-900 border border-zinc-800">
+                      <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                        {streamingMessage}
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -332,14 +328,14 @@ export default function ChatPage() {
               </div>
             </ScrollArea>
 
-            <div className="border-t border-border p-4">
+            <div className="border-t border-zinc-800 p-4">
               <div className="max-w-3xl mx-auto flex gap-2">
                 <Textarea
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Ask me anything about finance..."
-                  className="min-h-[44px] max-h-32 resize-none"
+                  className="min-h-[44px] max-h-32 resize-none bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500"
                   disabled={isStreaming}
                   data-testid="input-chat-message"
                 />
@@ -347,6 +343,7 @@ export default function ChatPage() {
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim() || isStreaming}
                   size="icon"
+                  className="bg-zinc-800 hover:bg-zinc-700"
                   data-testid="button-send-message"
                 >
                   {isStreaming ? (

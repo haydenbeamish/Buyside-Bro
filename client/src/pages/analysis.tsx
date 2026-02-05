@@ -1,19 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PriceChange } from "@/components/price-change";
 import {
-  TrendingUp,
   Search,
-  Building2,
-  DollarSign,
-  BarChart3,
-  Percent,
   ArrowRight,
   Sparkles,
 } from "lucide-react";
@@ -46,6 +39,15 @@ interface AIAnalysis {
   summary: string;
   sentiment: "bullish" | "bearish" | "neutral";
   keyPoints: string[];
+}
+
+function PercentDisplay({ value }: { value: number }) {
+  const color = value >= 0 ? "text-green-500" : "text-red-500";
+  return (
+    <span className={`font-mono ${color}`}>
+      {value >= 0 ? "+" : ""}{value.toFixed(2)}%
+    </span>
+  );
 }
 
 export default function AnalysisPage() {
@@ -89,51 +91,55 @@ export default function AnalysisPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-          <TrendingUp className="h-7 w-7 text-primary" />
-          Stock Analysis
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Deep dive into company fundamentals with AI-powered insights
-        </p>
-      </div>
-
-      <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Enter ticker symbol (e.g., AAPL)"
-            value={searchTicker}
-            onChange={(e) => setSearchTicker(e.target.value)}
-            className="pl-10 font-mono uppercase"
-            data-testid="input-search-ticker"
-          />
+    <div className="min-h-screen bg-black text-white">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="mb-6">
+          <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+            STOCK ANALYSIS
+          </h1>
+          <p className="text-zinc-500">
+            Deep dive into company fundamentals with AI-powered insights
+          </p>
         </div>
-        <Button type="submit" data-testid="button-search">
-          <ArrowRight className="h-4 w-4" />
-        </Button>
-      </form>
 
-      {!activeTicker ? (
-        <Card className="border-dashed">
-          <CardContent className="py-16 text-center">
-            <Search className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="font-semibold text-foreground mb-2">
+        <form onSubmit={handleSearch} className="flex gap-2 max-w-md mb-8">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+            <Input
+              type="search"
+              placeholder="Enter ticker symbol (e.g., AAPL)"
+              value={searchTicker}
+              onChange={(e) => setSearchTicker(e.target.value)}
+              className="pl-10 bg-zinc-900 border-zinc-800 text-white font-mono uppercase placeholder:normal-case placeholder:font-sans"
+              data-testid="input-search-ticker"
+            />
+          </div>
+          <Button 
+            type="submit" 
+            variant="outline"
+            className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+            data-testid="button-search"
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </form>
+
+        {!activeTicker ? (
+          <div className="bg-zinc-900 border border-zinc-800 border-dashed rounded-lg py-16 text-center">
+            <Search className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+            <h3 className="font-semibold text-white mb-2">
               Search for a stock to analyze
             </h3>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
               Enter a ticker symbol above to see company profile, financial metrics,
               and AI-powered analysis.
             </p>
-            <div className="flex flex-wrap gap-2 justify-center mt-6">
+            <div className="flex flex-wrap gap-2 justify-center">
               {["AAPL", "MSFT", "GOOGL", "NVDA", "TSLA"].map((ticker) => (
                 <Badge
                   key={ticker}
-                  variant="secondary"
-                  className="cursor-pointer hover-elevate"
+                  variant="outline"
+                  className="cursor-pointer border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
                   onClick={() => {
                     setSearchTicker(ticker);
                     setActiveTicker(ticker);
@@ -144,114 +150,105 @@ export default function AnalysisPage() {
                 </Badge>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {profileLoading ? (
-            <Card>
-              <CardContent className="p-6">
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {profileLoading ? (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2">
-                    <Skeleton className="h-8 w-32" />
-                    <Skeleton className="h-4 w-48" />
-                    <div className="flex gap-2 mt-2">
-                      <Skeleton className="h-5 w-20" />
-                      <Skeleton className="h-5 w-24" />
-                    </div>
+                    <Skeleton className="h-8 w-32 bg-zinc-800" />
+                    <Skeleton className="h-4 w-48 bg-zinc-800" />
                   </div>
                   <div className="text-right space-y-2">
-                    <Skeleton className="h-10 w-28 ml-auto" />
-                    <Skeleton className="h-5 w-20 ml-auto" />
+                    <Skeleton className="h-10 w-28 ml-auto bg-zinc-800" />
+                    <Skeleton className="h-5 w-20 ml-auto bg-zinc-800" />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ) : profile ? (
-            <Card>
-              <CardContent className="p-6">
+              </div>
+            ) : profile ? (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
-                      <h2 className="text-2xl font-bold font-mono">
+                      <h2 className="text-2xl font-bold font-mono text-white">
                         {profile.symbol}
                       </h2>
-                      <Badge variant="outline">{profile.exchange}</Badge>
+                      <Badge variant="outline" className="border-zinc-700 text-zinc-400">
+                        {profile.exchange}
+                      </Badge>
                     </div>
-                    <p className="text-lg text-foreground mb-2">
+                    <p className="text-lg text-zinc-300 mb-2">
                       {profile.companyName}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary">
-                        <Building2 className="h-3 w-3 mr-1" />
+                      <Badge variant="outline" className="border-zinc-700 text-zinc-400">
                         {profile.sector}
                       </Badge>
-                      <Badge variant="secondary">{profile.industry}</Badge>
-                      <Badge variant="secondary">
+                      <Badge variant="outline" className="border-zinc-700 text-zinc-400">
+                        {profile.industry}
+                      </Badge>
+                      <Badge variant="outline" className="border-zinc-700 text-zinc-400">
                         {formatMarketCap(profile.marketCap)} Market Cap
                       </Badge>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-bold font-mono">
+                    <p className="text-3xl font-bold font-mono text-white">
                       ${profile.price.toFixed(2)}
                     </p>
-                    <PriceChange value={profile.changesPercentage} />
+                    <PercentDisplay value={profile.changesPercentage} />
                   </div>
                 </div>
                 {profile.description && (
-                  <p className="mt-4 text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                  <p className="mt-4 text-sm text-zinc-500 leading-relaxed line-clamp-3">
                     {profile.description}
                   </p>
                 )}
-              </CardContent>
-            </Card>
-          ) : null}
+              </div>
+            ) : null}
 
-          {aiLoading ? (
-            <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
-              <CardContent className="p-6">
+            {aiLoading ? (
+              <div className="bg-zinc-900 border border-amber-500/20 rounded-lg p-6">
                 <div className="flex items-start gap-3">
-                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <Skeleton className="h-10 w-10 rounded-full bg-zinc-800" />
                   <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-40" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-5 w-40 bg-zinc-800" />
+                    <Skeleton className="h-4 w-full bg-zinc-800" />
+                    <Skeleton className="h-4 w-3/4 bg-zinc-800" />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ) : aiAnalysis ? (
-            <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
-              <CardContent className="p-6">
+              </div>
+            ) : aiAnalysis ? (
+              <div className="bg-zinc-900 border border-amber-500/20 rounded-lg p-6">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                    <Sparkles className="h-5 w-5 text-primary" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
+                    <Sparkles className="h-5 w-5 text-amber-500" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-semibold text-foreground">AI Analysis</h3>
+                      <h3 className="font-semibold text-white">AI Analysis</h3>
                       <Badge
-                        variant="secondary"
+                        variant="outline"
                         className={
                           aiAnalysis.sentiment === "bullish"
-                            ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                            ? "border-green-500/50 text-green-500"
                             : aiAnalysis.sentiment === "bearish"
-                            ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                            : "bg-muted text-muted-foreground"
+                            ? "border-red-500/50 text-red-500"
+                            : "border-zinc-600 text-zinc-400"
                         }
                       >
                         {aiAnalysis.sentiment}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                    <p className="text-sm text-zinc-400 leading-relaxed mb-4">
                       {aiAnalysis.summary}
                     </p>
                     {aiAnalysis.keyPoints && aiAnalysis.keyPoints.length > 0 && (
                       <ul className="space-y-1">
                         {aiAnalysis.keyPoints.map((point, i) => (
-                          <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                            <span className="text-primary mt-1">•</span>
+                          <li key={i} className="text-sm text-zinc-400 flex items-start gap-2">
+                            <span className="text-amber-500 mt-1">•</span>
                             {point}
                           </li>
                         ))}
@@ -259,189 +256,182 @@ export default function AnalysisPage() {
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ) : null}
+              </div>
+            ) : null}
 
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList>
-              <TabsTrigger value="overview" data-testid="tab-overview">
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="financials" data-testid="tab-financials">
-                Financials
-              </TabsTrigger>
-              <TabsTrigger value="ratios" data-testid="tab-ratios">
-                Ratios
-              </TabsTrigger>
-            </TabsList>
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="bg-transparent border-b border-zinc-800 w-full justify-start rounded-none h-auto p-0 mb-6">
+                <TabsTrigger 
+                  value="overview"
+                  className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+                  data-testid="tab-overview"
+                >
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="financials"
+                  className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+                  data-testid="tab-financials"
+                >
+                  Financials
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="ratios"
+                  className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+                  data-testid="tab-ratios"
+                >
+                  Ratios
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="overview" className="mt-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <DollarSign className="h-4 w-4" />
-                      <span className="text-xs font-medium">Revenue</span>
-                    </div>
+              <TabsContent value="overview">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                    <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Revenue</p>
                     {financialsLoading ? (
-                      <Skeleton className="h-6 w-24" />
+                      <Skeleton className="h-6 w-24 bg-zinc-800" />
                     ) : (
-                      <p className="text-xl font-bold font-mono">
+                      <p className="text-xl font-bold font-mono text-white">
                         {formatNumber(financials?.revenue, "$")}
                       </p>
                     )}
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <BarChart3 className="h-4 w-4" />
-                      <span className="text-xs font-medium">Net Income</span>
-                    </div>
+                  </div>
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                    <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Net Income</p>
                     {financialsLoading ? (
-                      <Skeleton className="h-6 w-24" />
+                      <Skeleton className="h-6 w-24 bg-zinc-800" />
                     ) : (
-                      <p className="text-xl font-bold font-mono">
+                      <p className="text-xl font-bold font-mono text-white">
                         {formatNumber(financials?.netIncome, "$")}
                       </p>
                     )}
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <span className="text-xs font-medium">EPS</span>
-                    </div>
+                  </div>
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                    <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">EPS</p>
                     {financialsLoading ? (
-                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-6 w-16 bg-zinc-800" />
                     ) : (
-                      <p className="text-xl font-bold font-mono">
+                      <p className="text-xl font-bold font-mono text-white">
                         ${financials?.eps?.toFixed(2) || "N/A"}
                       </p>
                     )}
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                      <Percent className="h-4 w-4" />
-                      <span className="text-xs font-medium">Dividend Yield</span>
-                    </div>
+                  </div>
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                    <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Dividend Yield</p>
                     {financialsLoading ? (
-                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-6 w-16 bg-zinc-800" />
                     ) : (
-                      <p className="text-xl font-bold font-mono">
+                      <p className="text-xl font-bold font-mono text-white">
                         {financials?.dividendYield
                           ? `${(financials.dividendYield * 100).toFixed(2)}%`
                           : "N/A"}
                       </p>
                     )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
+                  </div>
+                </div>
+              </TabsContent>
 
-            <TabsContent value="financials" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Financial Metrics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {financialsLoading ? (
-                    <div className="space-y-4">
-                      {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="flex justify-between">
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-4 w-20" />
+              <TabsContent value="financials">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
+                  <div className="p-4 border-b border-zinc-800">
+                    <h3 className="text-lg font-semibold">Financial Metrics</h3>
+                  </div>
+                  <div className="p-4">
+                    {financialsLoading ? (
+                      <div className="space-y-4">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <div key={i} className="flex justify-between">
+                            <Skeleton className="h-4 w-24 bg-zinc-800" />
+                            <Skeleton className="h-4 w-20 bg-zinc-800" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : financials ? (
+                      <div className="space-y-4">
+                        <div className="flex justify-between py-2 border-b border-zinc-800">
+                          <span className="text-zinc-500">Revenue (TTM)</span>
+                          <span className="font-mono font-medium text-white">
+                            {formatNumber(financials.revenue, "$")}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  ) : financials ? (
-                    <div className="space-y-4">
-                      <div className="flex justify-between py-2 border-b border-border">
-                        <span className="text-muted-foreground">Revenue (TTM)</span>
-                        <span className="font-mono font-medium">
-                          {formatNumber(financials.revenue, "$")}
-                        </span>
+                        <div className="flex justify-between py-2 border-b border-zinc-800">
+                          <span className="text-zinc-500">Net Income (TTM)</span>
+                          <span className="font-mono font-medium text-white">
+                            {formatNumber(financials.netIncome, "$")}
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-zinc-800">
+                          <span className="text-zinc-500">Earnings Per Share</span>
+                          <span className="font-mono font-medium text-white">
+                            ${financials.eps?.toFixed(2) || "N/A"}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between py-2 border-b border-border">
-                        <span className="text-muted-foreground">Net Income (TTM)</span>
-                        <span className="font-mono font-medium">
-                          {formatNumber(financials.netIncome, "$")}
-                        </span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-border">
-                        <span className="text-muted-foreground">Earnings Per Share</span>
-                        <span className="font-mono font-medium">
-                          ${financials.eps?.toFixed(2) || "N/A"}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">
-                      No financial data available
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                    ) : (
+                      <p className="text-zinc-500 text-center py-8">
+                        No financial data available
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
 
-            <TabsContent value="ratios" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Valuation Ratios</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {financialsLoading ? (
-                    <div className="space-y-4">
-                      {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="flex justify-between">
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-4 w-16" />
+              <TabsContent value="ratios">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
+                  <div className="p-4 border-b border-zinc-800">
+                    <h3 className="text-lg font-semibold">Valuation Ratios</h3>
+                  </div>
+                  <div className="p-4">
+                    {financialsLoading ? (
+                      <div className="space-y-4">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="flex justify-between">
+                            <Skeleton className="h-4 w-24 bg-zinc-800" />
+                            <Skeleton className="h-4 w-16 bg-zinc-800" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : financials ? (
+                      <div className="space-y-4">
+                        <div className="flex justify-between py-2 border-b border-zinc-800">
+                          <span className="text-zinc-500">P/E Ratio</span>
+                          <span className="font-mono font-medium text-white">
+                            {financials.peRatio?.toFixed(2) || "N/A"}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  ) : financials ? (
-                    <div className="space-y-4">
-                      <div className="flex justify-between py-2 border-b border-border">
-                        <span className="text-muted-foreground">P/E Ratio</span>
-                        <span className="font-mono font-medium">
-                          {financials.peRatio?.toFixed(2) || "N/A"}
-                        </span>
+                        <div className="flex justify-between py-2 border-b border-zinc-800">
+                          <span className="text-zinc-500">P/B Ratio</span>
+                          <span className="font-mono font-medium text-white">
+                            {financials.pbRatio?.toFixed(2) || "N/A"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-zinc-800">
+                          <span className="text-zinc-500">ROE</span>
+                          <span className="font-mono font-medium text-white">
+                            {financials.roe
+                              ? `${(financials.roe * 100).toFixed(2)}%`
+                              : "N/A"}
+                          </span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b border-zinc-800">
+                          <span className="text-zinc-500">Debt/Equity</span>
+                          <span className="font-mono font-medium text-white">
+                            {financials.debtToEquity?.toFixed(2) || "N/A"}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex justify-between py-2 border-b border-border">
-                        <span className="text-muted-foreground">P/B Ratio</span>
-                        <span className="font-mono font-medium">
-                          {financials.pbRatio?.toFixed(2) || "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-border">
-                        <span className="text-muted-foreground">ROE</span>
-                        <span className="font-mono font-medium">
-                          {financials.roe
-                            ? `${(financials.roe * 100).toFixed(2)}%`
-                            : "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between py-2 border-b border-border">
-                        <span className="text-muted-foreground">Debt/Equity</span>
-                        <span className="font-mono font-medium">
-                          {financials.debtToEquity?.toFixed(2) || "N/A"}
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">
-                      No ratio data available
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      )}
+                    ) : (
+                      <p className="text-zinc-500 text-center py-8">
+                        No ratio data available
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

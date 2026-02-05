@@ -58,7 +58,7 @@ export function registerChatRoutes(app: Express): void {
   app.post("/api/conversations/:id/messages", async (req: Request, res: Response) => {
     try {
       const conversationId = parseInt(req.params.id as string);
-      const { content, model = "meta-llama/llama-3.3-70b-instruct" } = req.body;
+      const { content, model = "moonshotai/kimi-k2.5" } = req.body;
 
       await chatStorage.createMessage(conversationId, "user", content);
 

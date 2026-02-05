@@ -230,7 +230,7 @@ export async function registerRoutes(
       }
 
       const completion = await openrouter.chat.completions.create({
-        model: "meta-llama/llama-3.3-70b-instruct",
+        model: "moonshotai/kimi-k2.5",
         messages: [
           {
             role: "system",
@@ -318,7 +318,7 @@ export async function registerRoutes(
 
   app.delete("/api/portfolio/:id", async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = parseInt(req.params.id as string);
       await storage.deletePortfolioHolding(id);
       res.status(204).send();
     } catch (error) {
@@ -374,7 +374,7 @@ export async function registerRoutes(
       ).join(", ");
 
       const completion = await openrouter.chat.completions.create({
-        model: "meta-llama/llama-3.3-70b-instruct",
+        model: "moonshotai/kimi-k2.5",
         messages: [
           {
             role: "system",
@@ -467,7 +467,7 @@ export async function registerRoutes(
       const ticker = req.params.ticker as string;
       
       const completion = await openrouter.chat.completions.create({
-        model: "meta-llama/llama-3.3-70b-instruct",
+        model: "moonshotai/kimi-k2.5",
         messages: [
           {
             role: "system",
