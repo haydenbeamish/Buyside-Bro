@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import logoImg from "@assets/image_1770291732587.png";
-import heroImg from "@assets/image_1770293552326.png";
+import heroImg from "@assets/image_1770294302519.png";
 
 interface TickerItem {
   symbol: string;
