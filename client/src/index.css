@@ -284,7 +284,7 @@
   }
 
   .ticker-scroll {
-    animation: ticker-scroll 30s linear infinite;
+    animation: ticker-scroll 12s linear infinite;
   }
 
   /* Glow pulse animation */
