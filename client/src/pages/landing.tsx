@@ -4,9 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { 
   TrendingUp, BarChart3, 
   Twitter, Menu, X, Calendar, Briefcase, Bot, Newspaper,
-  ArrowRight, CheckCircle2
+  ArrowRight, CheckCircle2, LogOut
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
+import { useAuth } from "@/hooks/use-auth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import logoImg from "@assets/image_1770296632105.png";
 import heroImg from "@assets/image_1770297600939.png";
 
@@ -51,6 +53,7 @@ function TickerTape() {
 
 function TopNav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, isLoading, isAuthenticated } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm">
@@ -71,11 +74,27 @@ function TopNav() {
             <Link href="#features" className="text-zinc-300 hover:text-white transition-colors uppercase text-sm tracking-widest font-medium">
               Features
             </Link>
-            <Link href="/dashboard">
-              <button className="border border-green-500 text-green-500 hover:bg-green-500/10 px-5 py-2 rounded text-sm uppercase tracking-wider font-medium transition-all" data-testid="button-member-login">
-                Member Login
-              </button>
-            </Link>
+            {isAuthenticated && user ? (
+              <div className="flex items-center gap-4">
+                <Link href="/dashboard">
+                  <Avatar className="w-8 h-8 cursor-pointer border border-green-500/50">
+                    <AvatarImage src={user.profileImageUrl || undefined} />
+                    <AvatarFallback className="bg-green-900/30 text-green-400 text-xs">
+                      {user.firstName?.[0] || user.email?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
+                <a href="/api/logout" className="text-zinc-400 hover:text-red-400 transition-colors" data-testid="button-logout">
+                  <LogOut className="w-5 h-5" />
+                </a>
+              </div>
+            ) : (
+              <a href="/api/login">
+                <button className="border border-green-500 text-green-500 hover:bg-green-500/10 px-5 py-2 rounded text-sm uppercase tracking-wider font-medium transition-all" data-testid="button-member-login">
+                  Sign In
+                </button>
+              </a>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -101,11 +120,26 @@ function TopNav() {
                 Features
               </div>
             </Link>
-            <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-              <button className="border border-green-500 text-green-500 w-full px-5 py-2 rounded text-sm uppercase tracking-wider font-medium mt-2" data-testid="button-member-login-mobile">
-                Member Login
-              </button>
-            </Link>
+            {isAuthenticated && user ? (
+              <div className="flex items-center gap-3 py-2">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={user.profileImageUrl || undefined} />
+                  <AvatarFallback className="bg-green-900/30 text-green-400 text-xs">
+                    {user.firstName?.[0] || user.email?.[0]?.toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-white text-sm">{user.firstName || user.email?.split("@")[0]}</span>
+                <a href="/api/logout" className="ml-auto text-zinc-400 hover:text-red-400 transition-colors" data-testid="button-logout-mobile">
+                  <LogOut className="w-5 h-5" />
+                </a>
+              </div>
+            ) : (
+              <a href="/api/login" onClick={() => setMobileMenuOpen(false)}>
+                <button className="border border-green-500 text-green-500 w-full px-5 py-2 rounded text-sm uppercase tracking-wider font-medium mt-2" data-testid="button-member-login-mobile">
+                  Sign In
+                </button>
+              </a>
+            )}
           </div>
         )}
       </div>

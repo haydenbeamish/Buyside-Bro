@@ -1,7 +1,10 @@
 import { Link, useLocation } from "wouter";
 import { ReactNode } from "react";
-import { LayoutGrid, Briefcase, TrendingUp, Calendar, Newspaper, MessageSquare, ChevronRight, Menu, X, Sparkles } from "lucide-react";
+import { LayoutGrid, Briefcase, TrendingUp, Calendar, Newspaper, MessageSquare, ChevronRight, Menu, X, Sparkles, CreditCard, LogOut, User } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import logoImg from "@assets/image_1770291732587.png";
 
 interface DashboardLayoutProps {
@@ -21,6 +24,7 @@ const navItems = [
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, isLoading, isAuthenticated } = useAuth();
 
   return (
     <div className="min-h-screen bg-black flex">
@@ -79,12 +83,49 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </nav>
           
           {/* Bottom section */}
-          <div className="p-4 border-t border-green-900/30">
-            <Link href="/">
-              <button className="w-full neon-button px-4 py-2 rounded text-sm flex items-center justify-center gap-1">
-                Home <ChevronRight className="w-4 h-4" />
-              </button>
+          <div className="p-4 border-t border-green-900/30 space-y-3">
+            {/* Subscription Link */}
+            <Link href="/dashboard/subscription" onClick={() => setSidebarOpen(false)}>
+              <div
+                className={`
+                  flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200
+                  ${location === '/dashboard/subscription' 
+                    ? 'bg-green-900/20 border border-green-900/40 text-green-400' 
+                    : 'text-zinc-400 hover:text-green-400 hover:bg-green-900/10'
+                  }
+                `}
+                data-testid="nav-subscription"
+              >
+                <CreditCard className="w-5 h-5" />
+                <span className="text-sm font-medium">Subscription</span>
+              </div>
             </Link>
+
+            {/* User Profile */}
+            {isAuthenticated && user ? (
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-md bg-zinc-900/50">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={user.profileImageUrl || undefined} />
+                  <AvatarFallback className="bg-green-900/30 text-green-400">
+                    {user.firstName?.[0] || user.email?.[0]?.toUpperCase() || <User className="w-4 h-4" />}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white truncate">
+                    {user.firstName || user.email?.split("@")[0] || "User"}
+                  </p>
+                </div>
+                <a href="/api/logout" className="p-1.5 text-zinc-400 hover:text-red-400 transition-colors" data-testid="button-logout">
+                  <LogOut className="w-4 h-4" />
+                </a>
+              </div>
+            ) : (
+              <a href="/api/login">
+                <Button className="w-full neon-button" data-testid="button-login">
+                  Sign In
+                </Button>
+              </a>
+            )}
           </div>
         </div>
       </aside>

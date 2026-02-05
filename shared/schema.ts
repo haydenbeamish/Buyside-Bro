@@ -3,22 +3,12 @@ import { pgTable, text, varchar, serial, integer, decimal, timestamp, jsonb, boo
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+// Re-export auth models (users, sessions)
+export * from "./models/auth";
 
 export const portfolioHoldings = pgTable("portfolio_holdings", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
   ticker: text("ticker").notNull(),
   shares: decimal("shares", { precision: 18, scale: 8 }).notNull(),
   avgCost: decimal("avg_cost", { precision: 18, scale: 4 }).notNull(),
@@ -31,6 +21,7 @@ export const portfolioHoldings = pgTable("portfolio_holdings", {
 
 export const insertPortfolioHoldingSchema = createInsertSchema(portfolioHoldings).omit({
   id: true,
+  userId: true,
   createdAt: true,
   updatedAt: true,
 });

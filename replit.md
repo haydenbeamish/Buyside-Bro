@@ -32,12 +32,36 @@ Preferred communication style: Simple, everyday language.
 ### Route Structure
 - **Landing Page** (`/`): Hero section with scrolling ticker tape, features cards, CTA section, footer
 - **Dashboard** (`/dashboard/*`): All authenticated pages use DashboardLayout component with sidebar navigation
-  - `/dashboard/markets` - Markets data with category tabs
+  - `/dashboard` or `/dashboard/markets` - Markets data with category tabs
   - `/dashboard/portfolio` - Portfolio tracker
   - `/dashboard/analysis` - Stock analysis with AI
   - `/dashboard/earnings` - Earnings calendar
   - `/dashboard/news` - Financial news feed
   - `/dashboard/chat` - AI chat assistant
+  - `/dashboard/subscription` - Subscription management page
+
+### Authentication
+- **Provider**: Replit Auth (OpenID Connect) supporting Google, Apple, GitHub, X, and email/password login
+- **Auth Routes** (Express, not client routes):
+  - `/api/login` - Begin login flow
+  - `/api/logout` - Begin logout flow
+  - `/api/auth/user` - Get current authenticated user
+  - `/api/callback` - OAuth callback handler
+- **Session**: PostgreSQL-backed sessions with 7-day TTL
+- **Middleware**: `isAuthenticated` middleware for protected routes
+- **Client Hook**: `useAuth()` hook provides user, isLoading, isAuthenticated, logout
+
+### Subscription System
+- **Provider**: Stripe with stripe-replit-sync for webhook management
+- **Pricing**: $10/month with 14-day free trial
+- **Product**: "Buy Side Bro Pro" subscription
+- **API Endpoints**:
+  - `GET /api/subscription/products` - List available products/prices
+  - `GET /api/subscription/status` - Get user's subscription status (authenticated)
+  - `POST /api/subscription/checkout` - Create Stripe checkout session (authenticated)
+  - `POST /api/subscription/portal` - Create customer billing portal session (authenticated)
+  - `GET /api/stripe/publishable-key` - Get Stripe publishable key for frontend
+  - `POST /api/stripe/webhook` - Stripe webhook endpoint (raw body, before express.json())
 
 The frontend follows a page-based structure with shared components. The application uses a sidebar navigation pattern with responsive design for mobile devices.
 
