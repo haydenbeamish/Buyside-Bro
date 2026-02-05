@@ -468,22 +468,6 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        {analysis && (
-          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-6 mb-8">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
-                <Sparkles className="h-5 w-5 text-green-500" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-white mb-2">Quick Take</h3>
-                <p className="text-sm text-zinc-400 leading-relaxed">
-                  {analysis.analysis}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <h2 className="text-lg font-semibold mb-4">Holdings</h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
