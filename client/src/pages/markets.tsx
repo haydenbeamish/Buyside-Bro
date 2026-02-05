@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 interface MarketItem {
@@ -28,11 +27,6 @@ interface MarketsData {
   lastUpdated: string;
 }
 
-interface MarketSummary {
-  summary: string;
-  generatedAt: string;
-  cached?: boolean;
-}
 
 function TickerTape({ items }: { items: MarketItem[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -277,16 +271,9 @@ function MarketsTable({ items, isLoading }: { items: MarketItem[]; isLoading: bo
 }
 
 export default function MarketsPage() {
-  const [summaryOpen, setSummaryOpen] = useState(true);
-  
   const { data: markets, isLoading } = useQuery<MarketsData>({
     queryKey: ["/api/markets/full"],
     refetchInterval: 60000,
-  });
-
-  const { data: summary } = useQuery<MarketSummary>({
-    queryKey: ["/api/markets/summary"],
-    refetchInterval: 300000,
   });
 
   const tickerItems = markets?.globalMarkets || [];
@@ -394,28 +381,6 @@ export default function MarketsPage() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-8 border-t border-zinc-800 pt-6">
-          <button 
-            onClick={() => setSummaryOpen(!summaryOpen)}
-            className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors w-full justify-between"
-            data-testid="button-toggle-summary"
-          >
-            <span className="text-sm font-medium uppercase tracking-wide">Market Summary</span>
-            {summaryOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
-          
-          {summaryOpen && summary && (
-            <div className="mt-4 text-zinc-400 text-sm leading-relaxed">
-              <div 
-                className="text-zinc-300 whitespace-pre-wrap [&_b]:text-green-500 [&_b]:font-semibold"
-                dangerouslySetInnerHTML={{ __html: summary.summary }}
-              />
-              <p className="text-zinc-600 text-xs mt-3">
-                Last updated: {new Date(summary.generatedAt).toLocaleString()}
-              </p>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

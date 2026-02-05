@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { ReactNode } from "react";
-import { LayoutGrid, Briefcase, TrendingUp, Calendar, Newspaper, MessageSquare, ChevronRight, Menu, X } from "lucide-react";
+import { LayoutGrid, Briefcase, TrendingUp, Calendar, Newspaper, MessageSquare, ChevronRight, Menu, X, Sparkles } from "lucide-react";
 import { useState } from "react";
 import logoImg from "@assets/image_1770291732587.png";
 
@@ -9,6 +9,7 @@ interface DashboardLayoutProps {
 }
 
 const navItems = [
+  { path: "/whats-up", label: "What's Up?", icon: Sparkles },
   { path: "/dashboard", label: "Markets", icon: LayoutGrid },
   { path: "/portfolio", label: "Portfolio", icon: Briefcase },
   { path: "/analysis", label: "Analysis", icon: TrendingUp },

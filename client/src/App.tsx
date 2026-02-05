@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/lib/theme-provider";
 import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing";
 import DashboardLayout from "@/components/dashboard-layout";
+import WhatsUpPage from "@/pages/whats-up";
 import MarketsPage from "@/pages/markets";
 import PortfolioPage from "@/pages/portfolio";
 import AnalysisPage from "@/pages/analysis";
@@ -18,6 +19,7 @@ function DashboardRoutes() {
   return (
     <DashboardLayout>
       <Switch>
+        <Route path="/whats-up" component={WhatsUpPage} />
         <Route path="/dashboard" component={MarketsPage} />
         <Route path="/portfolio" component={PortfolioPage} />
         <Route path="/analysis" component={AnalysisPage} />
@@ -34,6 +36,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
+      <Route path="/whats-up" component={DashboardRoutes} />
       <Route path="/dashboard" component={DashboardRoutes} />
       <Route path="/portfolio" component={DashboardRoutes} />
       <Route path="/analysis" component={DashboardRoutes} />
