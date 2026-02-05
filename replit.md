@@ -153,6 +153,13 @@ The server handles API routes, serves the static frontend in production, and man
   - `/api/fundamental-analysis/jobs/{jobId}` - GET endpoint to poll job status
   - `/api/fundamental-analysis/jobs/{jobId}/result` - GET endpoint to fetch analysis result
 
+### Laser Beam Capital Data Sources
+The Laser Beam Capital API (laserbeamnode) sources its portfolio dashboard data from:
+- **Market Cap**: Yahoo Finance quote summary
+- **P/E Ratio (Trailing)**: Yahoo Finance
+- **P/E Ratio (Forward)**: FMP analyst estimates (price / estimated forward EPS), with Yahoo Finance forward P/E as fallback
+- **Next Earnings Date**: Alpha Vantage earnings calendar (full calendar loaded, matched per ticker)
+
 ### Deep Analysis Feature
 The stock analysis page uses an async job workflow for comprehensive fundamental analysis:
 - **Mode Detection**: Automatically determines analysis mode (preview/review/deep_dive) based on earnings timing
