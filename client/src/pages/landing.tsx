@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { 
-  Search, TrendingUp, MessageSquare, ChevronRight, BarChart3, Zap, 
-  Users, Twitter, Menu, X, Calendar, Briefcase, Bot, Newspaper,
+  Search, TrendingUp, ChevronRight, BarChart3, Zap, 
+  Twitter, Menu, X, Calendar, Briefcase, Bot, Newspaper,
   CheckCircle2, ArrowRight
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
@@ -70,9 +70,6 @@ function TopNav() {
             <Link href="#features" className="text-zinc-400 hover:text-green-400 transition-colors uppercase text-sm tracking-wide font-medium">
               Features
             </Link>
-            <Link href="#community" className="text-zinc-400 hover:text-green-400 transition-colors uppercase text-sm tracking-wide font-medium">
-              Community
-            </Link>
             <Link href="/dashboard">
               <button className="neon-button px-4 py-2 rounded text-sm flex items-center gap-1" data-testid="button-get-access">
                 Get Access <ChevronRight className="w-4 h-4" />
@@ -101,11 +98,6 @@ function TopNav() {
             <Link href="#features" onClick={() => setMobileMenuOpen(false)}>
               <div className="text-zinc-400 hover:text-green-400 transition-colors uppercase text-sm tracking-wide font-medium py-2">
                 Features
-              </div>
-            </Link>
-            <Link href="#community" onClick={() => setMobileMenuOpen(false)}>
-              <div className="text-zinc-400 hover:text-green-400 transition-colors uppercase text-sm tracking-wide font-medium py-2">
-                Community
               </div>
             </Link>
             <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
@@ -308,63 +300,6 @@ function HowItWorks() {
   );
 }
 
-function CommunityFeed() {
-  const messages = [
-    { user: "HedgeKing_99", message: "$TSLA looking ripe for a bounce. Volume picking up.", time: "2m ago" },
-    { user: "OptionPlayah", message: "Anybody seeing this unusual flow on $NVDA calls?", time: "5m ago" },
-    { user: "MacroMike", message: "Fed minutes coming out tomorrow. Staying hedged.", time: "8m ago" },
-    { user: "TechTrader", message: "Earnings season starting strong. $AAPL beat estimates.", time: "12m ago" },
-    { user: "AlphaSeeker", message: "Energy sector looking interesting here. XLE breaking out.", time: "15m ago" },
-  ];
-
-  return (
-    <section id="community" className="py-20 px-4 border-t border-green-900/30">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-8">
-          <h2 className="display-font text-3xl md:text-4xl text-white mb-4 uppercase tracking-wider">
-            Live Community Feed
-          </h2>
-          <p className="text-zinc-400 text-lg">
-            Join the conversation with fellow traders.
-          </p>
-        </div>
-        
-        <div className="terminal-card rounded-lg p-6">
-          <div className="space-y-4 mb-6">
-            {messages.map((msg, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-green-900/10 transition-colors">
-                <div className="w-8 h-8 rounded-full bg-green-900/30 border border-green-900/50 flex items-center justify-center flex-shrink-0">
-                  <Users className="w-4 h-4 text-green-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="neon-green-subtle font-semibold text-sm">{msg.user}</span>
-                    <span className="text-zinc-600 text-xs">{msg.time}</span>
-                  </div>
-                  <p className="text-zinc-300 text-sm">{msg.message}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="flex items-center gap-3 pt-4 border-t border-green-900/30">
-            <input
-              type="text"
-              placeholder="Join the conversation..."
-              className="flex-1 bg-black/50 border border-green-900/30 rounded-lg px-4 py-3 text-zinc-300 placeholder:text-zinc-600 focus:outline-none focus:border-green-500/50 transition-colors"
-              data-testid="input-community-message"
-            />
-            <button className="neon-button px-4 py-3 rounded-lg flex items-center gap-2" data-testid="button-send-message">
-              <MessageSquare className="w-5 h-5" />
-              <span className="hidden sm:inline">Send</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function CTASection() {
   return (
     <section className="py-20 px-4 border-t border-green-900/30 bg-gradient-to-b from-transparent to-green-950/20">
@@ -463,7 +398,6 @@ export default function LandingPage() {
       <StatsSection />
       <FeaturesSection />
       <HowItWorks />
-      <CommunityFeed />
       <CTASection />
       <Footer />
       <TickerTape />

@@ -30,7 +30,7 @@ Preferred communication style: Simple, everyday language.
 - **Hero Tagline**: "Don't get ripped off by Bloomberg. I've got you bro."
 
 ### Route Structure
-- **Landing Page** (`/`): Hero section with scrolling ticker tape, features cards, community feed, footer
+- **Landing Page** (`/`): Hero section with scrolling ticker tape, features cards, CTA section, footer
 - **Dashboard** (`/dashboard/*`): All authenticated pages use DashboardLayout component with sidebar navigation
   - `/dashboard/markets` - Markets data with category tabs
   - `/dashboard/portfolio` - Portfolio tracker
