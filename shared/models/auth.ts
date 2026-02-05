@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, jsonb, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, timestamp, varchar, integer, decimal } from "drizzle-orm/pg-core";
 
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
@@ -27,6 +27,10 @@ export const users = pgTable("users", {
   subscriptionStatus: varchar("subscription_status").default("none"),
   trialEndsAt: timestamp("trial_ends_at"),
   subscriptionEndsAt: timestamp("subscription_ends_at"),
+  // Credit system fields
+  creditBalanceCents: integer("credit_balance_cents").default(0).notNull(),
+  monthlyCreditsUsedCents: integer("monthly_credits_used_cents").default(0).notNull(),
+  monthlyCreditsResetAt: timestamp("monthly_credits_reset_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

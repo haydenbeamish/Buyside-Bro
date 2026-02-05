@@ -82,3 +82,45 @@ export const marketCache = pgTable("market_cache", {
 });
 
 export type MarketCache = typeof marketCache.$inferSelect;
+
+// Usage tracking for OpenRouter API calls
+export const usageLogs = pgTable("usage_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  feature: text("feature").notNull(), // 'chat', 'analysis', 'deep_analysis'
+  model: text("model").notNull(),
+  inputTokens: integer("input_tokens").default(0),
+  outputTokens: integer("output_tokens").default(0),
+  costCents: integer("cost_cents").default(0).notNull(), // Cost in cents
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertUsageLogSchema = createInsertSchema(usageLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type UsageLog = typeof usageLogs.$inferSelect;
+export type InsertUsageLog = z.infer<typeof insertUsageLogSchema>;
+
+// News feed for market summaries and updates
+export const newsFeed = pgTable("news_feed", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  market: text("market").notNull(), // 'ASX', 'USA', 'Europe', 'Email'
+  eventType: text("event_type").notNull(), // 'open', 'midday', 'close', 'email'
+  publishedAt: timestamp("published_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  source: text("source").default("system"), // 'system', 'email', 'manual'
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertNewsFeedSchema = createInsertSchema(newsFeed).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type NewsFeedItem = typeof newsFeed.$inferSelect;
+export type InsertNewsFeedItem = z.infer<typeof insertNewsFeedSchema>;
