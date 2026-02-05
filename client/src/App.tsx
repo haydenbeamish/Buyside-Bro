@@ -16,6 +16,7 @@ import NewsPage from "@/pages/news";
 import ChatPage from "@/pages/chat";
 import SubscriptionPage from "@/pages/subscription";
 import WatchlistPage from "@/pages/watchlist";
+import AdminPage from "@/pages/admin";
 
 function DashboardRoutes() {
   return (
@@ -31,6 +32,7 @@ function DashboardRoutes() {
         <Route path="/earnings" component={EarningsPage} />
         <Route path="/news" component={NewsPage} />
         <Route path="/chat" component={ChatPage} />
+        <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>
@@ -51,6 +53,7 @@ function Router() {
       <Route path="/earnings" component={DashboardRoutes} />
       <Route path="/news" component={DashboardRoutes} />
       <Route path="/chat" component={DashboardRoutes} />
+      <Route path="/admin" component={DashboardRoutes} />
       <Route component={NotFound} />
     </Switch>
   );

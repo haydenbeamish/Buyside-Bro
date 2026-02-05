@@ -41,6 +41,20 @@ Preferred communication style: Simple, everyday language.
   - `/news` - Financial news
   - `/chat` - AI chat assistant
   - `/dashboard/subscription` - Subscription management page
+  - `/admin` - Admin dashboard (only visible to admin user)
+
+### Admin Dashboard
+- **Access**: Only accessible when logged in as hbeamish1@gmail.com
+- **Activity Logging**: Middleware logs all API requests to `activity_logs` table (action, path, method, user, metadata)
+- **Tabs**: Overview (stats + charts), Users (per-user details), Activity Log (raw API call log), AI Usage (token costs)
+- **API Endpoints** (all require admin auth):
+  - `GET /api/admin/check` - Check if current user is admin
+  - `GET /api/admin/stats` - Dashboard summary stats (total users, API calls, active users, AI costs)
+  - `GET /api/admin/users` - All users with AI cost, call count, page views, last active
+  - `GET /api/admin/activity` - Recent activity logs (supports ?limit, ?offset, ?userId)
+  - `GET /api/admin/activity-summary` - Action counts, hourly activity, daily activity charts
+  - `GET /api/admin/ai-usage` - Per-user AI cost breakdown and recent AI calls
+- **Database Table**: `activity_logs` (id, user_id, action, path, method, metadata, created_at)
 
 ### Authentication
 - **Provider**: Replit Auth (OpenID Connect) supporting Google, Apple, GitHub, X, and email/password login

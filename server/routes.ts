@@ -1,8 +1,9 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerChatRoutes } from "./replit_integrations/chat";
-import { insertPortfolioHoldingSchema, insertWatchlistSchema } from "@shared/schema";
+import { insertPortfolioHoldingSchema, insertWatchlistSchema, activityLogs } from "@shared/schema";
+import { users, usageLogs } from "@shared/schema";
 import OpenAI from "openai";
 import { isAuthenticated, authStorage } from "./replit_integrations/auth";
 import { stripeService } from "./stripeService";
@@ -16,6 +17,21 @@ import {
   getMarketEventTitle,
   checkAndDeductCredits
 } from "./creditService";
+import { db } from "./db";
+import { desc, sql, eq, gte, count, and, isNotNull } from "drizzle-orm";
+
+const ADMIN_EMAIL = "hbeamish1@gmail.com";
+
+function isAdmin(req: any, res: Response, next: NextFunction) {
+  const user = req.user as any;
+  if (!req.isAuthenticated() || !user?.claims?.email) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  if (user.claims.email !== ADMIN_EMAIL) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+  next();
+}
 
 const LASER_BEAM_API = "https://laserbeamcapital.replit.app";
 
@@ -89,10 +105,51 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout 
   }
 }
 
+function classifyAction(method: string, path: string): string {
+  if (path.startsWith("/api/auth")) return "auth";
+  if (path.startsWith("/api/login")) return "login";
+  if (path.startsWith("/api/logout")) return "logout";
+  if (path.startsWith("/api/markets")) return "view_markets";
+  if (path.startsWith("/api/portfolio")) return method === "GET" ? "view_portfolio" : "edit_portfolio";
+  if (path.startsWith("/api/watchlist")) return method === "GET" ? "view_watchlist" : "edit_watchlist";
+  if (path.startsWith("/api/analysis")) return "analysis";
+  if (path.startsWith("/api/fundamental-analysis")) return "analysis";
+  if (path.startsWith("/api/earnings")) return "view_earnings";
+  if (path.startsWith("/api/news")) return "view_news";
+  if (path.startsWith("/api/chat")) return "chat";
+  if (path.startsWith("/api/credits")) return "credits";
+  if (path.startsWith("/api/subscription")) return "subscription";
+  if (path.startsWith("/api/stocks/search")) return "stock_search";
+  if (path.startsWith("/api/newsfeed")) return "newsfeed";
+  return "other";
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  app.use((req: any, res: Response, next: NextFunction) => {
+    if (req.path.startsWith("/api/") && 
+        !req.path.startsWith("/api/admin/") &&
+        !req.path.includes("/assets/") &&
+        req.method !== "OPTIONS") {
+      const userId = req.user?.claims?.sub || null;
+      const action = classifyAction(req.method, req.path);
+      db.insert(activityLogs).values({
+        userId,
+        action,
+        path: req.path,
+        method: req.method,
+        metadata: {
+          userAgent: req.headers["user-agent"]?.substring(0, 200),
+          ip: req.ip,
+          query: Object.keys(req.query || {}).length > 0 ? req.query : undefined,
+        },
+      }).catch((err: any) => console.error("Activity log error:", err));
+    }
+    next();
+  });
   registerChatRoutes(app);
 
   app.get("/api/markets", async (req: Request, res: Response) => {
@@ -1714,6 +1771,208 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       console.error("Seed watchlist error:", error);
       res.status(500).json({ error: "Failed to seed watchlist" });
     }
+  });
+
+  // ==================== ADMIN ROUTES ====================
+
+  app.get("/api/admin/stats", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const [userCount] = await db.select({ count: count() }).from(users);
+      const [logCount] = await db.select({ count: count() }).from(activityLogs);
+      
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const weekStart = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      const [todayLogs] = await db.select({ count: count() })
+        .from(activityLogs)
+        .where(gte(activityLogs.createdAt, todayStart));
+      const [weekLogs] = await db.select({ count: count() })
+        .from(activityLogs)
+        .where(gte(activityLogs.createdAt, weekStart));
+
+      const [totalUsageCost] = await db.select({
+        total: sql<number>`COALESCE(SUM(cost_cents), 0)`,
+      }).from(usageLogs);
+
+      const activeUsersToday = await db.select({
+        userId: activityLogs.userId,
+      }).from(activityLogs)
+        .where(and(gte(activityLogs.createdAt, todayStart), isNotNull(activityLogs.userId)))
+        .groupBy(activityLogs.userId);
+
+      const activeUsersWeek = await db.select({
+        userId: activityLogs.userId,
+      }).from(activityLogs)
+        .where(and(gte(activityLogs.createdAt, weekStart), isNotNull(activityLogs.userId)))
+        .groupBy(activityLogs.userId);
+
+      res.json({
+        totalUsers: userCount.count,
+        totalApiCalls: logCount.count,
+        apiCallsToday: todayLogs.count,
+        apiCallsThisWeek: weekLogs.count,
+        activeUsersToday: activeUsersToday.length,
+        activeUsersThisWeek: activeUsersWeek.length,
+        totalAiCostCents: Number(totalUsageCost.total),
+      });
+    } catch (error) {
+      console.error("Admin stats error:", error);
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
+  app.get("/api/admin/users", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const allUsers = await db.select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        subscriptionStatus: users.subscriptionStatus,
+        creditBalanceCents: users.creditBalanceCents,
+        monthlyCreditsUsedCents: users.monthlyCreditsUsedCents,
+        createdAt: users.createdAt,
+      }).from(users).orderBy(desc(users.createdAt));
+
+      const userStats = await Promise.all(allUsers.map(async (u) => {
+        const [usageTotal] = await db.select({
+          totalCostCents: sql<number>`COALESCE(SUM(cost_cents), 0)`,
+          totalCalls: count(),
+        }).from(usageLogs).where(eq(usageLogs.userId, u.id));
+
+        const [activityTotal] = await db.select({
+          totalActions: count(),
+        }).from(activityLogs).where(eq(activityLogs.userId, u.id));
+
+        const recentActivity = await db.select({
+          action: activityLogs.action,
+          path: activityLogs.path,
+          createdAt: activityLogs.createdAt,
+        }).from(activityLogs)
+          .where(eq(activityLogs.userId, u.id))
+          .orderBy(desc(activityLogs.createdAt))
+          .limit(1);
+
+        return {
+          ...u,
+          totalAiCostCents: Number(usageTotal.totalCostCents),
+          totalAiCalls: Number(usageTotal.totalCalls),
+          totalPageViews: Number(activityTotal.totalActions),
+          lastActive: recentActivity[0]?.createdAt || null,
+        };
+      }));
+
+      res.json(userStats);
+    } catch (error) {
+      console.error("Admin users error:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  app.get("/api/admin/activity", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+      const offset = parseInt(req.query.offset as string) || 0;
+      const userId = req.query.userId as string | undefined;
+
+      let query = db.select({
+        id: activityLogs.id,
+        userId: activityLogs.userId,
+        action: activityLogs.action,
+        path: activityLogs.path,
+        method: activityLogs.method,
+        createdAt: activityLogs.createdAt,
+      }).from(activityLogs)
+        .orderBy(desc(activityLogs.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      if (userId) {
+        query = query.where(eq(activityLogs.userId, userId)) as any;
+      }
+
+      const logs = await query;
+      res.json(logs);
+    } catch (error) {
+      console.error("Admin activity error:", error);
+      res.status(500).json({ error: "Failed to fetch activity" });
+    }
+  });
+
+  app.get("/api/admin/activity-summary", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const actionCounts = await db.select({
+        action: activityLogs.action,
+        count: count(),
+      }).from(activityLogs)
+        .groupBy(activityLogs.action)
+        .orderBy(desc(count()));
+
+      const hourlyActivity = await db.select({
+        hour: sql<number>`EXTRACT(HOUR FROM created_at)`,
+        count: count(),
+      }).from(activityLogs)
+        .where(gte(activityLogs.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)))
+        .groupBy(sql`EXTRACT(HOUR FROM created_at)`)
+        .orderBy(sql`EXTRACT(HOUR FROM created_at)`);
+
+      const dailyActivity = await db.select({
+        date: sql<string>`DATE(created_at)`,
+        count: count(),
+      }).from(activityLogs)
+        .where(gte(activityLogs.createdAt, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)))
+        .groupBy(sql`DATE(created_at)`)
+        .orderBy(sql`DATE(created_at)`);
+
+      res.json({
+        actionCounts,
+        hourlyActivity,
+        dailyActivity,
+      });
+    } catch (error) {
+      console.error("Admin activity summary error:", error);
+      res.status(500).json({ error: "Failed to fetch activity summary" });
+    }
+  });
+
+  app.get("/api/admin/ai-usage", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const perUserCost = await db.select({
+        userId: usageLogs.userId,
+        feature: usageLogs.feature,
+        totalCostCents: sql<number>`COALESCE(SUM(cost_cents), 0)`,
+        totalInputTokens: sql<number>`COALESCE(SUM(input_tokens), 0)`,
+        totalOutputTokens: sql<number>`COALESCE(SUM(output_tokens), 0)`,
+        callCount: count(),
+      }).from(usageLogs)
+        .groupBy(usageLogs.userId, usageLogs.feature)
+        .orderBy(desc(sql`SUM(cost_cents)`));
+
+      const recentUsage = await db.select({
+        id: usageLogs.id,
+        userId: usageLogs.userId,
+        feature: usageLogs.feature,
+        model: usageLogs.model,
+        inputTokens: usageLogs.inputTokens,
+        outputTokens: usageLogs.outputTokens,
+        costCents: usageLogs.costCents,
+        createdAt: usageLogs.createdAt,
+      }).from(usageLogs)
+        .orderBy(desc(usageLogs.createdAt))
+        .limit(50);
+
+      res.json({ perUserCost, recentUsage });
+    } catch (error) {
+      console.error("Admin AI usage error:", error);
+      res.status(500).json({ error: "Failed to fetch AI usage" });
+    }
+  });
+
+  app.get("/api/admin/check", isAuthenticated, async (req: any, res: Response) => {
+    const email = req.user?.claims?.email;
+    res.json({ isAdmin: email === ADMIN_EMAIL });
   });
 
   return httpServer;
