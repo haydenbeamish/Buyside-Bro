@@ -14,8 +14,17 @@ import {
   BarChart3,
   DollarSign,
   Loader2,
+  Target,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  ThumbsUp,
+  ThumbsDown,
+  Minus,
 } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useCallback } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface StockSearchResult {
   symbol: string;
@@ -52,6 +61,238 @@ interface AIAnalysis {
   summary: string;
   sentiment: "bullish" | "bearish" | "neutral";
   keyPoints: string[];
+}
+
+interface DeepAnalysisResult {
+  ticker: string;
+  mode: string;
+  recommendation: {
+    action: string;
+    confidence: number;
+    targetPrice: number;
+    upside: number;
+    timeHorizon: string;
+    reasoning: string;
+  };
+  analysis: string;
+  companyName?: string;
+  currentPrice?: number;
+}
+
+interface JobStatus {
+  jobId: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  progress: number;
+  message: string;
+}
+
+function RecommendationBadge({ action, confidence }: { action: string; confidence: number }) {
+  const actionLower = action?.toLowerCase() || "hold";
+  let bgColor = "bg-zinc-700";
+  let textColor = "text-zinc-300";
+  let Icon = Minus;
+  
+  if (actionLower === "buy" || actionLower === "strong buy") {
+    bgColor = "bg-green-600";
+    textColor = "text-white";
+    Icon = ThumbsUp;
+  } else if (actionLower === "sell" || actionLower === "strong sell") {
+    bgColor = "bg-red-600";
+    textColor = "text-white";
+    Icon = ThumbsDown;
+  }
+  
+  return (
+    <div className="flex items-center gap-3">
+      <div className={`${bgColor} ${textColor} px-4 py-2 rounded-lg flex items-center gap-2 font-bold text-lg`}>
+        <Icon className="h-5 w-5" />
+        {action?.toUpperCase() || "HOLD"}
+      </div>
+      <div className="text-sm text-zinc-400">
+        <span className="font-mono text-white">{confidence}%</span> confidence
+      </div>
+    </div>
+  );
+}
+
+function MarkdownSection({ content }: { content: string }) {
+  const sections = content.split(/(?=^## )/m);
+  
+  return (
+    <div className="space-y-6 prose prose-invert max-w-none">
+      {sections.map((section, idx) => {
+        const lines = section.trim().split('\n');
+        const titleMatch = lines[0]?.match(/^## (.+)/);
+        const title = titleMatch ? titleMatch[1] : null;
+        const body = title ? lines.slice(1).join('\n').trim() : section.trim();
+        
+        if (!body && !title) return null;
+        
+        return (
+          <div key={idx} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-5">
+            {title && (
+              <h3 className="text-lg font-semibold text-green-400 mb-3 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-green-500" />
+                {title}
+              </h3>
+            )}
+            <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
+              {body.split('\n').map((line, i) => {
+                if (line.startsWith('- ') || line.startsWith('* ')) {
+                  return (
+                    <div key={i} className="flex items-start gap-2 mb-1">
+                      <span className="text-green-500 mt-1">•</span>
+                      <span>{line.substring(2)}</span>
+                    </div>
+                  );
+                }
+                if (line.startsWith('**') && line.endsWith('**')) {
+                  return <p key={i} className="font-semibold text-white mb-2">{line.replace(/\*\*/g, '')}</p>;
+                }
+                if (line.trim() === '') return <br key={i} />;
+                return <p key={i} className="mb-1">{line}</p>;
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DeepAnalysisLoader({ ticker, progress, message }: { ticker: string; progress: number; message: string }) {
+  const loadingStages = [
+    { label: "Gathering data", threshold: 20, icon: Search },
+    { label: "Analyzing financials", threshold: 40, icon: BarChart3 },
+    { label: "Evaluating market position", threshold: 60, icon: TrendingUp },
+    { label: "Running AI analysis", threshold: 80, icon: Brain },
+    { label: "Generating recommendation", threshold: 100, icon: Target },
+  ];
+  
+  const stageIndex = loadingStages.findIndex(s => progress < s.threshold);
+  const currentStage = stageIndex === -1 ? loadingStages.length - 1 : stageIndex;
+  
+  return (
+    <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-green-950/20 border border-green-500/30 rounded-lg p-8 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,0,0.05),transparent_70%)]" />
+      
+      <div className="relative">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="h-14 w-14 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Brain className="h-7 w-7 text-green-500 animate-pulse" />
+              </div>
+              <div className="absolute inset-0 rounded-full border-2 border-green-500/30 animate-ping" />
+            </div>
+            <div>
+              <h3 className="font-bold text-xl text-white">Deep Analysis in Progress</h3>
+              <p className="text-zinc-400 text-sm mt-1">
+                Analyzing <span className="font-mono text-green-400">{ticker}</span>
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-3xl font-bold font-mono text-green-400">{progress}%</p>
+          </div>
+        </div>
+        
+        <div className="h-3 bg-zinc-800 rounded-full overflow-hidden mb-6">
+          <div 
+            className="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        
+        <div className="grid grid-cols-5 gap-2">
+          {loadingStages.map((stage, i) => {
+            const isActive = i === currentStage;
+            const isComplete = progress >= stage.threshold;
+            return (
+              <div 
+                key={stage.label}
+                className={`text-center p-3 rounded-lg transition-all ${
+                  isActive ? "bg-green-500/20 border border-green-500/50" :
+                  isComplete ? "bg-zinc-800" : "bg-zinc-900/50"
+                }`}
+              >
+                <stage.icon className={`h-5 w-5 mx-auto mb-2 ${
+                  isActive ? "text-green-400 animate-pulse" :
+                  isComplete ? "text-green-500" : "text-zinc-600"
+                }`} />
+                <p className={`text-xs ${
+                  isActive ? "text-green-400" :
+                  isComplete ? "text-zinc-400" : "text-zinc-600"
+                }`}>
+                  {stage.label}
+                </p>
+                {isComplete && <CheckCircle2 className="h-3 w-3 text-green-500 mx-auto mt-1" />}
+              </div>
+            );
+          })}
+        </div>
+        
+        {message && (
+          <p className="text-sm text-zinc-500 mt-4 text-center font-mono">{message}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DeepAnalysisResult({ result }: { result: DeepAnalysisResult }) {
+  const rec = result.recommendation;
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-green-950/10 border border-green-500/20 rounded-lg p-6">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-4">
+              <CheckCircle2 className="h-6 w-6 text-green-500" />
+              <h3 className="font-bold text-xl text-white">Analysis Complete</h3>
+              <Badge variant="outline" className="border-green-500/50 text-green-400 uppercase text-xs">
+                {result.mode || "Deep Dive"}
+              </Badge>
+            </div>
+            <RecommendationBadge action={rec?.action || "Hold"} confidence={rec?.confidence || 50} />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 md:text-right">
+            <div>
+              <p className="text-xs text-zinc-500 uppercase tracking-wide">Target Price</p>
+              <p className="text-2xl font-bold font-mono text-white">
+                ${rec?.targetPrice?.toFixed(2) || "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-zinc-500 uppercase tracking-wide">Upside</p>
+              <p className={`text-2xl font-bold font-mono ${(rec?.upside || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                {(rec?.upside || 0) >= 0 ? "+" : ""}{rec?.upside?.toFixed(1) || 0}%
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {rec?.timeHorizon && (
+          <div className="mt-4 flex items-center gap-2 text-sm text-zinc-400">
+            <Clock className="h-4 w-4" />
+            Time horizon: <span className="text-white">{rec.timeHorizon}</span>
+          </div>
+        )}
+        
+        {rec?.reasoning && (
+          <div className="mt-4 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
+            <p className="text-sm text-zinc-300 leading-relaxed">{rec.reasoning}</p>
+          </div>
+        )}
+      </div>
+      
+      {result.analysis && (
+        <MarkdownSection content={result.analysis} />
+      )}
+    </div>
+  );
 }
 
 function PercentDisplay({ value }: { value: number }) {
@@ -270,6 +511,11 @@ function AILoadingAnimation({ ticker }: { ticker: string }) {
 export default function AnalysisPage() {
   const [searchTicker, setSearchTicker] = useState("");
   const [activeTicker, setActiveTicker] = useState<string | null>(null);
+  const [deepJobId, setDeepJobId] = useState<string | null>(null);
+  const [deepJobStatus, setDeepJobStatus] = useState<JobStatus | null>(null);
+  const [deepResult, setDeepResult] = useState<DeepAnalysisResult | null>(null);
+  const [deepError, setDeepError] = useState<string | null>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const { data: profile, isLoading: profileLoading } = useQuery<StockProfile>({
     queryKey: ["/api/analysis/profile", activeTicker],
@@ -281,10 +527,93 @@ export default function AnalysisPage() {
     enabled: !!activeTicker,
   });
 
-  const { data: aiAnalysis, isLoading: aiLoading } = useQuery<AIAnalysis>({
-    queryKey: ["/api/analysis/ai", activeTicker],
-    enabled: !!activeTicker,
+  const startDeepAnalysis = useMutation({
+    mutationFn: async (ticker: string) => {
+      const res = await apiRequest("POST", `/api/analysis/deep/${ticker}`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setDeepJobId(data.jobId);
+      setDeepJobStatus({ jobId: data.jobId, status: "pending", progress: 0, message: "Starting analysis..." });
+      setDeepResult(null);
+      setDeepError(null);
+    },
+    onError: (error) => {
+      setDeepError("Failed to start analysis. Please try again.");
+      console.error("Deep analysis error:", error);
+    },
   });
+
+  const pollJobStatus = useCallback(async (jobId: string) => {
+    try {
+      const res = await fetch(`/api/analysis/deep/job/${jobId}`);
+      if (!res.ok) throw new Error("Job not found");
+      const status = await res.json();
+      // Guard against stale updates - only update if this is still the current job
+      if (status.jobId === jobId) {
+        setDeepJobStatus(status);
+      } else {
+        return; // Ignore stale update
+      }
+      
+      if (status.status === "completed") {
+        const resultRes = await fetch(`/api/analysis/deep/result/${jobId}`);
+        if (resultRes.ok) {
+          const result = await resultRes.json();
+          setDeepResult(result);
+        }
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+      } else if (status.status === "failed") {
+        setDeepError("Analysis failed. Please try again.");
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+      }
+    } catch (e) {
+      console.error("Poll error:", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (deepJobId && deepJobStatus?.status !== "completed" && deepJobStatus?.status !== "failed") {
+      pollingRef.current = setInterval(() => pollJobStatus(deepJobId), 2000);
+      return () => {
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
+        }
+      };
+    }
+  }, [deepJobId, deepJobStatus?.status, pollJobStatus]);
+
+  useEffect(() => {
+    if (activeTicker) {
+      // Clear any existing polling interval before starting new analysis
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      setDeepJobId(null);
+      setDeepJobStatus(null);
+      setDeepResult(null);
+      setDeepError(null);
+      startDeepAnalysis.mutate(activeTicker);
+    }
+    // Cleanup on unmount
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [activeTicker]);
+
+  const isDeepLoading = startDeepAnalysis.isPending || 
+    (deepJobStatus?.status === "pending" || deepJobStatus?.status === "processing");
 
   const formatMarketCap = (value: number) => {
     if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
@@ -413,46 +742,46 @@ export default function AnalysisPage() {
               </div>
             ) : null}
 
-            {aiLoading ? (
-              <AILoadingAnimation ticker={activeTicker || ""} />
-            ) : aiAnalysis ? (
-              <div className="bg-zinc-900 border border-amber-500/20 rounded-lg p-6">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
-                    <Sparkles className="h-5 w-5 text-amber-500" />
+            {deepError ? (
+              <div className="bg-zinc-900 border border-red-500/30 rounded-lg p-6">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-6 w-6 text-red-500" />
+                  <div>
+                    <p className="text-white font-medium">Analysis Failed</p>
+                    <p className="text-sm text-zinc-400">{deepError}</p>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-semibold text-white">AI Analysis</h3>
-                      <Badge
-                        variant="outline"
-                        className={
-                          aiAnalysis.sentiment === "bullish"
-                            ? "border-green-500/50 text-green-500"
-                            : aiAnalysis.sentiment === "bearish"
-                            ? "border-red-500/50 text-red-500"
-                            : "border-zinc-600 text-zinc-400"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-auto border-zinc-700"
+                    onClick={() => {
+                      if (activeTicker) {
+                        // Clear error and state before retrying
+                        setDeepError(null);
+                        setDeepJobId(null);
+                        setDeepJobStatus(null);
+                        setDeepResult(null);
+                        if (pollingRef.current) {
+                          clearInterval(pollingRef.current);
+                          pollingRef.current = null;
                         }
-                      >
-                        {aiAnalysis.sentiment}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-zinc-400 leading-relaxed mb-4">
-                      {aiAnalysis.summary}
-                    </p>
-                    {aiAnalysis.keyPoints && aiAnalysis.keyPoints.length > 0 && (
-                      <ul className="space-y-1">
-                        {aiAnalysis.keyPoints.map((point, i) => (
-                          <li key={i} className="text-sm text-zinc-400 flex items-start gap-2">
-                            <span className="text-amber-500 mt-1">•</span>
-                            {point}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
+                        startDeepAnalysis.mutate(activeTicker);
+                      }
+                    }}
+                    data-testid="button-retry-analysis"
+                  >
+                    Retry
+                  </Button>
                 </div>
               </div>
+            ) : isDeepLoading ? (
+              <DeepAnalysisLoader 
+                ticker={activeTicker || ""} 
+                progress={deepJobStatus?.progress || 0}
+                message={deepJobStatus?.message || "Starting analysis..."}
+              />
+            ) : deepResult ? (
+              <DeepAnalysisResult result={deepResult} />
             ) : null}
 
             <Tabs defaultValue="overview" className="w-full">

@@ -755,6 +755,82 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
+  // Deep analysis async job endpoints using Laser Beam Capital API
+  app.post("/api/analysis/deep/:ticker", async (req: Request, res: Response) => {
+    try {
+      const ticker = (req.params.ticker as string).toUpperCase();
+      
+      // Start async job with Laser Beam Capital API
+      const response = await fetch("https://api.laserbeamcapital.com/api/fundamental-analysis/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          ticker,
+          model: "moonshotai/kimi-k2-instruct"
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Deep analysis job creation failed:", response.status, errorText);
+        return res.status(500).json({ error: "Failed to start analysis job" });
+      }
+      
+      const data = await response.json();
+      res.json({ 
+        jobId: data.jobId || data.id,
+        status: "pending",
+        ticker 
+      });
+    } catch (error) {
+      console.error("Deep analysis job error:", error);
+      res.status(500).json({ error: "Failed to start analysis" });
+    }
+  });
+
+  app.get("/api/analysis/deep/job/:jobId", async (req: Request, res: Response) => {
+    try {
+      const jobId = req.params.jobId;
+      
+      // Check job status
+      const response = await fetch(`https://api.laserbeamcapital.com/api/fundamental-analysis/jobs/${jobId}`);
+      
+      if (!response.ok) {
+        return res.status(404).json({ error: "Job not found" });
+      }
+      
+      const data = await response.json();
+      res.json({
+        jobId,
+        status: data.status, // pending, processing, completed, failed
+        progress: data.progress || 0,
+        message: data.message || "",
+      });
+    } catch (error) {
+      console.error("Job status error:", error);
+      res.status(500).json({ error: "Failed to check job status" });
+    }
+  });
+
+  app.get("/api/analysis/deep/result/:jobId", async (req: Request, res: Response) => {
+    try {
+      const jobId = req.params.jobId;
+      
+      // Get job result
+      const response = await fetch(`https://api.laserbeamcapital.com/api/fundamental-analysis/jobs/${jobId}/result`);
+      
+      if (!response.ok) {
+        return res.status(404).json({ error: "Result not ready" });
+      }
+      
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Job result error:", error);
+      res.status(500).json({ error: "Failed to get analysis result" });
+    }
+  });
+
   app.get("/api/earnings", async (req: Request, res: Response) => {
     try {
       const cached = await storage.getCachedData("earnings");
