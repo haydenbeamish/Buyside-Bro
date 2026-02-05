@@ -26,7 +26,6 @@ export default function WhatsUpPage() {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-white">Market Summary</h2>
-            <p className="text-zinc-500 text-sm">AI-generated market analysis</p>
           </div>
         </div>
 
