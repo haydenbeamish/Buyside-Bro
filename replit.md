@@ -15,11 +15,27 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: Wouter (lightweight client-side routing)
 - **State Management**: TanStack React Query for server state and caching
 - **UI Components**: shadcn/ui component library built on Radix UI primitives
-- **Styling**: Tailwind CSS with CSS variables for theming (light/dark mode support)
+- **Styling**: Tailwind CSS with CSS variables for theming
 - **Build Tool**: Vite for development and production builds
 - **Charts**: Recharts for data visualization
 
-The frontend follows a page-based structure with shared components. Pages include Markets (home), Portfolio, Analysis, Earnings, News, and Chat. The application uses a sidebar navigation pattern with responsive design for mobile devices.
+### Visual Theme: Neon Terminal Aesthetic
+- **Color Scheme**: Black background with neon green (#00ff00) primary and orange (#ff8c00) accent colors
+- **Typography**: Orbitron font for display text (.display-font), JetBrains Mono for data/ticker (.ticker-font)
+- **Effects**: Glow effects on key elements, scanline overlay for terminal feel
+- **CSS Classes**: `.neon-green`, `.neon-orange`, `.neon-green-subtle`, `.display-font`, `.ticker-font`
+
+### Route Structure
+- **Landing Page** (`/`): Hero section with scrolling ticker tape, features cards, community feed, footer
+- **Dashboard** (`/dashboard/*`): All authenticated pages use DashboardLayout component with sidebar navigation
+  - `/dashboard/markets` - Markets data with category tabs
+  - `/dashboard/portfolio` - Portfolio tracker
+  - `/dashboard/analysis` - Stock analysis with AI
+  - `/dashboard/earnings` - Earnings calendar
+  - `/dashboard/news` - Financial news feed
+  - `/dashboard/chat` - AI chat assistant
+
+The frontend follows a page-based structure with shared components. The application uses a sidebar navigation pattern with responsive design for mobile devices.
 
 ### Markets Page Design
 The Markets page mirrors the design of laserbeamcapital.com/markets with:

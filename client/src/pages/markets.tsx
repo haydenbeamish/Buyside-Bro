@@ -60,7 +60,7 @@ function TickerTape({ items }: { items: MarketItem[] }) {
   const duplicatedItems = [...items, ...items];
 
   return (
-    <div className="bg-black border-b border-zinc-800 overflow-hidden">
+    <div className="bg-black border-b border-zinc-800/50 overflow-hidden">
       <div 
         ref={scrollRef}
         className="flex whitespace-nowrap py-2 overflow-x-hidden"
@@ -69,13 +69,13 @@ function TickerTape({ items }: { items: MarketItem[] }) {
         {duplicatedItems.map((item, idx) => (
           <div 
             key={`${item.name}-${idx}`}
-            className="flex items-center gap-2 px-4 border-r border-zinc-800"
+            className="flex items-center gap-2 px-4 border-r border-zinc-800/50"
           >
-            <span className="text-zinc-400 text-sm font-medium">{item.name}</span>
-            <span className="text-white text-sm font-mono">
+            <span className="text-zinc-400 text-sm ticker-font">{item.name}</span>
+            <span className="text-zinc-200 text-sm ticker-font">
               {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className={`text-sm font-mono ${item.change1D >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <span className={`text-sm ticker-font ${item.change1D >= 0 ? 'neon-green' : 'text-red-500'}`}>
               {item.change1D >= 0 ? '+' : ''}{item.change1D.toFixed(2)}%
             </span>
           </div>
@@ -86,10 +86,10 @@ function TickerTape({ items }: { items: MarketItem[] }) {
 }
 
 function PercentCell({ value }: { value: number | undefined }) {
-  if (value === undefined || value === null) return <td className="px-3 py-2 text-zinc-500">-</td>;
-  const color = value >= 0 ? 'text-green-500' : 'text-red-500';
+  if (value === undefined || value === null) return <td className="px-3 py-2 text-zinc-600 ticker-font">-</td>;
+  const color = value >= 0 ? 'neon-green' : 'text-red-500';
   return (
-    <td className={`px-3 py-2 text-right font-mono text-sm ${color}`}>
+    <td className={`px-3 py-2 text-right ticker-font text-sm ${color}`}>
       {value >= 0 ? '+' : ''}{value.toFixed(1)}%
     </td>
   );
@@ -292,73 +292,73 @@ export default function MarketsPage() {
   const tickerItems = markets?.globalMarkets || [];
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black">
       <TickerTape items={tickerItems} />
       
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-4xl font-bold tracking-tight" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <h1 className="display-font text-3xl font-bold tracking-wider neon-green-subtle">
             MARKETS
           </h1>
-          <span className="text-zinc-500 text-sm">
+          <span className="text-zinc-500 text-sm ticker-font">
             {markets?.lastUpdated || '2 min ago'}
           </span>
         </div>
 
         <Tabs defaultValue="global" className="w-full">
-          <TabsList className="bg-transparent border-b border-zinc-800 w-full justify-start rounded-none h-auto p-0 mb-6">
+          <TabsList className="bg-transparent border-b border-zinc-800 w-full justify-start rounded-none h-auto p-0 mb-6 flex-wrap gap-1">
             <TabsTrigger 
               value="global" 
-              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              className="data-[state=active]:neon-green data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-global-markets"
             >
               Global Markets
             </TabsTrigger>
             <TabsTrigger 
               value="futures"
-              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              className="data-[state=active]:neon-green data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-futures"
             >
               Futures
             </TabsTrigger>
             <TabsTrigger 
               value="commodities"
-              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              className="data-[state=active]:neon-green data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-commodities"
             >
               Commodities
             </TabsTrigger>
             <TabsTrigger 
               value="usa-thematics"
-              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              className="data-[state=active]:neon-green data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-usa-thematics"
             >
               USA Thematics
             </TabsTrigger>
             <TabsTrigger 
               value="usa-sectors"
-              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              className="data-[state=active]:neon-green data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-usa-sectors"
             >
               USA Sectors
             </TabsTrigger>
             <TabsTrigger 
               value="usa-equal"
-              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              className="data-[state=active]:neon-green data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-usa-equal"
             >
-              USA Equal Weight Sectors
+              USA Equal Weight
             </TabsTrigger>
             <TabsTrigger 
               value="asx-sectors"
-              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              className="data-[state=active]:neon-green data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-asx-sectors"
             >
               ASX Sectors
             </TabsTrigger>
             <TabsTrigger 
               value="forex"
-              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
+              className="data-[state=active]:neon-green data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-forex"
             >
               Forex
