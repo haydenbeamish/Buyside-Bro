@@ -129,7 +129,7 @@ function HeroSection() {
             <img 
               src={heroImg} 
               alt="Buy Side Bro" 
-              className="w-72 h-72 md:w-96 md:h-96 lg:w-[32rem] lg:h-[32rem] object-contain drop-shadow-[0_0_50px_rgba(0,255,0,0.4)]"
+              className="w-72 h-72 md:w-96 md:h-96 lg:w-[32rem] lg:h-[32rem] object-contain"
               data-testid="img-hero"
             />
           </div>
