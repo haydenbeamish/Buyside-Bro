@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { ReactNode } from "react";
 import { LayoutGrid, Briefcase, TrendingUp, Calendar, Newspaper, MessageSquare, ChevronRight, Menu, X } from "lucide-react";
 import { useState } from "react";
-import logoImg from "@assets/Gemini_Generated_Image_rwyizvrwyizvrwyi_1770290400995.png";
+import logoImg from "@assets/image_1770291732587.png";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -42,7 +42,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Logo */}
           <div className="p-4 border-b border-green-900/30">
             <Link href="/" className="flex items-center gap-3">
-              <img src={logoImg} alt="Buy Side Bro" className="w-10 h-10 object-contain" />
+              <img src={logoImg} alt="Buy Side Bro" className="w-12 h-12 object-contain drop-shadow-[0_0_10px_rgba(0,255,0,0.4)]" />
               <div className="display-font text-sm tracking-wider neon-green-subtle">
                 BUY SIDE BRO
               </div>

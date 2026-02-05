@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Search, TrendingUp, MessageSquare, ChevronRight, BarChart3, Zap, Users, Twitter } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
-import logoImg from "@assets/Gemini_Generated_Image_rwyizvrwyizvrwyi_1770290400995.png";
+import logoImg from "@assets/image_1770291732587.png";
 
 interface TickerItem {
   symbol: string;
@@ -88,7 +88,7 @@ function HeroSection() {
             <img 
               src={logoImg} 
               alt="Buy Side Bro" 
-              className="w-64 h-64 md:w-80 md:h-80 object-contain glow-pulse"
+              className="w-80 h-80 md:w-96 md:h-96 lg:w-[28rem] lg:h-[28rem] object-contain drop-shadow-[0_0_30px_rgba(0,255,0,0.5)]"
               data-testid="img-logo"
             />
           </div>
