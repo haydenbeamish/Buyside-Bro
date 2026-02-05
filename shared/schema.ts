@@ -129,3 +129,19 @@ export const insertNewsFeedSchema = createInsertSchema(newsFeed).omit({
 
 export type NewsFeedItem = typeof newsFeed.$inferSelect;
 export type InsertNewsFeedItem = z.infer<typeof insertNewsFeedSchema>;
+
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id"),
+  action: text("action").notNull(),
+  path: text("path").notNull(),
+  method: text("method").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => ({
+  userIdIdx: index("activity_logs_user_id_idx").on(table.userId),
+  createdAtIdx: index("activity_logs_created_at_idx").on(table.createdAt),
+  actionIdx: index("activity_logs_action_idx").on(table.action),
+}));
+
+export type ActivityLog = typeof activityLogs.$inferSelect;
