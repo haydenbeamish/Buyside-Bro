@@ -1,11 +1,15 @@
 import type { Express, Request, Response } from "express";
 import OpenAI from "openai";
 import { chatStorage } from "./storage";
+import { checkAndDeductCredits, recordUsage } from "../../creditService";
+import { isAuthenticated } from "../auth";
 
 const openrouter = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
   apiKey: process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY || "",
 });
+
+const ESTIMATED_COST_CENTS = 10; // Estimated cost per AI request in cents
 
 export function registerChatRoutes(app: Express): void {
   app.get("/api/conversations", async (req: Request, res: Response) => {
@@ -55,10 +59,23 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/conversations/:id/messages", async (req: Request, res: Response) => {
+  app.post("/api/conversations/:id/messages", async (req: any, res: Response) => {
     try {
       const conversationId = parseInt(req.params.id as string);
       const { content, model = "moonshotai/kimi-k2.5" } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      // Check credits if user is authenticated
+      if (userId) {
+        const creditCheck = await checkAndDeductCredits(userId, ESTIMATED_COST_CENTS);
+        if (!creditCheck.allowed) {
+          return res.status(402).json({ 
+            error: "Out of credits",
+            message: creditCheck.message,
+            requiresCredits: true
+          });
+        }
+      }
 
       await chatStorage.createMessage(conversationId, "user", content);
 
@@ -88,14 +105,23 @@ export function registerChatRoutes(app: Express): void {
       let fullResponse = "";
 
       for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
-        if (content) {
-          fullResponse += content;
-          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        const chunkContent = chunk.choices[0]?.delta?.content || "";
+        if (chunkContent) {
+          fullResponse += chunkContent;
+          res.write(`data: ${JSON.stringify({ content: chunkContent })}\n\n`);
         }
       }
 
       await chatStorage.createMessage(conversationId, "assistant", fullResponse);
+
+      // Record usage for authenticated users (estimate tokens from character count / 4)
+      if (userId) {
+        const systemPromptLength = 350; // Approximate length of system prompt
+        const historyLength = chatMessages.reduce((sum, m) => sum + m.content.length, 0);
+        const inputTokens = Math.ceil((systemPromptLength + historyLength) / 4);
+        const outputTokens = Math.ceil(fullResponse.length / 4);
+        await recordUsage(userId, 'chat_conversation', model, inputTokens, outputTokens);
+      }
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
@@ -110,13 +136,26 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  // Simple chat endpoint - no database persistence
-  app.post("/api/chat/simple", async (req: Request, res: Response) => {
+  // Simple chat endpoint - no database persistence (with credit check for authenticated users)
+  app.post("/api/chat/simple", async (req: any, res: Response) => {
     try {
       const { message, history = [], model = "moonshotai/kimi-k2.5" } = req.body;
+      const userId = req.user?.claims?.sub;
 
       if (!message || typeof message !== "string") {
         return res.status(400).json({ error: "Message is required" });
+      }
+
+      // Check credits if user is authenticated
+      if (userId) {
+        const creditCheck = await checkAndDeductCredits(userId, ESTIMATED_COST_CENTS);
+        if (!creditCheck.allowed) {
+          return res.status(402).json({ 
+            error: "Out of credits",
+            message: creditCheck.message,
+            requiresCredits: true
+          });
+        }
       }
 
       // Build chat history from client-side state
@@ -145,11 +184,22 @@ export function registerChatRoutes(app: Express): void {
         max_tokens: 2048,
       });
 
+      let fullResponse = "";
       for await (const chunk of stream) {
         const content = chunk.choices[0]?.delta?.content || "";
         if (content) {
+          fullResponse += content;
           res.write(`data: ${JSON.stringify({ content })}\n\n`);
         }
+      }
+
+      // Record usage for authenticated users (estimate tokens from character count / 4)
+      if (userId) {
+        const systemPromptLength = 380; // Approximate length of system prompt
+        const historyLength = chatMessages.reduce((sum: number, m: { role: string; content: string }) => sum + m.content.length, 0);
+        const inputTokens = Math.ceil((systemPromptLength + historyLength) / 4);
+        const outputTokens = Math.ceil(fullResponse.length / 4);
+        await recordUsage(userId, 'chat', model, inputTokens, outputTokens);
       }
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);

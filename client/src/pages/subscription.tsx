@@ -3,11 +3,12 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3 } from "lucide-react";
+import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3, Coins, AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import logoImg from "@assets/image_1770296632105.png";
 
 interface SubscriptionStatus {
@@ -34,6 +35,24 @@ interface Product {
   prices: Price[];
 }
 
+interface CreditsStatus {
+  monthlyUsedCents: number;
+  monthlyLimitCents: number;
+  purchasedCreditsCents: number;
+  availableCreditsCents: number;
+  isOverLimit: boolean;
+}
+
+interface CreditPack {
+  id: string;
+  name: string;
+  description: string;
+  priceId: string;
+  amount: number;
+  currency: string;
+  credits: number;
+}
+
 export default function SubscriptionPage() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
@@ -42,6 +61,7 @@ export default function SubscriptionPage() {
   const searchParams = new URLSearchParams(window.location.search);
   const success = searchParams.get("success");
   const canceled = searchParams.get("canceled");
+  const credits = searchParams.get("credits");
 
   useEffect(() => {
     if (success === "true") {
@@ -57,8 +77,22 @@ export default function SubscriptionPage() {
         variant: "destructive",
       });
       window.history.replaceState({}, "", "/dashboard/subscription");
+    } else if (credits === "success") {
+      toast({
+        title: "Credits Added!",
+        description: "Your AI credits have been added to your account.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
+      window.history.replaceState({}, "", "/dashboard/subscription");
+    } else if (credits === "cancelled") {
+      toast({
+        title: "Purchase canceled",
+        description: "Your credit purchase was canceled.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, "", "/dashboard/subscription");
     }
-  }, [success, canceled, toast]);
+  }, [success, canceled, credits, toast]);
 
   const { data: subscriptionStatus, isLoading: statusLoading } = useQuery<SubscriptionStatus>({
     queryKey: ["/api/subscription/status"],
@@ -67,6 +101,34 @@ export default function SubscriptionPage() {
 
   const { data: productsData, isLoading: productsLoading } = useQuery<{ products: Product[] }>({
     queryKey: ["/api/subscription/products"],
+  });
+
+  const { data: creditsData } = useQuery<CreditsStatus>({
+    queryKey: ["/api/credits"],
+    enabled: isAuthenticated,
+  });
+
+  const { data: creditPacksData } = useQuery<{ packs: CreditPack[] }>({
+    queryKey: ["/api/credits/packs"],
+  });
+
+  const creditPurchaseMutation = useMutation({
+    mutationFn: async (priceId: string) => {
+      const response = await apiRequest("POST", "/api/credits/purchase", { priceId });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to start credit purchase. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const checkoutMutation = useMutation({
@@ -162,6 +224,7 @@ export default function SubscriptionPage() {
         </div>
 
         {isActive && (
+          <>
           <Card className="mb-8 bg-zinc-900/50 border-green-900/30">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -214,6 +277,90 @@ export default function SubscriptionPage() {
               </Button>
             </CardFooter>
           </Card>
+
+          {/* AI Credits Section */}
+          <Card className="mb-8 bg-zinc-900/50 border-zinc-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Coins className="w-5 h-5 text-yellow-500" />
+                    AI Credits
+                  </CardTitle>
+                  <CardDescription className="text-zinc-400">
+                    Credits for AI-powered stock analysis and chat
+                  </CardDescription>
+                </div>
+                {creditsData?.isOverLimit && (
+                  <Badge className="bg-red-500/20 text-red-500 border-red-500/30">
+                    <AlertCircle className="w-3 h-3 mr-1" />
+                    Out of Credits
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-zinc-800/50 rounded-lg p-4">
+                  <div className="text-zinc-400 text-sm mb-1">Monthly Included</div>
+                  <div className="text-white text-xl font-bold ticker-font">
+                    ${((creditsData?.monthlyLimitCents || 500) / 100).toFixed(2)}
+                  </div>
+                  <Progress 
+                    value={Math.min(100, ((creditsData?.monthlyUsedCents || 0) / (creditsData?.monthlyLimitCents || 500)) * 100)} 
+                    className="mt-2 h-2"
+                  />
+                  <div className="text-zinc-500 text-xs mt-1">
+                    ${((creditsData?.monthlyUsedCents || 0) / 100).toFixed(2)} used
+                  </div>
+                </div>
+                <div className="bg-zinc-800/50 rounded-lg p-4">
+                  <div className="text-zinc-400 text-sm mb-1">Purchased Credits</div>
+                  <div className="text-green-500 text-xl font-bold ticker-font">
+                    ${((creditsData?.purchasedCreditsCents || 0) / 100).toFixed(2)}
+                  </div>
+                  <div className="text-zinc-500 text-xs mt-2">
+                    Available for use
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700/50">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-zinc-400 text-sm">Total Available</span>
+                  <span className={`text-lg font-bold ticker-font ${(creditsData?.availableCreditsCents || 0) > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    ${((creditsData?.availableCreditsCents || 500) / 100).toFixed(2)}
+                  </span>
+                </div>
+                <p className="text-zinc-500 text-xs">
+                  Your subscription includes $5/month of AI credits. When exhausted, credits are deducted from purchased balance.
+                </p>
+              </div>
+
+              {/* Credit Packs */}
+              {(creditPacksData?.packs?.length || 0) > 0 && (
+                <div>
+                  <h4 className="text-zinc-300 font-semibold text-sm mb-3">Buy More Credits</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {creditPacksData?.packs.map((pack) => (
+                      <Button
+                        key={pack.id}
+                        variant="outline"
+                        className="border-zinc-700 hover:border-green-500/50 hover:bg-green-500/10 flex flex-col py-3 h-auto"
+                        onClick={() => creditPurchaseMutation.mutate(pack.priceId)}
+                        disabled={creditPurchaseMutation.isPending}
+                        data-testid={`button-buy-credits-${pack.amount / 100}`}
+                      >
+                        <span className="text-green-500 font-bold">${pack.amount / 100}</span>
+                        <span className="text-zinc-500 text-xs">${(pack.credits / 100).toFixed(0)} credits</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          </>
         )}
 
         {!isActive && (

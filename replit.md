@@ -63,6 +63,29 @@ Preferred communication style: Simple, everyday language.
   - `GET /api/stripe/publishable-key` - Get Stripe publishable key for frontend
   - `POST /api/stripe/webhook` - Stripe webhook endpoint (raw body, before express.json())
 
+### AI Credit System
+- **Monthly Allowance**: $5 worth of AI credits included with subscription
+- **Usage Tracking**: All OpenRouter API calls tracked in `usage_logs` table
+- **Credit Packs**: Additional credits available for purchase ($10, $25, $50, $100)
+- **Enforcement**: Chat and analysis features check credit balance before OpenRouter calls
+- **API Endpoints**:
+  - `GET /api/credits` - Get user's credit balance (authenticated)
+  - `GET /api/credits/usage` - Get usage history (authenticated)
+  - `GET /api/credits/packs` - List available credit packs
+  - `POST /api/credits/purchase` - Create credit purchase checkout session (authenticated)
+
+### News Feed System
+- **Purpose**: Market summary updates at key times for ASX, USA, and Europe markets
+- **Timing**: Updates 20 minutes after open, midday, and close for each market
+- **Market Schedules**:
+  - ASX: 10:00 AM - 4:00 PM AEDT
+  - USA: 9:30 AM - 4:00 PM EST
+  - Europe: 8:00 AM - 4:30 PM GMT
+- **API Endpoints**:
+  - `GET /api/newsfeed` - Get latest 20 news items
+  - `POST /api/newsfeed` - Add news item (authenticated)
+  - `POST /api/newsfeed/generate-summary` - Generate market summary
+
 The frontend follows a page-based structure with shared components. The application uses a sidebar navigation pattern with responsive design for mobile devices.
 
 ### Markets Page Design

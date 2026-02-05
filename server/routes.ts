@@ -434,8 +434,22 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/portfolio/analysis", async (req: Request, res: Response) => {
+  app.get("/api/portfolio/analysis", async (req: any, res: Response) => {
     try {
+      const userId = req.user?.claims?.sub;
+      
+      // Check credits if user is authenticated
+      if (userId) {
+        const creditCheck = await checkAndDeductCredits(userId, 10);
+        if (!creditCheck.allowed) {
+          return res.status(402).json({ 
+            error: "Out of credits",
+            analysis: "You've used all your AI credits. Purchase additional credits to continue using AI features.",
+            requiresCredits: true
+          });
+        }
+      }
+
       const holdings = await storage.getPortfolioHoldings();
       if (holdings.length === 0) {
         return res.json({ analysis: "Add some holdings to get AI-powered portfolio analysis." });
@@ -460,8 +474,15 @@ export async function registerRoutes(
         max_tokens: 300,
       });
 
+      const content = completion.choices[0]?.message?.content || "";
+      
+      // Record usage for authenticated users
+      if (userId) {
+        await recordUsage(userId, 'portfolio_analysis', 'moonshotai/kimi-k2.5', holdingsSummary.length / 4, content.length / 4);
+      }
+
       res.json({
-        analysis: completion.choices[0]?.message?.content || "Your portfolio looks interesting! Consider reviewing your sector allocation for better diversification."
+        analysis: content || "Your portfolio looks interesting! Consider reviewing your sector allocation for better diversification."
       });
     } catch (error) {
       console.error("Portfolio analysis error:", error);
@@ -470,8 +491,22 @@ export async function registerRoutes(
   });
 
   // Comprehensive portfolio review - "Get Your Bro's Opinion"
-  app.post("/api/portfolio/review", async (req: Request, res: Response) => {
+  app.post("/api/portfolio/review", async (req: any, res: Response) => {
     try {
+      const userId = req.user?.claims?.sub;
+      
+      // Check credits if user is authenticated (larger request = higher cost)
+      if (userId) {
+        const creditCheck = await checkAndDeductCredits(userId, 30);
+        if (!creditCheck.allowed) {
+          return res.status(402).json({ 
+            error: "Out of credits",
+            review: "## Out of AI Credits\n\nYou've used all your AI credits. Purchase additional credits to continue using AI features.",
+            requiresCredits: true
+          });
+        }
+      }
+
       const holdings = await storage.getPortfolioHoldings();
       if (holdings.length === 0) {
         return res.json({ 
@@ -623,6 +658,12 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
       const review = completion.choices[0]?.message?.content || "Unable to generate review at this time. Please try again.";
       
+      // Record usage for authenticated users
+      if (userId) {
+        const promptLength = systemPrompt.length + userPrompt.length;
+        await recordUsage(userId, 'portfolio_review', 'moonshotai/kimi-k2.5', promptLength / 4, review.length / 4);
+      }
+
       res.json({ review });
     } catch (error) {
       console.error("Portfolio review error:", error);
@@ -788,9 +829,10 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/analysis/ai/:ticker", async (req: Request, res: Response) => {
+  app.get("/api/analysis/ai/:ticker", async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
+      const userId = req.user?.claims?.sub;
       
       // Try Laser Beam Capital fundamental analysis API first
       try {
@@ -816,6 +858,20 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         console.error("Laser Beam analysis error:", e);
       }
       
+      // Check credits if user is authenticated (only for OpenRouter fallback)
+      if (userId) {
+        const creditCheck = await checkAndDeductCredits(userId, 15);
+        if (!creditCheck.allowed) {
+          return res.status(402).json({ 
+            error: "Out of credits",
+            summary: "You've used all your AI credits. Purchase additional credits to continue using AI features.",
+            sentiment: "neutral",
+            keyPoints: [],
+            requiresCredits: true
+          });
+        }
+      }
+
       // Fallback to OpenRouter AI
       const completion = await openrouter.chat.completions.create({
         model: "moonshotai/kimi-k2.5",
@@ -834,6 +890,13 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       });
 
       const content = completion.choices[0]?.message?.content || '{}';
+      
+      // Record usage for authenticated users
+      if (userId) {
+        const promptText = `Give a brief investment analysis for ${ticker.toUpperCase()}. Consider recent performance, market position, and outlook.`;
+        await recordUsage(userId, 'stock_analysis', 'moonshotai/kimi-k2.5', promptText.length / 4, content.length / 4);
+      }
+
       try {
         const parsed = JSON.parse(content);
         res.json({
@@ -1324,15 +1387,20 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     try {
       const rows = await stripeService.listCreditPacks();
       
-      const packs = rows.map((row: any) => ({
-        id: row.product_id,
-        name: row.product_name,
-        description: row.product_description,
-        priceId: row.price_id,
-        amount: row.unit_amount,
-        currency: row.currency,
-        credits: row.product_metadata?.credits || 0,
-      }));
+      const packs = rows.map((row: any) => {
+        const metadata = typeof row.product_metadata === 'string' 
+          ? JSON.parse(row.product_metadata) 
+          : row.product_metadata;
+        return {
+          id: row.product_id,
+          name: row.product_name,
+          description: row.product_description,
+          priceId: row.price_id,
+          amount: row.unit_amount,
+          currency: row.currency,
+          credits: parseInt(metadata?.credits_cents || '0'),
+        };
+      });
 
       res.json({ packs });
     } catch (error) {

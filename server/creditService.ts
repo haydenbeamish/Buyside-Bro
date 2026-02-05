@@ -14,6 +14,19 @@ export function calculateCostCents(inputTokens: number, outputTokens: number): n
   return Math.ceil(totalCost * 100);
 }
 
+function shouldResetMonthlyCredits(lastResetAt: Date | null): boolean {
+  // If never reset, needs initialization
+  if (!lastResetAt) return true;
+  
+  const now = new Date();
+  const resetDate = new Date(lastResetAt);
+  
+  const currentMonth = now.getFullYear() * 12 + now.getMonth();
+  const resetMonth = resetDate.getFullYear() * 12 + resetDate.getMonth();
+  
+  return currentMonth > resetMonth;
+}
+
 export async function getUserCredits(userId: string): Promise<{
   monthlyUsedCents: number;
   monthlyLimitCents: number;
@@ -29,6 +42,26 @@ export async function getUserCredits(userId: string): Promise<{
       monthlyLimitCents: MONTHLY_CREDIT_LIMIT_CENTS,
       purchasedCreditsCents: 0,
       availableCreditsCents: MONTHLY_CREDIT_LIMIT_CENTS,
+      isOverLimit: false,
+    };
+  }
+
+  // Check if we need to reset monthly credits
+  if (shouldResetMonthlyCredits(user.monthlyCreditsResetAt)) {
+    await db.update(users)
+      .set({ 
+        monthlyCreditsUsedCents: 0,
+        monthlyCreditsResetAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+    
+    const purchasedCreditsCents = user.creditBalanceCents || 0;
+    return {
+      monthlyUsedCents: 0,
+      monthlyLimitCents: MONTHLY_CREDIT_LIMIT_CENTS,
+      purchasedCreditsCents,
+      availableCreditsCents: MONTHLY_CREDIT_LIMIT_CENTS + purchasedCreditsCents,
       isOverLimit: false,
     };
   }
