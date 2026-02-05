@@ -8,7 +8,7 @@ export * from "./models/auth";
 
 export const portfolioHoldings = pgTable("portfolio_holdings", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
+  userId: varchar("user_id"),
   ticker: text("ticker").notNull(),
   shares: decimal("shares", { precision: 18, scale: 8 }).notNull(),
   avgCost: decimal("avg_cost", { precision: 18, scale: 4 }).notNull(),
