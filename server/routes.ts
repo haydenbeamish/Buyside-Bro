@@ -545,10 +545,11 @@ export async function registerRoutes(
 
       // Fetch market news from Laser Beam Capital API
       try {
-        const response = await fetch("https://api.laserbeamcapital.com/api/news/market");
+        const response = await fetchWithTimeout("https://api.laserbeamcapital.com/api/news/market", {}, 5000);
         if (response.ok) {
           const data = await response.json() as any;
-          marketNews = (data.news || data || []).slice(0, 10).map((r: any) => ({
+          const articles = data.articles || data.news || [];
+          marketNews = articles.slice(0, 10).map((r: any) => ({
             title: r.title,
             description: r.summary || r.description || "",
             url: r.url || "#",
@@ -563,10 +564,11 @@ export async function registerRoutes(
 
       // Fetch portfolio news from Laser Beam Capital API  
       try {
-        const response = await fetch("https://api.laserbeamcapital.com/api/news/portfolio");
+        const response = await fetchWithTimeout("https://api.laserbeamcapital.com/api/news/portfolio", {}, 5000);
         if (response.ok) {
           const data = await response.json() as any;
-          portfolioNews = (data.news || data || []).slice(0, 10).map((r: any) => ({
+          const articles = data.articles || data.news || [];
+          portfolioNews = articles.slice(0, 10).map((r: any) => ({
             title: r.title,
             description: r.summary || r.description || "",
             url: r.url || "#",
