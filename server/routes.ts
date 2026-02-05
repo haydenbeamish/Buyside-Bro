@@ -238,22 +238,38 @@ export async function registerRoutes(
         return res.json([]);
       }
 
-      const searchUrl = `https://api.laserbeamcapital.com/api/ticker-search?q=${encodeURIComponent(query)}`;
-      const response = await fetch(searchUrl);
-      
-      if (!response.ok) {
-        console.log("Ticker search failed:", response.status);
-        return res.json([]);
+      const searchFetches = [
+        fetchWithTimeout(`https://api.laserbeamcapital.com/api/ticker-search?q=${encodeURIComponent(query)}`, {}, 5000),
+      ];
+
+      const shouldSearchASX = !query.includes('.') && query.length >= 1;
+      if (shouldSearchASX) {
+        searchFetches.push(
+          fetchWithTimeout(`https://api.laserbeamcapital.com/api/ticker-search?q=${encodeURIComponent(query + '.AX')}`, {}, 5000),
+        );
       }
 
-      const data = await response.json();
-      // Format results from Laser Beam API
-      const results = (data.results || []).map((item: any) => ({
-        symbol: item.ticker,
-        name: item.name,
-        exchange: item.exchange,
-        type: item.type
-      }));
+      const responses = await Promise.allSettled(searchFetches);
+      const seen = new Set<string>();
+      const results: any[] = [];
+
+      for (const resp of responses) {
+        if (resp.status === 'fulfilled' && resp.value.ok) {
+          const data = await resp.value.json() as any;
+          for (const item of (data.results || [])) {
+            const sym = item.ticker;
+            if (!seen.has(sym)) {
+              seen.add(sym);
+              results.push({
+                symbol: sym,
+                name: item.name,
+                exchange: item.exchange,
+                type: item.type,
+              });
+            }
+          }
+        }
+      }
 
       res.json(results);
     } catch (error) {
@@ -319,85 +335,71 @@ export async function registerRoutes(
         return res.json([]);
       }
 
-      const tickers = holdings.map(h => h.ticker.toUpperCase()).join(",");
-      
-      // Fetch quote data for all tickers
-      const quoteUrl = `https://financialmodelingprep.com/api/v3/quote/${tickers}?apikey=${process.env.FMP_API_KEY}`;
-      
-      // Fetch key metrics for P/E, EPS, etc.
-      let quotes: any[] = [];
-      let profiles: any[] = [];
-      let earningsCalendar: any[] = [];
-      
-      try {
-        // Build earnings calendar URL upfront so all 3 requests can run in parallel
-        const today = new Date();
-        const futureDate = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
-        const fromDate = today.toISOString().split('T')[0];
-        const toDate = futureDate.toISOString().split('T')[0];
-        const earningsUrl = `https://financialmodelingprep.com/api/v3/earning_calendar?from=${fromDate}&to=${toDate}&apikey=${process.env.FMP_API_KEY}`;
+      const apiKey = process.env.FMP_API_KEY;
+      const tickerList = holdings.map(h => h.ticker.toUpperCase());
 
-        // Parallelize all 3 API calls for faster response
-        const [quoteRes, profileRes, earningsRes] = await Promise.all([
-          fetchWithTimeout(quoteUrl, {}, 8000),
-          fetchWithTimeout(`https://financialmodelingprep.com/api/v3/profile/${tickers}?apikey=${process.env.FMP_API_KEY}`, {}, 8000),
-          fetchWithTimeout(earningsUrl, {}, 8000),
-        ]);
-        
-        if (quoteRes.ok) {
-          quotes = await quoteRes.json() as any[];
+      const quoteMap = new Map<string, any>();
+      const metricsMap = new Map<string, any>();
+      const profileMap = new Map<string, any>();
+
+      try {
+        const allRequests: Promise<void>[] = [];
+
+        for (const ticker of tickerList) {
+          allRequests.push(
+            fetchWithTimeout(`https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+              .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) quoteMap.set(ticker, d[0]); } })
+              .catch(() => {})
+          );
+          allRequests.push(
+            fetchWithTimeout(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+              .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) metricsMap.set(ticker, d[0]); } })
+              .catch(() => {})
+          );
+          allRequests.push(
+            fetchWithTimeout(`https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+              .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) profileMap.set(ticker, d[0]); } })
+              .catch(() => {})
+          );
         }
-        if (profileRes.ok) {
-          profiles = await profileRes.json() as any[];
-        }
-        if (earningsRes.ok) {
-          earningsCalendar = await earningsRes.json() as any[];
-        }
+
+        await Promise.all(allRequests);
       } catch (e) {
         console.error("Failed to fetch FMP data:", e);
       }
 
-      // Create lookup maps
-      const quoteMap = new Map(quotes.map((q: any) => [q.symbol?.toUpperCase(), q]));
-      const profileMap = new Map(profiles.map((p: any) => [p.symbol?.toUpperCase(), p]));
-      const earningsMap = new Map<string, string>();
-      
-      // Find next earnings for each ticker
-      for (const earning of earningsCalendar) {
-        const symbol = earning.symbol?.toUpperCase();
-        if (symbol && !earningsMap.has(symbol)) {
-          earningsMap.set(symbol, earning.date);
-        }
-      }
-
-      // Enrich holdings
       const enrichedHoldings = holdings.map(holding => {
         const ticker = holding.ticker.toUpperCase();
         const quote = quoteMap.get(ticker) || {};
+        const metrics = metricsMap.get(ticker) || {};
         const profile = profileMap.get(ticker) || {};
-        
+
         const shares = Number(holding.shares);
         const avgCost = Number(holding.avgCost);
-        const currentPrice = quote.price || Number(holding.currentPrice || avgCost);
-        const dayChangePercent = quote.changesPercentage || 0;
-        const previousClose = quote.previousClose || currentPrice;
+        const currentPrice = quote.price || profile.price || Number(holding.currentPrice || avgCost);
+        const dayChangePercent = quote.changePercentage || profile.changePercentage || 0;
+        const previousClose = quote.previousClose || (currentPrice - (quote.change || 0));
         const dayPnL = shares * (currentPrice - previousClose);
         const totalPnL = shares * (currentPrice - avgCost);
         const value = shares * currentPrice;
         const pnlPercent = avgCost > 0 ? ((currentPrice - avgCost) / avgCost) * 100 : 0;
-        
+
+        const earningsYield = metrics.earningsYieldTTM;
+        const pe = earningsYield && earningsYield > 0 ? 1 / earningsYield : null;
+
         return {
           ...holding,
           currentPrice,
+          name: profile.companyName || holding.name || holding.ticker,
           dayChangePercent,
           value,
           dayPnL,
           totalPnL,
           pnlPercent,
-          marketCap: profile.mktCap || null,
-          pe: profile.pe || quote.pe || null,
-          epsGrowth: profile.epsGrowth || null,
-          nextEarnings: earningsMap.get(ticker) || null,
+          marketCap: quote.marketCap || profile.marketCap || null,
+          pe,
+          epsGrowth: null,
+          nextEarnings: null,
         };
       });
 
