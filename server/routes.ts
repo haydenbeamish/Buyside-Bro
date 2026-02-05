@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerChatRoutes } from "./replit_integrations/chat";
-import { insertPortfolioHoldingSchema } from "@shared/schema";
+import { insertPortfolioHoldingSchema, insertWatchlistSchema } from "@shared/schema";
 import OpenAI from "openai";
 import { isAuthenticated, authStorage } from "./replit_integrations/auth";
 import { stripeService } from "./stripeService";
@@ -230,7 +230,6 @@ export async function registerRoutes(
     }
   });
 
-  // Stock search endpoint using Laser Beam Capital API
   app.get("/api/stocks/search", async (req: Request, res: Response) => {
     try {
       const query = req.query.q as string;
@@ -238,7 +237,8 @@ export async function registerRoutes(
         return res.json([]);
       }
 
-      const searchFetches = [
+      const fmpKey = process.env.FMP_API_KEY;
+      const searchFetches: Promise<Response>[] = [
         fetchWithTimeout(`https://api.laserbeamcapital.com/api/ticker-search?q=${encodeURIComponent(query)}`, {}, 5000),
       ];
 
@@ -249,23 +249,50 @@ export async function registerRoutes(
         );
       }
 
+      if (fmpKey) {
+        searchFetches.push(
+          fetchWithTimeout(`https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(query)}&limit=15&apikey=${fmpKey}`, {}, 5000),
+        );
+        searchFetches.push(
+          fetchWithTimeout(`https://financialmodelingprep.com/api/v3/search-name?query=${encodeURIComponent(query)}&limit=15&apikey=${fmpKey}`, {}, 5000),
+        );
+      }
+
       const responses = await Promise.allSettled(searchFetches);
       const seen = new Set<string>();
       const results: any[] = [];
 
-      for (const resp of responses) {
+      for (let i = 0; i < responses.length; i++) {
+        const resp = responses[i];
         if (resp.status === 'fulfilled' && resp.value.ok) {
           const data = await resp.value.json() as any;
-          for (const item of (data.results || [])) {
-            const sym = item.ticker;
-            if (!seen.has(sym)) {
-              seen.add(sym);
-              results.push({
-                symbol: sym,
-                name: item.name,
-                exchange: item.exchange,
-                type: item.type,
-              });
+          const isFmp = i >= 2;
+
+          if (isFmp && Array.isArray(data)) {
+            for (const item of data) {
+              const sym = item.symbol;
+              if (sym && !seen.has(sym)) {
+                seen.add(sym);
+                results.push({
+                  symbol: sym,
+                  name: item.name,
+                  exchange: item.exchangeShortName || item.exchange || '',
+                  type: item.type || 'stock',
+                });
+              }
+            }
+          } else if (!isFmp) {
+            for (const item of (data.results || [])) {
+              const sym = item.ticker;
+              if (sym && !seen.has(sym)) {
+                seen.add(sym);
+                results.push({
+                  symbol: sym,
+                  name: item.name,
+                  exchange: item.exchange,
+                  type: item.type,
+                });
+              }
             }
           }
         }
@@ -1497,6 +1524,157 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     } catch (error) {
       console.error("Error generating market summary:", error);
       res.status(500).json({ error: "Failed to generate market summary" });
+    }
+  });
+
+  // Watchlist routes
+  app.get("/api/watchlist", async (req: Request, res: Response) => {
+    try {
+      const items = await storage.getWatchlist();
+      res.json(items);
+    } catch (error) {
+      console.error("Watchlist error:", error);
+      res.status(500).json({ error: "Failed to fetch watchlist" });
+    }
+  });
+
+  app.post("/api/watchlist", async (req: Request, res: Response) => {
+    try {
+      const validation = insertWatchlistSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid input", details: validation.error.errors });
+      }
+      const item = await storage.addToWatchlist({
+        ticker: validation.data.ticker.toUpperCase(),
+        name: validation.data.name || null,
+      });
+      res.status(201).json(item);
+    } catch (error: any) {
+      if (error?.code === '23505') {
+        return res.status(409).json({ error: "Ticker already in watchlist" });
+      }
+      console.error("Add to watchlist error:", error);
+      res.status(500).json({ error: "Failed to add to watchlist" });
+    }
+  });
+
+  app.delete("/api/watchlist/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      await storage.removeFromWatchlist(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Remove from watchlist error:", error);
+      res.status(500).json({ error: "Failed to remove from watchlist" });
+    }
+  });
+
+  app.get("/api/watchlist/enriched", async (req: Request, res: Response) => {
+    try {
+      const items = await storage.getWatchlist();
+      if (items.length === 0) {
+        return res.json([]);
+      }
+
+      const apiKey = process.env.FMP_API_KEY;
+      const quoteMap = new Map<string, any>();
+      const metricsMap = new Map<string, any>();
+      const profileMap = new Map<string, any>();
+
+      if (apiKey) {
+        try {
+          const allRequests: Promise<void>[] = [];
+          for (const item of items) {
+            const ticker = item.ticker.toUpperCase();
+            allRequests.push(
+              fetchWithTimeout(`https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+                .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) quoteMap.set(ticker, d[0]); } })
+                .catch(() => {})
+            );
+            allRequests.push(
+              fetchWithTimeout(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+                .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) metricsMap.set(ticker, d[0]); } })
+                .catch(() => {})
+            );
+            allRequests.push(
+              fetchWithTimeout(`https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+                .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) profileMap.set(ticker, d[0]); } })
+                .catch(() => {})
+            );
+          }
+          await Promise.all(allRequests);
+        } catch (e) {
+          console.error("Failed to fetch FMP data for watchlist:", e);
+        }
+      }
+
+      const enriched = items.map(item => {
+        const ticker = item.ticker.toUpperCase();
+        const quote = quoteMap.get(ticker) || {};
+        const metrics = metricsMap.get(ticker) || {};
+        const profile = profileMap.get(ticker) || {};
+
+        const price = quote.price || profile.price || null;
+        const dayChangePercent = quote.changePercentage || profile.changePercentage || 0;
+        const earningsYield = metrics.earningsYieldTTM;
+        const pe = earningsYield && earningsYield > 0 ? 1 / earningsYield : null;
+
+        return {
+          ...item,
+          price,
+          name: profile.companyName || item.name || item.ticker,
+          dayChangePercent,
+          marketCap: quote.marketCap || profile.marketCap || null,
+          pe,
+        };
+      });
+
+      res.json(enriched);
+    } catch (error) {
+      console.error("Enriched watchlist error:", error);
+      res.status(500).json({ error: "Failed to fetch enriched watchlist" });
+    }
+  });
+
+  // Seed watchlist endpoint (one-time use)
+  app.post("/api/watchlist/seed", async (req: Request, res: Response) => {
+    try {
+      const existing = await storage.getWatchlist();
+      if (existing.length > 0) {
+        return res.json({ message: "Watchlist already has items", count: existing.length });
+      }
+
+      const nasdaqStocks = [
+        { ticker: "AAPL", name: "Apple Inc." },
+        { ticker: "MSFT", name: "Microsoft Corporation" },
+        { ticker: "GOOGL", name: "Alphabet Inc." },
+        { ticker: "AMZN", name: "Amazon.com Inc." },
+        { ticker: "NVDA", name: "NVIDIA Corporation" },
+        { ticker: "META", name: "Meta Platforms Inc." },
+        { ticker: "TSLA", name: "Tesla Inc." },
+        { ticker: "AVGO", name: "Broadcom Inc." },
+        { ticker: "COST", name: "Costco Wholesale" },
+        { ticker: "NFLX", name: "Netflix Inc." },
+        { ticker: "AMD", name: "Advanced Micro Devices" },
+        { ticker: "ADBE", name: "Adobe Inc." },
+        { ticker: "CRM", name: "Salesforce Inc." },
+        { ticker: "INTC", name: "Intel Corporation" },
+        { ticker: "PYPL", name: "PayPal Holdings" },
+      ];
+
+      for (const stock of nasdaqStocks) {
+        try {
+          await storage.addToWatchlist(stock);
+        } catch (e) {
+          // skip duplicates
+        }
+      }
+
+      const items = await storage.getWatchlist();
+      res.json({ message: "Watchlist seeded", count: items.length, items });
+    } catch (error) {
+      console.error("Seed watchlist error:", error);
+      res.status(500).json({ error: "Failed to seed watchlist" });
     }
   });
 

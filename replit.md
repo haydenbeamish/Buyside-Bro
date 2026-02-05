@@ -33,11 +33,13 @@ Preferred communication style: Simple, everyday language.
 - **Landing Page** (`/`): Hero section with scrolling ticker tape, features cards, CTA section, footer
 - **Dashboard** (`/dashboard/*`): All authenticated pages use DashboardLayout component with sidebar navigation
   - `/dashboard` or `/dashboard/markets` - Markets data with category tabs
-  - `/dashboard/portfolio` - Portfolio tracker
-  - `/dashboard/analysis` - Stock analysis with AI
-  - `/dashboard/earnings` - Earnings calendar
-  - `/dashboard/news` - Financial news feed
-  - `/dashboard/chat` - AI chat assistant
+  - `/portfolio` - Portfolio tracker
+  - `/watchlist` - Watchlist tracker (like portfolio without cost basis/shares/P&L)
+  - `/analysis` - Stock analysis with AI
+  - `/earnings` - Earnings calendar
+  - `/whats-up` - Market summary + news feed
+  - `/news` - Financial news
+  - `/chat` - AI chat assistant
   - `/dashboard/subscription` - Subscription management page
 
 ### Authentication
@@ -94,8 +96,24 @@ The Markets page mirrors the design of laserbeamcapital.com/markets with:
 - **Category Tabs**: Global Markets, Futures, Commodities, USA Thematics, USA Sectors, USA Equal Weight Sectors, ASX Sectors, Forex
 - **Data Table**: Columns for Name, Price, 1D%, 1M%, 1Q%, 1Y%, VS 10D, VS 20D, VS 200D with sortable headers
 - **Color Coding**: Green for positive percentages, red for negative
-- **Market Summary**: Collapsible section with AI-generated market analysis
 - **Dark Theme**: Black background with zinc/gray text hierarchy
+
+### Stock Search
+- **Global Coverage**: Combines Laser Beam Capital API + FMP search + FMP search-name APIs
+- **Exchanges**: Returns results from all global exchanges (US, London/LSE, Europe/HAN/VIE, Asia/TYO/NSI, Australia/.AX, etc.)
+- **Endpoint**: `GET /api/stocks/search?q={query}` - Used by both portfolio and watchlist add flows
+- **Deduplication**: Results are deduplicated by symbol across all API sources
+
+### Watchlist
+- **Purpose**: Track stocks without cost basis - just price, day %, market cap, P/E
+- **Schema**: `watchlist` table with id, ticker (unique), name, addedAt
+- **Seeded**: 15 NASDAQ stocks (AAPL, MSFT, GOOGL, AMZN, NVDA, META, TSLA, AVGO, COST, NFLX, AMD, ADBE, CRM, INTC, PYPL)
+- **API Endpoints**:
+  - `GET /api/watchlist` - Get all watchlist items
+  - `POST /api/watchlist` - Add item {ticker, name}
+  - `DELETE /api/watchlist/:id` - Remove item
+  - `GET /api/watchlist/enriched` - Get items with live price, day %, market cap, P/E from FMP
+  - `POST /api/watchlist/seed` - Seed with 15 NASDAQ stocks (only if empty)
 
 ### Backend Architecture
 - **Framework**: Express.js 5 running on Node.js
