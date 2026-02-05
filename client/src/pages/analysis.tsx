@@ -364,7 +364,33 @@ function MarkdownSection({ content }: { content: string }) {
   );
 }
 
-function DeepAnalysisLoader({ ticker, progress, message }: { ticker: string; progress: number; message: string }) {
+function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete }: { ticker: string; progress: number; message: string; isComplete?: boolean }) {
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+  const [startTime] = useState(() => Date.now());
+  
+  useEffect(() => {
+    if (isComplete) {
+      setAnimatedProgress(100);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      setAnimatedProgress(prev => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const baseProgress = Math.min(apiProgress, 95);
+        const timeBasedProgress = Math.min(elapsed * 0.5, 94);
+        const newProgress = Math.max(baseProgress, timeBasedProgress, prev);
+        const increment = 0.1 + Math.random() * 0.3;
+        const nextProgress = Math.min(newProgress + increment, 95);
+        return nextProgress;
+      });
+    }, 150);
+    
+    return () => clearInterval(interval);
+  }, [apiProgress, isComplete, startTime]);
+  
+  const displayProgress = isComplete ? 100 : Math.floor(animatedProgress);
+  
   const loadingStages = [
     { label: "Gathering data", threshold: 20, icon: Search },
     { label: "Analyzing financials", threshold: 40, icon: BarChart3 },
@@ -373,7 +399,7 @@ function DeepAnalysisLoader({ ticker, progress, message }: { ticker: string; pro
     { label: "Generating recommendation", threshold: 100, icon: Target },
   ];
   
-  const stageIndex = loadingStages.findIndex(s => progress < s.threshold);
+  const stageIndex = loadingStages.findIndex(s => displayProgress < s.threshold);
   const currentStage = stageIndex === -1 ? loadingStages.length - 1 : stageIndex;
   
   return (
@@ -397,21 +423,21 @@ function DeepAnalysisLoader({ ticker, progress, message }: { ticker: string; pro
             </div>
           </div>
           <div className="text-right">
-            <p className="text-3xl font-bold font-mono text-green-400">{progress}%</p>
+            <p className="text-3xl font-bold font-mono text-green-400">{displayProgress}%</p>
           </div>
         </div>
         
         <div className="h-3 bg-zinc-800 rounded-full overflow-hidden mb-6">
           <div 
-            className="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
+            className="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full transition-all duration-150"
+            style={{ width: `${displayProgress}%` }}
           />
         </div>
         
         <div className="grid grid-cols-5 gap-2">
           {loadingStages.map((stage, i) => {
             const isActive = i === currentStage;
-            const isComplete = progress >= stage.threshold;
+            const isComplete = displayProgress >= stage.threshold;
             return (
               <div 
                 key={stage.label}
@@ -1005,6 +1031,7 @@ export default function AnalysisPage() {
                 ticker={activeTicker || ""} 
                 progress={deepJobStatus?.progress || 0}
                 message={deepJobStatus?.message || "Starting analysis..."}
+                isComplete={false}
               />
             ) : deepResult ? (
               <DeepAnalysisResult result={deepResult} />
