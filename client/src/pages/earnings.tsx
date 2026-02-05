@@ -235,10 +235,10 @@ export default function EarningsPage() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="mb-6">
           <h1 className="text-4xl font-bold tracking-tight mb-2 display-font neon-green-subtle">
-            EARNINGS CALENDAR
+            EARNINGS ANALYSIS
           </h1>
           <p className="text-zinc-500">
-            Track upcoming and recent earnings announcements
+            Analyze stocks before and after earnings announcements
           </p>
         </div>
 
