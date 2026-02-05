@@ -206,17 +206,17 @@ export default function ChatPage() {
           <div className="flex-1 flex items-center justify-center p-6">
             <div className="max-w-md text-center space-y-6">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-500/10 border border-green-500/30 mx-auto">
-                <span className="text-4xl font-bold text-green-500 display-font">D</span>
+                <span className="text-3xl font-bold text-green-500 display-font">AB</span>
               </div>
               <div>
                 <h2 className="text-3xl font-bold text-white mb-2 display-font tracking-wide">
-                  DEXTER
+                  ASK BRO
                 </h2>
                 <p className="text-green-400 text-sm uppercase tracking-widest mb-3">
                   Autonomous Financial Research Agent
                 </p>
                 <p className="text-zinc-500 text-sm">
-                  Ask complex financial questions. Dexter thinks, plans, and researches using real-time market data to give you data-backed answers.
+                  Ask complex financial questions. Your bro thinks, plans, and researches using real-time market data to give you data-backed answers.
                 </p>
               </div>
               <Button
@@ -286,7 +286,7 @@ export default function ChatPage() {
                           {msg.role === "user" ? (
                             <User className="h-4 w-4 text-zinc-300" />
                           ) : (
-                            <span className="text-sm font-bold text-green-500">D</span>
+                            <span className="text-xs font-bold text-green-500">AB</span>
                           )}
                         </AvatarFallback>
                       </Avatar>
@@ -315,7 +315,7 @@ export default function ChatPage() {
                   <div className="flex gap-3">
                     <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarFallback className="bg-green-500/10">
-                        <span className="text-sm font-bold text-green-500 animate-pulse">D</span>
+                        <span className="text-xs font-bold text-green-500 animate-pulse">AB</span>
                       </AvatarFallback>
                     </Avatar>
                     <div className="max-w-[80%] rounded-lg p-3 bg-zinc-900 border border-zinc-800">
