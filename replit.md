@@ -158,6 +158,17 @@ The backend transforms external API data to match frontend expectations:
 ### Database
 - **PostgreSQL**: Primary database (connection via `DATABASE_URL` environment variable)
 - **Drizzle Kit**: Database migrations stored in `./migrations`
+- **Indexes**: 
+  - `usage_logs`: user_id, created_at (for efficient credit queries)
+  - `news_feed`: published_at (for chronological ordering)
+
+### Performance Optimizations
+- **Request Deduplication**: `/api/markets/full` coalesces concurrent requests to prevent duplicate API calls at cache expiry
+- **Parallel API Calls**: `/api/portfolio/enriched` fetches quotes, profiles, and earnings calendar concurrently (3 parallel requests vs sequential)
+- **Atomic Cache Upsert**: Uses `ON CONFLICT DO UPDATE` pattern instead of delete-then-insert for thread-safety
+- **Credit Service**: Single DB query in `recordUsage()` instead of calling `getUserCredits()` twice
+- **Ticker Tape Animation**: Runs once on mount, doesn't restart when market data refreshes
+- **Fallback Data Constants**: Module-scope constants eliminate inline duplication in routes
 
 ### Key Runtime Dependencies
 - `drizzle-orm` + `pg`: Database connectivity
