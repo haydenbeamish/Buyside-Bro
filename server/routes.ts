@@ -19,6 +19,58 @@ import {
 
 const LASER_BEAM_API = "https://laserbeamcapital.replit.app";
 
+// Fallback market data constants
+const FALLBACK_INDICES = [
+  { symbol: "SPY", name: "S&P 500", price: 4567.89, change: 12.34, changePercent: 0.27 },
+  { symbol: "QQQ", name: "Nasdaq 100", price: 15234.56, change: -23.45, changePercent: -0.15 },
+  { symbol: "DIA", name: "Dow Jones", price: 35678.90, change: 45.67, changePercent: 0.13 },
+  { symbol: "IWM", name: "Russell 2000", price: 1987.65, change: -5.43, changePercent: -0.27 },
+  { symbol: "VIX", name: "Volatility Index", price: 15.67, change: -0.45, changePercent: -2.79 },
+  { symbol: "DXY", name: "US Dollar Index", price: 104.32, change: 0.23, changePercent: 0.22 },
+];
+const FALLBACK_FUTURES = [
+  { symbol: "ES", name: "S&P 500 Futures", price: 4570.25, change: 8.50, changePercent: 0.19 },
+  { symbol: "NQ", name: "Nasdaq Futures", price: 15280.00, change: -15.75, changePercent: -0.10 },
+  { symbol: "YM", name: "Dow Futures", price: 35720.00, change: 35.00, changePercent: 0.10 },
+  { symbol: "RTY", name: "Russell Futures", price: 1992.30, change: -2.80, changePercent: -0.14 },
+];
+const FALLBACK_COMMODITIES = [
+  { symbol: "GC", name: "Gold", price: 2045.30, change: 12.50, changePercent: 0.61 },
+  { symbol: "SI", name: "Silver", price: 24.87, change: 0.34, changePercent: 1.38 },
+  { symbol: "CL", name: "Crude Oil WTI", price: 78.45, change: -1.23, changePercent: -1.54 },
+  { symbol: "NG", name: "Natural Gas", price: 2.89, change: 0.05, changePercent: 1.76 },
+];
+const FALLBACK_SECTORS = [
+  { name: "Technology", change: 1.24 },
+  { name: "Healthcare", change: -0.45 },
+  { name: "Financials", change: 0.67 },
+  { name: "Consumer Disc", change: 0.89 },
+  { name: "Energy", change: -1.23 },
+  { name: "Industrials", change: 0.34 },
+  { name: "Materials", change: 0.56 },
+  { name: "Utilities", change: -0.12 },
+  { name: "Real Estate", change: -0.78 },
+  { name: "Comm Services", change: 0.91 },
+  { name: "Consumer Staples", change: 0.23 },
+];
+
+// Transform external API data to match frontend expected format
+const transformMarketItem = (item: any) => ({
+  name: item.name,
+  ticker: item.ticker,
+  price: item.lastPrice || 0,
+  change1D: item.chgDay || 0,
+  change1M: item.chgMonth || 0,
+  change1Q: item.chgQtr || 0,
+  change1Y: item.chgYear || 0,
+  vs10D: item.pxVs10d || 0,
+  vs20D: item.pxVs20d || 0,
+  vs200D: item.pxVs200d || 0,
+});
+
+// Request deduplication for concurrent market data fetches
+const pendingRequests = new Map<string, Promise<any>>();
+
 const openrouter = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
   apiKey: process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY || "",

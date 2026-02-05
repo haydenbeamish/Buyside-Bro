@@ -106,7 +106,11 @@ export async function recordUsage(
 ): Promise<void> {
   const costCents = calculateCostCents(inputTokens, outputTokens);
   
-  await db.insert(usageLogs).values({
+  // Single query to get user data and calculate remaining credits
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  
+  // Insert usage log (no await needed for this independent operation)
+  const logPromise = db.insert(usageLogs).values({
     userId,
     feature,
     model,
@@ -116,27 +120,40 @@ export async function recordUsage(
     metadata,
   });
 
-  const credits = await getUserCredits(userId);
-  const monthlyRemaining = MONTHLY_CREDIT_LIMIT_CENTS - (credits.monthlyUsedCents);
+  if (!user) {
+    await logPromise;
+    return;
+  }
   
+  // Calculate remaining monthly credits directly from user data
+  const monthlyUsed = user.monthlyCreditsUsedCents || 0;
+  const monthlyRemaining = Math.max(0, MONTHLY_CREDIT_LIMIT_CENTS - monthlyUsed);
+  
+  // Determine how to split cost between monthly and purchased credits
   if (monthlyRemaining >= costCents) {
-    await db.update(users)
-      .set({ 
-        monthlyCreditsUsedCents: sql`${users.monthlyCreditsUsedCents} + ${costCents}`,
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, userId));
+    await Promise.all([
+      logPromise,
+      db.update(users)
+        .set({ 
+          monthlyCreditsUsedCents: sql`${users.monthlyCreditsUsedCents} + ${costCents}`,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+    ]);
   } else {
-    const fromMonthly = Math.max(0, monthlyRemaining);
+    const fromMonthly = monthlyRemaining;
     const fromPurchased = costCents - fromMonthly;
     
-    await db.update(users)
-      .set({ 
-        monthlyCreditsUsedCents: sql`${users.monthlyCreditsUsedCents} + ${fromMonthly}`,
-        creditBalanceCents: sql`GREATEST(0, ${users.creditBalanceCents} - ${fromPurchased})`,
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, userId));
+    await Promise.all([
+      logPromise,
+      db.update(users)
+        .set({ 
+          monthlyCreditsUsedCents: sql`${users.monthlyCreditsUsedCents} + ${fromMonthly}`,
+          creditBalanceCents: sql`GREATEST(0, ${users.creditBalanceCents} - ${fromPurchased})`,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+    ]);
   }
 }
 

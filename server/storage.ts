@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { portfolioHoldings, watchlist, marketCache } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import type { PortfolioHolding, InsertPortfolioHolding, WatchlistItem, InsertWatchlistItem } from "@shared/schema";
 
 export interface IStorage {
@@ -70,8 +70,12 @@ class DatabaseStorage implements IStorage {
 
   async setCachedData(key: string, data: unknown, expiresInMinutes: number): Promise<void> {
     const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
-    await db.delete(marketCache).where(eq(marketCache.cacheKey, key));
-    await db.insert(marketCache).values({ cacheKey: key, data, expiresAt });
+    await db.insert(marketCache)
+      .values({ cacheKey: key, data, expiresAt })
+      .onConflictDoUpdate({
+        target: marketCache.cacheKey,
+        set: { data, expiresAt }
+      });
   }
 }
 
