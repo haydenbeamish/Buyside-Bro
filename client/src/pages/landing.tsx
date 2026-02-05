@@ -95,12 +95,12 @@ function HeroSection() {
           
           <div className="lg:w-1/2 text-center lg:text-left">
             <h1 className="display-font text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              <span className="text-white">YOUR TERMINAL,</span>
+              <span className="text-white">Don't get ripped off</span>
               <br />
-              <span className="text-white">UNFILTERED.</span>
+              <span className="text-white">by Bloomberg.</span>
             </h1>
             <p className="text-zinc-400 text-lg md:text-xl mb-8 max-w-lg">
-              Bro-level insights. Zero noise. All market edge.
+              I've got you bro.
             </p>
             <Link href="/dashboard">
               <button className="neon-button px-8 py-3 rounded-md text-lg flex items-center gap-2 mx-auto lg:mx-0" data-testid="button-launch-terminal">
