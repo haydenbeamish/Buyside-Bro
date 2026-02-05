@@ -59,7 +59,7 @@ The server handles API routes, serves the static frontend in production, and man
 
 ### APIs and Services
 - **Laser Beam Capital API** (`https://laserbeamcapital.replit.app`): External API for market data, stock quotes, earnings, and news
-- **OpenRouter API**: AI/LLM provider for chat functionality and stock analysis (configurable via `OPENROUTER_API_KEY` or `AI_INTEGRATIONS_OPENROUTER_API_KEY`)
+- **OpenRouter API**: AI/LLM provider using Moonshot AI's Kimi K2.5 model (`moonshotai/kimi-k2.5`) for chat functionality and stock analysis (configurable via `OPENROUTER_API_KEY` or `AI_INTEGRATIONS_OPENROUTER_API_KEY`)
 
 ### Database
 - **PostgreSQL**: Primary database (connection via `DATABASE_URL` environment variable)
