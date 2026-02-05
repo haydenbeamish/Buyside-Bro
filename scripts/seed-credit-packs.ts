@@ -1,8 +1,4 @@
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-04-30.basil' as any,
-});
+import { getUncachableStripeClient } from '../server/stripeClient';
 
 const CREDIT_PACKS = [
   {
@@ -32,6 +28,8 @@ const CREDIT_PACKS = [
 ];
 
 async function seedCreditPacks() {
+  const stripe = await getUncachableStripeClient();
+  
   console.log('Creating credit pack products...\n');
 
   for (const pack of CREDIT_PACKS) {
