@@ -115,10 +115,10 @@ function TopNav() {
 
 function HeroSection() {
   const valueProps = [
-    "Real-time global market data",
-    "AI-powered stock analysis",
+    "Real time global market data",
+    "Deep stock analysis",
     "Portfolio tracking & insights",
-    "Zero Bloomberg terminal fees"
+    "Ask your bro any question"
   ];
 
   return (
