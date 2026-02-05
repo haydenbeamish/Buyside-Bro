@@ -124,12 +124,12 @@ function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 pb-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-16">
+        <div className="flex flex-col lg:flex-row items-center lg:items-end justify-between gap-8 lg:gap-16">
           <div className="lg:w-1/2 flex justify-center order-2 lg:order-1">
             <img 
               src={heroImg} 
               alt="Buy Side Bro" 
-              className="w-72 h-72 md:w-96 md:h-96 lg:w-[32rem] lg:h-[32rem] object-contain"
+              className="w-72 h-72 md:w-96 md:h-96 lg:w-[28rem] lg:h-[28rem] object-contain"
               data-testid="img-hero"
             />
           </div>
