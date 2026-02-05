@@ -60,7 +60,7 @@ function TickerTape({ items }: { items: MarketItem[] }) {
   const duplicatedItems = [...items, ...items];
 
   return (
-    <div className="bg-black border-b border-zinc-800/50 overflow-hidden">
+    <div className="bg-black border-b border-green-900/30 overflow-hidden">
       <div 
         ref={scrollRef}
         className="flex whitespace-nowrap py-2 overflow-x-hidden"
@@ -69,7 +69,7 @@ function TickerTape({ items }: { items: MarketItem[] }) {
         {duplicatedItems.map((item, idx) => (
           <div 
             key={`${item.name}-${idx}`}
-            className="flex items-center gap-2 px-4 border-r border-zinc-800/50"
+            className="flex items-center gap-2 px-4 border-r border-green-900/30"
           >
             <span className="text-zinc-400 text-sm ticker-font">{item.name}</span>
             <span className="text-zinc-200 text-sm ticker-font">
@@ -98,8 +98,8 @@ function PercentCell({ value }: { value: number | undefined }) {
 function GroupedSection({ title, items }: { title: string; items: MarketItem[] }) {
   return (
     <div className="mb-6">
-      <div className="border-l-2 border-amber-500 pl-3 mb-3">
-        <h3 className="text-amber-500 font-semibold text-sm uppercase tracking-wide">{title}</h3>
+      <div className="border-l-2 border-green-500 pl-3 mb-3">
+        <h3 className="text-green-500 font-semibold text-sm uppercase tracking-wide">{title}</h3>
       </div>
       <table className="w-full text-sm">
         <thead>
@@ -306,59 +306,59 @@ export default function MarketsPage() {
         </div>
 
         <Tabs defaultValue="global" className="w-full">
-          <TabsList className="bg-transparent border-b border-zinc-800 w-full justify-start rounded-none h-auto p-0 mb-6 flex-wrap gap-1">
+          <TabsList className="bg-transparent border-b border-green-900/30 w-full justify-start rounded-none h-auto p-0 mb-6 flex-wrap gap-1">
             <TabsTrigger 
               value="global" 
-              className="data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
+              className="data-[state=active]:text-green-400 data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-global-markets"
             >
               Global Markets
             </TabsTrigger>
             <TabsTrigger 
               value="futures"
-              className="data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
+              className="data-[state=active]:text-green-400 data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-futures"
             >
               Futures
             </TabsTrigger>
             <TabsTrigger 
               value="commodities"
-              className="data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
+              className="data-[state=active]:text-green-400 data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-commodities"
             >
               Commodities
             </TabsTrigger>
             <TabsTrigger 
               value="usa-thematics"
-              className="data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
+              className="data-[state=active]:text-green-400 data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-usa-thematics"
             >
               USA Thematics
             </TabsTrigger>
             <TabsTrigger 
               value="usa-sectors"
-              className="data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
+              className="data-[state=active]:text-green-400 data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-usa-sectors"
             >
               USA Sectors
             </TabsTrigger>
             <TabsTrigger 
               value="usa-equal"
-              className="data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
+              className="data-[state=active]:text-green-400 data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-usa-equal"
             >
               USA Equal Weight
             </TabsTrigger>
             <TabsTrigger 
               value="asx-sectors"
-              className="data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
+              className="data-[state=active]:text-green-400 data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-asx-sectors"
             >
               ASX Sectors
             </TabsTrigger>
             <TabsTrigger 
               value="forex"
-              className="data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-orange-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
+              className="data-[state=active]:text-green-400 data-[state=active]:border-b-2 data-[state=active]:border-green-500 text-zinc-400 rounded-none px-4 py-2 text-sm ticker-font"
               data-testid="tab-forex"
             >
               Forex
@@ -407,7 +407,7 @@ export default function MarketsPage() {
           {summaryOpen && summary && (
             <div className="mt-4 text-zinc-400 text-sm leading-relaxed">
               <div 
-                className="text-zinc-300 whitespace-pre-wrap [&_b]:text-amber-500 [&_b]:font-semibold"
+                className="text-zinc-300 whitespace-pre-wrap [&_b]:text-green-500 [&_b]:font-semibold"
                 dangerouslySetInnerHTML={{ __html: summary.summary }}
               />
               <p className="text-zinc-600 text-xs mt-3">
