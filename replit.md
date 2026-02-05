@@ -83,7 +83,18 @@ The server handles API routes, serves the static frontend in production, and man
   - `/api/news/market` - Returns `{ articles: [...] }` with market news
   - `/api/news/portfolio` - Returns `{ articles: [...] }` with portfolio-related news
   - `/api/market-summary` - Returns HTML-formatted market commentary
-  - `/api/fundamental-analysis/analyze` - POST endpoint for stock analysis
+  - `/api/fundamental-analysis/analyze` - POST endpoint for stock analysis (sync)
+  - `/api/fundamental-analysis/jobs` - POST endpoint to start async deep analysis job
+  - `/api/fundamental-analysis/jobs/{jobId}` - GET endpoint to poll job status
+  - `/api/fundamental-analysis/jobs/{jobId}/result` - GET endpoint to fetch analysis result
+
+### Deep Analysis Feature
+The stock analysis page uses an async job workflow for comprehensive fundamental analysis:
+- **Mode Detection**: Automatically determines analysis mode (preview/review/deep_dive) based on earnings timing
+- **Data Sources**: Company overview, financial statements, metrics, current price, analyst estimates, news, web search
+- **AI Analysis**: Uses OpenRouter (Kimi K2.5) for hedge fund quality research output
+- **Recommendation**: Generates Buy/Hold/Sell with confidence score, target price, upside/downside, and time horizon
+- **Output Sections**: Executive Summary, Financial Snapshot, Forward Outlook, Valuation Analysis, Key Risks & Catalysts, Investment Thesis
 - **OpenRouter API**: AI/LLM fallback using Moonshot AI's Kimi K2.5 model (`moonshotai/kimi-k2.5`) for chat functionality and stock analysis when Laser Beam API is unavailable
 
 ### Data Transformation
