@@ -1,16 +1,23 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { 
-  TrendingUp, BarChart3, 
-  Twitter, Menu, X, Calendar, Briefcase, Bot, Newspaper,
-  ArrowRight, CheckCircle2, LogOut
+import {
+  TrendingUp, BarChart3,
+  Twitter, Menu, X, Briefcase, Bot,
+  ArrowRight, CheckCircle2, LogOut, Shield, Zap, Clock, Eye, Brain, Sparkles
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import logoImg from "@assets/image_1770296632105.png";
 import heroImg from "@assets/image_1770297600939.png";
+import screenshotWhatsUp from "@assets/image_1770367320606.png";
+import screenshotMarkets from "@assets/image_1770353894237.png";
+import screenshotPortfolio from "@assets/image_1770293388261.png";
+import screenshotWatchlist from "@assets/image_1770343802069.png";
+import screenshotDeepAnalysis from "@assets/image_1770353948671.png";
+import screenshotEarnings from "@assets/image_1770367362870.png";
+import screenshotAskBro from "@assets/image_1770353921106.png";
 
 interface TickerItem {
   symbol: string;
@@ -68,9 +75,6 @@ function TopNav() {
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-10">
-            <Link href="/preview" className="text-zinc-300 hover:text-white transition-colors uppercase text-sm tracking-widest font-medium">
-              Features
-            </Link>
             {isAuthenticated && user ? (
               <div className="flex items-center gap-4">
                 <Link href="/dashboard">
@@ -107,11 +111,6 @@ function TopNav() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-green-900/30 py-4 space-y-4">
-            <Link href="/preview" onClick={() => setMobileMenuOpen(false)}>
-              <div className="text-zinc-300 hover:text-white transition-colors uppercase text-sm tracking-widest font-medium py-2">
-                Features
-              </div>
-            </Link>
             {isAuthenticated && user ? (
               <div className="flex items-center gap-3 py-2">
                 <Avatar className="w-8 h-8">
@@ -190,128 +189,131 @@ function HeroSection() {
   );
 }
 
-function StatsSection() {
-  const stats = [
-    { value: "50+", label: "Global Markets" },
-    { value: "Real-Time", label: "Market Data" },
-    { value: "Bro", label: "Powered Insights" },
-    { value: "Free", label: "Forever" },
-  ];
+const featureShowcase = [
+  {
+    image: screenshotWhatsUp,
+    icon: Sparkles,
+    title: "WHAT'S UP",
+    subtitle: "Your daily Bro market briefing",
+    description: "Start every session with a Bro-generated summary of what's moving. Get overnight market recaps, midday pulse checks, and closing wraps for the ASX, US, and European markets — all in one feed.",
+  },
+  {
+    image: screenshotMarkets,
+    icon: TrendingUp,
+    title: "LIVE MARKETS",
+    subtitle: "Global indices, futures, commodities, forex, and thematics",
+    description: "Track 8 categories of market data in real-time: Global Markets, Futures, Commodities, USA Thematics, USA Sectors, Equal Weight, ASX Sectors, and Forex. Sort by 1-day, 1-month, quarterly, and yearly performance with moving average comparisons.",
+  },
+  {
+    image: screenshotPortfolio,
+    icon: Briefcase,
+    title: "PORTFOLIO TRACKER",
+    subtitle: "Manage your holdings with Bro-powered insights",
+    description: "Track total value, gain/loss, and day changes at a glance. Add positions from any global exchange, see cost basis and P&L per holding, and view your allocation breakdown. Hit \"Get Your Bro's Opinion\" for a full Bro portfolio review.",
+  },
+  {
+    image: screenshotWatchlist,
+    icon: Eye,
+    title: "WATCHLIST",
+    subtitle: "Monitor the stocks you care about",
+    description: "Build a watchlist of any stock worldwide. Track price, day change, volume spikes, market cap, P/E ratios, and 52-week range at a glance. Add inline notes, sort by any column, and export to CSV.",
+  },
+  {
+    image: screenshotDeepAnalysis,
+    icon: BarChart3,
+    title: "COMPANY ANALYSIS",
+    subtitle: "Hedge fund quality research at your fingertips",
+    description: "Search any stock for a full company profile, 15+ key metrics, 1-year price chart, and SEC filings. Bro automatically runs a deep fundamental analysis with buy/hold/sell recommendations, target prices, and confidence scores.",
+  },
+  {
+    image: screenshotEarnings,
+    icon: Brain,
+    title: "EARNINGS ANALYSIS",
+    subtitle: "Preview upcoming and review past earnings",
+    description: "See upcoming earnings dates with EPS and revenue estimates. Run Bro-powered earnings previews before the announcement or post-earnings reviews after — complete with price targets and actionable recommendations.",
+  },
+  {
+    image: screenshotAskBro,
+    icon: Bot,
+    title: "ASK BRO",
+    subtitle: "Your autonomous financial research agent",
+    description: "Ask complex financial questions and get data-backed answers. Compare revenue growth, analyze P/E ratios, break down operating margins — your bro thinks, plans, and researches using real-time market data.",
+  },
+];
 
+function FeatureShowcase() {
   return (
-    <section className="py-16 border-y border-green-900/30 bg-green-950/10">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat, i) => (
-            <div key={i} className="text-center">
-              <div className="display-font text-3xl md:text-4xl neon-green-subtle mb-2">{stat.value}</div>
-              <div className="text-zinc-400 text-sm uppercase tracking-wide">{stat.label}</div>
-            </div>
-          ))}
-        </div>
+    <section className="px-4 py-20">
+      <div className="max-w-4xl mx-auto text-center mb-16">
+        <h2 className="display-font text-3xl md:text-5xl font-bold text-white mb-4 uppercase tracking-wider leading-tight">
+          Inside the Terminal
+        </h2>
+        <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto mb-2">
+          Professional-grade market intelligence. No Bloomberg terminal required.
+        </p>
+        <p className="text-green-400 text-sm md:text-base display-font">
+          7 powerful tools. Free to explore. No credit card.
+        </p>
       </div>
-    </section>
-  );
-}
 
-function FeaturesSection() {
-  const features = [
-    {
-      icon: TrendingUp,
-      title: "LIVE MARKETS",
-      description: "Track global indices, futures, commodities, forex, and sector ETFs in real-time with professional-grade data.",
-    },
-    {
-      icon: Briefcase,
-      title: "PORTFOLIO TRACKER",
-      description: "Manage your holdings, track cost basis, and monitor your portfolio performance with detailed analytics.",
-    },
-    {
-      icon: Bot,
-      title: "ASK BRO",
-      description: "Chat with Bro for market insights, stock analysis, and trading ideas.",
-    },
-    {
-      icon: BarChart3,
-      title: "STOCK ANALYSIS",
-      description: "Deep fundamental analysis powered by Bro. Get comprehensive reports on any stock instantly.",
-    },
-    {
-      icon: Calendar,
-      title: "EARNINGS CALENDAR",
-      description: "Never miss an earnings report. Track upcoming announcements and historical results.",
-    },
-    {
-      icon: Newspaper,
-      title: "MARKET NEWS",
-      description: "Curated financial news from top sources. Stay informed on what's moving markets.",
-    },
-  ];
-
-  return (
-    <section id="features" className="py-20 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="display-font text-3xl md:text-4xl text-white mb-4 uppercase tracking-wider">
-            Everything You Need
-          </h2>
-          <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
-            Professional trading tools without the professional price tag.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, i) => (
-            <div 
-              key={i} 
-              className="terminal-card rounded-lg p-6 hover:border-green-500/50 transition-all duration-300 group"
-              data-testid={`card-feature-${i}`}
-            >
-              <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30 w-fit mb-4 group-hover:border-green-500/50 transition-colors">
-                <feature.icon className="w-6 h-6 text-green-500" />
+      <div className="max-w-5xl mx-auto space-y-20">
+        {featureShowcase.map((feature, i) => (
+          <div
+            key={i}
+            className={`flex flex-col ${i % 2 === 1 ? "lg:flex-row-reverse" : "lg:flex-row"} items-center gap-8 lg:gap-12`}
+          >
+            <div className="lg:w-3/5 w-full">
+              <div className="relative rounded-lg overflow-hidden border border-green-900/40 shadow-[0_0_30px_rgba(0,255,0,0.08)]">
+                <img
+                  src={feature.image}
+                  alt={feature.title}
+                  className="w-full h-auto object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
               </div>
-              <h3 className="display-font text-lg neon-green-subtle mb-3">{feature.title}</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">{feature.description}</p>
             </div>
-          ))}
-        </div>
 
-        <div className="text-center mt-12">
-          <Link href="/preview">
-            <button className="neon-button px-8 py-3 rounded-md text-lg flex items-center gap-2 mx-auto" data-testid="button-explore-features">
-              See It In Action <ArrowRight className="w-5 h-5" />
-            </button>
-          </Link>
-        </div>
+            <div className="lg:w-2/5 w-full text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-green-900/20 border border-green-900/40 mb-4">
+                <feature.icon className="w-4 h-4 text-green-500" />
+                <span className="display-font text-xs neon-green-subtle tracking-widest">{feature.title}</span>
+              </div>
+              <h3 className="text-xl md:text-2xl font-semibold text-white mb-3">{feature.subtitle}</h3>
+              <p className="text-zinc-400 text-sm md:text-base leading-relaxed">{feature.description}</p>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
 }
 
-function HowItWorks() {
-  const steps = [
-    { step: "01", title: "Preview the Terminal", description: "See what's inside before you commit" },
-    { step: "02", title: "Sign In", description: "Create your free account and get instant access" },
-    { step: "03", title: "Trade Smarter", description: "Use Bro-powered tools for real-time market insights" },
-  ];
-
+function PricingBadges() {
   return (
-    <section className="py-20 px-4 border-t border-green-900/30">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="display-font text-3xl md:text-4xl text-white mb-4 uppercase tracking-wider">
-            How It Works
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {steps.map((item, i) => (
-            <div key={i} className="text-center">
-              <div className="display-font text-5xl neon-green-subtle mb-4">{item.step}</div>
-              <h3 className="display-font text-xl text-white mb-2">{item.title}</h3>
-              <p className="text-zinc-400">{item.description}</p>
+    <section className="py-16 px-4 border-t border-green-900/30 bg-green-950/10">
+      <div className="max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
+              <Clock className="w-6 h-6 text-green-500" />
             </div>
-          ))}
+            <h4 className="display-font text-sm neon-green-subtle tracking-wider">FREE FOREVER</h4>
+            <p className="text-zinc-400 text-sm">Full access to every feature. No restrictions. Upgrade when you're ready.</p>
+          </div>
+          <div className="flex flex-col items-center gap-3">
+            <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
+              <Shield className="w-6 h-6 text-green-500" />
+            </div>
+            <h4 className="display-font text-sm neon-green-subtle tracking-wider">INSTANT ACCESS</h4>
+            <p className="text-zinc-400 text-sm">Start exploring immediately. Sign in and go.</p>
+          </div>
+          <div className="flex flex-col items-center gap-3">
+            <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
+              <Zap className="w-6 h-6 text-green-500" />
+            </div>
+            <h4 className="display-font text-sm neon-green-subtle tracking-wider">$10/MONTH AFTER</h4>
+            <p className="text-zinc-400 text-sm">Includes $5 of Bro credits. Buy more as you need them.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -320,20 +322,23 @@ function HowItWorks() {
 
 function CTASection() {
   return (
-    <section className="py-20 px-4 border-t border-green-900/30 bg-gradient-to-b from-transparent to-green-950/20">
+    <section className="py-20 px-4 border-t border-green-900/30">
       <div className="max-w-3xl mx-auto text-center">
-        <h2 className="display-font text-3xl md:text-4xl text-white mb-4">
-          Ready to level up your trading?
+        <h2 className="display-font text-2xl md:text-4xl text-white mb-3 uppercase tracking-wider">
+          Ready to see it in action?
         </h2>
-        <p className="text-zinc-400 text-lg mb-3">
-          Free forever. Upgrade for unlimited Bro access.
+        <p className="text-zinc-400 text-lg mb-2">
+          Free to explore. No commitment required.
         </p>
         <p className="text-zinc-500 text-sm mb-8">
-          $10/month for Pro. Extra Bro credit packs available anytime.
+          Upgrade for just $10/month. Need more Bro power? Grab extra credit packs anytime.
         </p>
         <Link href="/dashboard">
-          <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3 mx-auto" data-testid="button-cta">
-            Open Terminal <ArrowRight className="w-6 h-6" />
+          <button
+            className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3"
+            data-testid="button-cta"
+          >
+            Open Terminal <ArrowRight className="w-5 h-5" />
           </button>
         </Link>
         <p className="text-zinc-600 text-xs mt-4">
@@ -366,10 +371,10 @@ function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Product</h4>
             <div className="space-y-2">
-              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Markets</span></Link>
-              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Portfolio</span></Link>
-              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Analysis</span></Link>
-              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">News</span></Link>
+              <Link href="/dashboard"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Markets</span></Link>
+              <Link href="/portfolio"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Portfolio</span></Link>
+              <Link href="/analysis"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Analysis</span></Link>
+              <Link href="/news"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">News</span></Link>
             </div>
           </div>
 
@@ -377,10 +382,10 @@ function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Quick Links</h4>
             <div className="space-y-2">
-              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Features</span></Link>
-              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Ask Bro</span></Link>
-              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Earnings</span></Link>
-              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Watchlist</span></Link>
+              <Link href="/chat"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Ask Bro</span></Link>
+              <Link href="/earnings"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Earnings</span></Link>
+              <Link href="/watchlist"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Watchlist</span></Link>
+              <Link href="/whats-up"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">What's Up</span></Link>
             </div>
           </div>
 
@@ -388,7 +393,7 @@ function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Info</h4>
             <div className="space-y-2">
-              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Pricing</span></Link>
+              <Link href="/dashboard/subscription"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Pricing</span></Link>
               <a href="mailto:support@buysidebro.com" className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Contact</a>
             </div>
           </div>
@@ -433,9 +438,8 @@ export default function LandingPage() {
     <div className="min-h-screen bg-black scanline">
       <TopNav />
       <HeroSection />
-      <StatsSection />
-      <FeaturesSection />
-      <HowItWorks />
+      <FeatureShowcase />
+      <PricingBadges />
       <CTASection />
       <Footer />
       <TickerTape />
