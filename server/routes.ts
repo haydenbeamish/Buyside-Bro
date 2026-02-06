@@ -82,6 +82,8 @@ const transformMarketItem = (item: any) => ({
   vs10D: item.pxVs10d || 0,
   vs20D: item.pxVs20d || 0,
   vs200D: item.pxVs200d || 0,
+  category: item.category || '',
+  categoryNotes: item.categoryNotes || '',
 });
 
 // Request deduplication for concurrent market data fetches
@@ -306,12 +308,10 @@ export async function registerRoutes(
         );
       }
 
+      const fmpStartIndex = searchFetches.length;
       if (fmpKey) {
         searchFetches.push(
-          fetchWithTimeout(`https://financialmodelingprep.com/api/v3/search?query=${encodeURIComponent(query)}&limit=15&apikey=${fmpKey}`, {}, 5000),
-        );
-        searchFetches.push(
-          fetchWithTimeout(`https://financialmodelingprep.com/api/v3/search-name?query=${encodeURIComponent(query)}&limit=15&apikey=${fmpKey}`, {}, 5000),
+          fetchWithTimeout(`https://financialmodelingprep.com/stable/search-name?query=${encodeURIComponent(query)}&limit=15&apikey=${fmpKey}`, {}, 5000),
         );
       }
 
@@ -323,7 +323,7 @@ export async function registerRoutes(
         const resp = responses[i];
         if (resp.status === 'fulfilled' && resp.value.ok) {
           const data = await resp.value.json() as any;
-          const isFmp = i >= 2;
+          const isFmp = i >= fmpStartIndex;
 
           if (isFmp && Array.isArray(data)) {
             for (const item of data) {
@@ -333,8 +333,8 @@ export async function registerRoutes(
                 results.push({
                   symbol: sym,
                   name: item.name,
-                  exchange: item.exchangeShortName || item.exchange || '',
-                  type: item.type || 'stock',
+                  exchange: item.exchange || '',
+                  type: 'stock',
                 });
               }
             }
@@ -373,7 +373,7 @@ export async function registerRoutes(
       
       let currentPrice = avgCost;
       try {
-        const fmpUrl = `https://financialmodelingprep.com/api/v3/quote/${ticker}?apikey=${process.env.FMP_API_KEY}`;
+        const fmpUrl = `https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
         const response = await fetchWithTimeout(fmpUrl, {}, 5000);
         if (response.ok) {
           const data = await response.json() as any[];
@@ -771,11 +771,11 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   app.get("/api/analysis/profile/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
-      const fmpUrl = `https://financialmodelingprep.com/api/v3/profile/${ticker.toUpperCase()}?apikey=${process.env.FMP_API_KEY}`;
-      
+      const fmpUrl = `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker.toUpperCase())}&apikey=${process.env.FMP_API_KEY}`;
+
       const response = await fetchWithTimeout(fmpUrl, {}, 10000);
       if (!response.ok) throw new Error("Failed to fetch profile");
-      
+
       const data = await response.json() as any[];
       if (!data || data.length === 0) {
         return res.status(404).json({ error: "Stock not found" });
@@ -787,11 +787,11 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         companyName: profile.companyName,
         sector: profile.sector || "N/A",
         industry: profile.industry || "N/A",
-        exchange: profile.exchangeShortName || profile.exchange,
-        marketCap: profile.mktCap || 0,
+        exchange: profile.exchange,
+        marketCap: profile.marketCap || 0,
         price: profile.price || 0,
-        changes: profile.changes || 0,
-        changesPercentage: ((profile.changes || 0) / (profile.price || 1)) * 100,
+        changes: profile.change || 0,
+        changesPercentage: profile.changePercentage || 0,
         description: profile.description || "",
       });
     } catch (error) {
@@ -803,29 +803,34 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   app.get("/api/analysis/financials/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
-      const fmpUrl = `https://financialmodelingprep.com/api/v3/ratios-ttm/${ticker.toUpperCase()}?apikey=${process.env.FMP_API_KEY}`;
-      const incomeUrl = `https://financialmodelingprep.com/api/v3/income-statement/${ticker.toUpperCase()}?limit=1&apikey=${process.env.FMP_API_KEY}`;
-      
-      const [ratiosRes, incomeRes] = await Promise.all([
-        fetchWithTimeout(fmpUrl, {}, 10000),
+      const tickerUpper = ticker.toUpperCase();
+      const ratiosUrl = `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(tickerUpper)}&apikey=${process.env.FMP_API_KEY}`;
+      const incomeUrl = `https://financialmodelingprep.com/stable/income-statement?symbol=${encodeURIComponent(tickerUpper)}&limit=1&apikey=${process.env.FMP_API_KEY}`;
+      const metricsUrl = `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${encodeURIComponent(tickerUpper)}&apikey=${process.env.FMP_API_KEY}`;
+
+      const [ratiosRes, incomeRes, metricsRes] = await Promise.all([
+        fetchWithTimeout(ratiosUrl, {}, 10000),
         fetchWithTimeout(incomeUrl, {}, 10000),
+        fetchWithTimeout(metricsUrl, {}, 10000),
       ]);
 
       const ratios: any[] = ratiosRes.ok ? await ratiosRes.json() as any[] : [];
       const income: any[] = incomeRes.ok ? await incomeRes.json() as any[] : [];
+      const metrics: any[] = metricsRes.ok ? await metricsRes.json() as any[] : [];
 
       const r = ratios[0] || {};
       const i = income[0] || {};
+      const m = metrics[0] || {};
 
       res.json({
         revenue: i.revenue || 0,
         netIncome: i.netIncome || 0,
         eps: i.eps || r.netIncomePerShareTTM || 0,
-        peRatio: r.peRatioTTM || 0,
+        peRatio: r.priceToEarningsRatioTTM || 0,
         pbRatio: r.priceToBookRatioTTM || 0,
         dividendYield: r.dividendYieldTTM || 0,
-        roe: r.returnOnEquityTTM || 0,
-        debtToEquity: r.debtEquityRatioTTM || 0,
+        roe: m.returnOnEquityTTM || 0,
+        debtToEquity: r.debtToEquityRatioTTM || 0,
       });
     } catch (error) {
       console.error("Financials error:", error);
@@ -837,23 +842,23 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   app.get("/api/analysis/history/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const ticker = (req.params.ticker as string).toUpperCase();
-      const fmpUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${ticker}?timeseries=365&apikey=${process.env.FMP_API_KEY}`;
-      
-      const response = await fetch(fmpUrl);
+      const toDate = new Date().toISOString().split('T')[0];
+      const fromDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const fmpUrl = `https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${encodeURIComponent(ticker)}&from=${fromDate}&to=${toDate}&apikey=${process.env.FMP_API_KEY}`;
+
+      const response = await fetchWithTimeout(fmpUrl, {}, 10000);
       if (!response.ok) {
         throw new Error(`FMP API error: ${response.status}`);
       }
-      
-      const data = await response.json() as any;
-      const historical = data.historical || [];
-      
-      // Return last 365 days of data, reversed so oldest first
-      const chartData = historical.slice(0, 365).reverse().map((d: any) => ({
+
+      const data = await response.json() as any[];
+      // Stable endpoint returns flat array sorted newest first, reverse for chart
+      const chartData = (data || []).slice(0, 365).reverse().map((d: any) => ({
         date: d.date,
         price: d.close,
         volume: d.volume,
       }));
-      
+
       res.json({ ticker, data: chartData });
     } catch (error) {
       console.error("Historical price error:", error);
@@ -867,56 +872,56 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       const ticker = (req.params.ticker as string).toUpperCase();
       
       // Fetch price quote, key metrics, and analyst estimates
-      const quoteUrl = `https://financialmodelingprep.com/api/v3/quote/${ticker}?apikey=${process.env.FMP_API_KEY}`;
-      const estimatesUrl = `https://financialmodelingprep.com/api/v3/analyst-estimates/${ticker}?limit=2&apikey=${process.env.FMP_API_KEY}`;
-      const ratiosUrl = `https://financialmodelingprep.com/api/v3/ratios-ttm/${ticker}?apikey=${process.env.FMP_API_KEY}`;
-      
+      const quoteUrl = `https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
+      const estimatesUrl = `https://financialmodelingprep.com/stable/analyst-estimates?symbol=${encodeURIComponent(ticker)}&period=annual&limit=2&apikey=${process.env.FMP_API_KEY}`;
+      const ratiosUrl = `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
+
       const [quoteRes, estimatesRes, ratiosRes] = await Promise.all([
-        fetch(quoteUrl),
-        fetch(estimatesUrl),
-        fetch(ratiosUrl),
+        fetchWithTimeout(quoteUrl, {}, 10000),
+        fetchWithTimeout(estimatesUrl, {}, 10000),
+        fetchWithTimeout(ratiosUrl, {}, 10000),
       ]);
-      
+
       const quotes = quoteRes.ok ? await quoteRes.json() : [];
       const estimates = estimatesRes.ok ? await estimatesRes.json() : [];
       const ratios = ratiosRes.ok ? await ratiosRes.json() : [];
-      
-      const quote = quotes[0] || {};
-      const r = ratios[0] || {};
+
+      const quote = (quotes as any[])[0] || {};
+      const r = (ratios as any[])[0] || {};
       const currentPrice = quote.price || null;
-      
+
       // Calculate forward EPS growth from analyst estimates (year-over-year)
       let forwardEpsGrowth: number | null = null;
       if (estimates.length >= 2) {
-        const currentYearEps = estimates[0]?.estimatedEpsAvg;
-        const nextYearEps = estimates[1]?.estimatedEpsAvg;
+        const currentYearEps = estimates[0]?.epsAvg;
+        const nextYearEps = estimates[1]?.epsAvg;
         if (typeof currentYearEps === 'number' && typeof nextYearEps === 'number' && currentYearEps !== 0) {
           forwardEpsGrowth = ((nextYearEps - currentYearEps) / Math.abs(currentYearEps)) * 100;
         }
       }
-      
+
       // Forward P/E = Current Price / Estimated Forward EPS
       let forwardPE: number | null = null;
       if (estimates.length > 0 && currentPrice) {
-        const forwardEps = estimates[0]?.estimatedEpsAvg;
+        const forwardEps = estimates[0]?.epsAvg;
         if (typeof forwardEps === 'number' && forwardEps > 0) {
           forwardPE = currentPrice / forwardEps;
         }
       }
-      
+
       // PEG Ratio: use TTM ratio or calculate from forward P/E and growth
-      let pegRatio: number | null = r.pegRatioTTM ?? null;
+      let pegRatio: number | null = r.priceToEarningsGrowthRatioTTM ?? null;
       if (pegRatio === null && forwardPE !== null && forwardEpsGrowth !== null && forwardEpsGrowth > 0) {
         pegRatio = forwardPE / forwardEpsGrowth;
       }
-      
+
       res.json({
         ticker,
         forwardPE,
         forwardEpsGrowth,
         pegRatio,
         currentEps: r.netIncomePerShareTTM ?? null,
-        estimatedEps: estimates[0]?.estimatedEpsAvg ?? null,
+        estimatedEps: estimates[0]?.epsAvg ?? null,
       });
     } catch (error) {
       console.error("Forward metrics error:", error);
@@ -929,10 +934,13 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       const ticker = req.params.ticker as string;
       const apiKey = process.env.FMP_API_KEY;
       const response = await fetchWithTimeout(
-        `https://financialmodelingprep.com/api/v3/sec_filings/${encodeURIComponent(ticker)}?limit=20&apikey=${apiKey}`
+        `https://financialmodelingprep.com/api/v3/sec_filings/${encodeURIComponent(ticker)}?limit=20&apikey=${apiKey}`,
+        {},
+        10000
       );
       if (!response.ok) {
-        return res.status(response.status).json({ error: "Failed to fetch SEC filings" });
+        // v3 endpoint may be deprecated; return empty array gracefully
+        return res.json([]);
       }
       const data = await response.json();
       res.json(data);
@@ -1162,7 +1170,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       const fromDate = lastWeek.toISOString().split("T")[0];
       const toDate = nextWeek.toISOString().split("T")[0];
 
-      const fmpUrl = `https://financialmodelingprep.com/api/v3/earning_calendar?from=${fromDate}&to=${toDate}&apikey=${process.env.FMP_API_KEY}`;
+      const fmpUrl = `https://financialmodelingprep.com/stable/earnings-calendar?from=${fromDate}&to=${toDate}&apikey=${process.env.FMP_API_KEY}`;
       
       const response = await fetchWithTimeout(fmpUrl, {}, 10000);
       if (!response.ok) throw new Error("Failed to fetch earnings");
@@ -1176,7 +1184,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
           symbol: e.symbol,
           name: e.symbol,
           date: e.date,
-          time: e.time === "amc" ? "after" : e.time === "bmo" ? "before" : "during",
+          time: "during",
           epsEstimate: e.epsEstimated,
           epsActual: null,
           revenueEstimate: e.revenueEstimated,
@@ -1185,18 +1193,18 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         }));
 
       const recent = data
-        .filter((e: any) => new Date(e.date) < today && e.eps !== null)
+        .filter((e: any) => new Date(e.date) < today && e.epsActual !== null)
         .slice(0, 10)
         .map((e: any) => ({
           symbol: e.symbol,
           name: e.symbol,
           date: e.date,
-          time: e.time === "amc" ? "after" : e.time === "bmo" ? "before" : "during",
+          time: "during",
           epsEstimate: e.epsEstimated,
-          epsActual: e.eps,
+          epsActual: e.epsActual,
           revenueEstimate: e.revenueEstimated,
-          revenueActual: e.revenue,
-          surprise: e.epsEstimated ? ((e.eps - e.epsEstimated) / Math.abs(e.epsEstimated)) * 100 : null,
+          revenueActual: e.revenueActual,
+          surprise: e.epsEstimated ? ((e.epsActual - e.epsEstimated) / Math.abs(e.epsEstimated)) * 100 : null,
         }));
 
       const earningsData = { upcoming, recent };

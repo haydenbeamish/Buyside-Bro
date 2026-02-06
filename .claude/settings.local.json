@@ -47,7 +47,9 @@
       "Bash(npx playwright --version)",
       "Bash(npx playwright:*)",
       "Bash(git -C /home/runner/workspace diff -- client/src/pages/)",
-      "Bash(git -C /home/runner/workspace add client/src/pages/analysis.tsx client/src/pages/chat.tsx client/src/pages/earnings.tsx client/src/pages/news.tsx client/src/pages/portfolio.tsx client/src/pages/watchlist.tsx client/src/pages/whats-up.tsx)"
+      "Bash(git -C /home/runner/workspace add client/src/pages/analysis.tsx client/src/pages/chat.tsx client/src/pages/earnings.tsx client/src/pages/news.tsx client/src/pages/portfolio.tsx client/src/pages/watchlist.tsx client/src/pages/whats-up.tsx)",
+      "Bash(git -C /home/runner/workspace log -1 --stat)",
+      "Bash(python3:*)"
     ]
   }
 }

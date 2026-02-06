@@ -15,6 +15,8 @@ interface MarketItem {
   vs10D?: number;
   vs20D?: number;
   vs200D?: number;
+  category?: string;
+  categoryNotes?: string;
 }
 
 interface MarketsData {
@@ -116,11 +118,13 @@ function MobilePercentCell({ value, flash }: { value: number | undefined; flash?
   );
 }
 
-function GroupedSection({ title, items, flashCells }: { title: string; items: MarketItem[]; flashCells: FlashCells }) {
+function GroupedSection({ title, items, flashCells, note }: { title: string; items: MarketItem[]; flashCells: FlashCells; note?: string }) {
+  if (items.length === 0) return null;
   return (
     <div className="mb-6">
       <div className="border-l-2 border-green-500 pl-3 mb-3">
         <h3 className="text-green-500 font-semibold text-sm uppercase tracking-wide">{title}</h3>
+        {note && <p className="text-zinc-500 text-xs mt-0.5">{note}</p>}
       </div>
       {/* Mobile view */}
       <div className="sm:hidden">
@@ -193,25 +197,25 @@ function FuturesGroupedView({ futures, isLoading, flashCells }: {
     );
   }
 
-  const marketKeywords = ['VIX', 'Nasdaq', 'Hang Seng', 'Russell', 'S&P', 'Euro Stoxx', 'CSI'];
-  const currencyKeywords = ['Yen', 'Dollar', 'Pound', 'Euro ', 'JPY', 'AUD', 'GBP', 'EUR'];
+  const marketFutures = futures.filter(f => f.category === 'Futures - Markets');
+  const commodityFutures = futures.filter(f => f.category === 'Futures - Commodities');
+  const sectorFutures = futures.filter(f => f.category === 'Futures - Sectors');
+  const currencyFutures = futures.filter(f => f.category === 'Futures - Currencies');
   
-  const marketFutures = futures.filter(f => 
-    marketKeywords.some(k => f.name.includes(k)) || f.name.includes('Index')
+  const uncategorized = futures.filter(f => 
+    !['Futures - Markets', 'Futures - Commodities', 'Futures - Sectors', 'Futures - Currencies'].includes(f.category || '')
   );
-  
-  const currencyFutures = futures.filter(f => 
-    currencyKeywords.some(k => f.name.includes(k)) && !marketKeywords.some(k => f.name.includes(k))
-  );
-  
-  const commodityFutures = futures.filter(f => 
-    !marketFutures.includes(f) && !currencyFutures.includes(f)
-  );
+  if (uncategorized.length > 0) {
+    commodityFutures.push(...uncategorized);
+  }
+
+  const sectorNote = sectorFutures.find(f => f.categoryNotes)?.categoryNotes;
 
   return (
     <div data-testid="futures-grouped-view">
       <GroupedSection title="Markets" items={marketFutures} flashCells={flashCells} />
       <GroupedSection title="Commodities" items={commodityFutures} flashCells={flashCells} />
+      <GroupedSection title="Sectors" items={sectorFutures} flashCells={flashCells} note={sectorNote} />
       <GroupedSection title="Currencies" items={currencyFutures} flashCells={flashCells} />
     </div>
   );
