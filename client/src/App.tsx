@@ -45,18 +45,7 @@ function Router() {
     <Switch>
       <Route path="/" component={LandingPage} />
       <Route path="/preview" component={PreviewPage} />
-      <Route path="/whats-up" component={DashboardRoutes} />
-      <Route path="/dashboard" component={DashboardRoutes} />
-      <Route path="/dashboard/subscription" component={DashboardRoutes} />
-      <Route path="/dashboard/chat" component={DashboardRoutes} />
-      <Route path="/portfolio" component={DashboardRoutes} />
-      <Route path="/watchlist" component={DashboardRoutes} />
-      <Route path="/analysis" component={DashboardRoutes} />
-      <Route path="/earnings" component={DashboardRoutes} />
-      <Route path="/news" component={DashboardRoutes} />
-      <Route path="/chat" component={DashboardRoutes} />
-      <Route path="/admin" component={DashboardRoutes} />
-      <Route component={NotFound} />
+      <Route path="/:rest*" component={DashboardRoutes} />
     </Switch>
   );
 }
