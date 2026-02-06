@@ -68,8 +68,8 @@ function TopNav() {
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-10">
-            <Link href="/dashboard" className="text-zinc-300 hover:text-white transition-colors uppercase text-sm tracking-widest font-medium">
-              Dashboard
+            <Link href="/preview" className="text-zinc-300 hover:text-white transition-colors uppercase text-sm tracking-widest font-medium">
+              Preview
             </Link>
             <Link href="#features" className="text-zinc-300 hover:text-white transition-colors uppercase text-sm tracking-widest font-medium">
               Features
@@ -91,7 +91,7 @@ function TopNav() {
             ) : (
               <a href="/api/login">
                 <button className="border border-green-500 text-green-500 hover:bg-green-500/10 px-5 py-2 rounded text-sm uppercase tracking-wider font-medium transition-all" data-testid="button-member-login">
-                  Sign In
+                  Start Free Trial
                 </button>
               </a>
             )}
@@ -110,9 +110,9 @@ function TopNav() {
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-green-900/30 py-4 space-y-4">
-            <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/preview" onClick={() => setMobileMenuOpen(false)}>
               <div className="text-zinc-300 hover:text-white transition-colors uppercase text-sm tracking-widest font-medium py-2">
-                Dashboard
+                Preview
               </div>
             </Link>
             <Link href="#features" onClick={() => setMobileMenuOpen(false)}>
@@ -136,7 +136,7 @@ function TopNav() {
             ) : (
               <a href="/api/login" onClick={() => setMobileMenuOpen(false)}>
                 <button className="border border-green-500 text-green-500 w-full px-5 py-2 rounded text-sm uppercase tracking-wider font-medium mt-2" data-testid="button-member-login-mobile">
-                  Sign In
+                  Start Free Trial
                 </button>
               </a>
             )}
@@ -185,7 +185,7 @@ function HeroSection() {
               ))}
             </div>
 
-            <Link href="/dashboard">
+            <Link href="/preview">
               <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)]" data-testid="button-launch-terminal">
                 Launch Terminal
               </button>
@@ -202,7 +202,7 @@ function StatsSection() {
     { value: "50+", label: "Global Markets" },
     { value: "Real-Time", label: "Market Data" },
     { value: "AI", label: "Powered Insights" },
-    { value: "Free", label: "To Use" },
+    { value: "14 Days", label: "Free Trial" },
   ];
 
   return (
@@ -284,9 +284,9 @@ function FeaturesSection() {
         </div>
 
         <div className="text-center mt-12">
-          <Link href="/dashboard">
+          <Link href="/preview">
             <button className="neon-button px-8 py-3 rounded-md text-lg flex items-center gap-2 mx-auto" data-testid="button-explore-features">
-              Explore All Features <ArrowRight className="w-5 h-5" />
+              See It In Action <ArrowRight className="w-5 h-5" />
             </button>
           </Link>
         </div>
@@ -297,9 +297,9 @@ function FeaturesSection() {
 
 function HowItWorks() {
   const steps = [
-    { step: "01", title: "Sign Up", description: "Create your free account in seconds" },
-    { step: "02", title: "Explore Markets", description: "Access real-time data across all asset classes" },
-    { step: "03", title: "Get Insights", description: "Use AI-powered tools to analyze and trade smarter" },
+    { step: "01", title: "Preview the Terminal", description: "See what's inside before you commit" },
+    { step: "02", title: "Start Free Trial", description: "14 days of full access, no credit card needed" },
+    { step: "03", title: "Trade Smarter", description: "Use AI-powered tools for real-time market insights" },
   ];
 
   return (
@@ -332,14 +332,20 @@ function CTASection() {
         <h2 className="display-font text-3xl md:text-4xl text-white mb-4">
           Ready to level up your trading?
         </h2>
-        <p className="text-zinc-400 text-lg mb-8">
-          Join thousands of traders using Buy Side Bro to make smarter decisions.
+        <p className="text-zinc-400 text-lg mb-3">
+          14 days free. No commitment. No credit card required.
         </p>
-        <Link href="/dashboard">
-          <button className="neon-button px-10 py-4 rounded-md text-xl flex items-center gap-3 mx-auto" data-testid="button-cta">
-            Get Started Free <ArrowRight className="w-6 h-6" />
+        <p className="text-zinc-500 text-sm mb-8">
+          $10/month after trial. Extra AI credit packs available anytime.
+        </p>
+        <a href="/api/login">
+          <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3 mx-auto" data-testid="button-cta">
+            Start Free Trial <ArrowRight className="w-6 h-6" />
           </button>
-        </Link>
+        </a>
+        <p className="text-zinc-600 text-xs mt-4">
+          Sign in with Google, Apple, GitHub, or email
+        </p>
       </div>
     </section>
   );

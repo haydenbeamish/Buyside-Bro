@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-provider";
 import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing";
+import PreviewPage from "@/pages/preview";
 import DashboardLayout from "@/components/dashboard-layout";
 import WhatsUpPage from "@/pages/whats-up";
 import MarketsPage from "@/pages/markets";
@@ -43,6 +44,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
+      <Route path="/preview" component={PreviewPage} />
       <Route path="/whats-up" component={DashboardRoutes} />
       <Route path="/dashboard" component={DashboardRoutes} />
       <Route path="/dashboard/subscription" component={DashboardRoutes} />
