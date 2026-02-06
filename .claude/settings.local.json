@@ -50,7 +50,9 @@
       "Bash(git -C /home/runner/workspace add client/src/pages/analysis.tsx client/src/pages/chat.tsx client/src/pages/earnings.tsx client/src/pages/news.tsx client/src/pages/portfolio.tsx client/src/pages/watchlist.tsx client/src/pages/whats-up.tsx)",
       "Bash(git -C /home/runner/workspace log -1 --stat)",
       "Bash(python3:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(ls:*)",
+      "Bash(npx vite build:*)"
     ]
   }
 }
