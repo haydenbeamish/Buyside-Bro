@@ -1779,7 +1779,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.json({ message: "Watchlist already has items", count: existing.length });
       }
 
-      const nasdaqStocks = [
+      const defaultStocks = [
         { ticker: "AAPL", name: "Apple Inc." },
         { ticker: "MSFT", name: "Microsoft Corporation" },
         { ticker: "GOOGL", name: "Alphabet Inc." },
@@ -1791,13 +1791,16 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         { ticker: "COST", name: "Costco Wholesale" },
         { ticker: "NFLX", name: "Netflix Inc." },
         { ticker: "AMD", name: "Advanced Micro Devices" },
-        { ticker: "ADBE", name: "Adobe Inc." },
         { ticker: "CRM", name: "Salesforce Inc." },
-        { ticker: "INTC", name: "Intel Corporation" },
-        { ticker: "PYPL", name: "PayPal Holdings" },
+        { ticker: "BHP.AX", name: "BHP Group Ltd" },
+        { ticker: "CBA.AX", name: "Commonwealth Bank of Australia" },
+        { ticker: "CSL.AX", name: "CSL Ltd" },
+        { ticker: "WES.AX", name: "Wesfarmers Ltd" },
+        { ticker: "NAB.AX", name: "National Australia Bank" },
+        { ticker: "9988.HK", name: "Alibaba Group Holding Ltd" },
       ];
 
-      for (const stock of nasdaqStocks) {
+      for (const stock of defaultStocks) {
         try {
           await storage.addToWatchlist(stock);
         } catch (e) {
