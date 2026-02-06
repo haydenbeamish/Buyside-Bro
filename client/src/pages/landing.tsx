@@ -69,9 +69,6 @@ function TopNav() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-10">
             <Link href="/preview" className="text-zinc-300 hover:text-white transition-colors uppercase text-sm tracking-widest font-medium">
-              Preview
-            </Link>
-            <Link href="#features" className="text-zinc-300 hover:text-white transition-colors uppercase text-sm tracking-widest font-medium">
               Features
             </Link>
             {isAuthenticated && user ? (
@@ -111,11 +108,6 @@ function TopNav() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-green-900/30 py-4 space-y-4">
             <Link href="/preview" onClick={() => setMobileMenuOpen(false)}>
-              <div className="text-zinc-300 hover:text-white transition-colors uppercase text-sm tracking-widest font-medium py-2">
-                Preview
-              </div>
-            </Link>
-            <Link href="#features" onClick={() => setMobileMenuOpen(false)}>
               <div className="text-zinc-300 hover:text-white transition-colors uppercase text-sm tracking-widest font-medium py-2">
                 Features
               </div>
