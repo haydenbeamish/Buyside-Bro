@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -377,12 +377,18 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
 export default function MarketsPage() {
   const { data: markets, isLoading } = useQuery<MarketsData>({
     queryKey: ["/api/markets/full"],
-    refetchInterval: 60000,
+    refetchInterval: 30000,
+    placeholderData: keepPreviousData,
   });
 
   const prevDataRef = useRef<Record<string, MarketItem>>({});
   const hasLoadedOnce = useRef(false);
   const [flashCells, setFlashCells] = useState<FlashCells>({});
+
+  // Simulated futures for live price animation between API refreshes
+  const [simulatedFutures, setSimulatedFutures] = useState<MarketItem[]>([]);
+  const realFuturesRef = useRef<MarketItem[]>([]);
+  const simulatedRef = useRef<MarketItem[]>([]);
 
   const computeFlash = useCallback((items: MarketItem[]) => {
     const flashes: FlashCells = {};
@@ -437,6 +443,79 @@ export default function MarketsPage() {
     const timer = setTimeout(() => setFlashCells({}), 700);
     return () => clearTimeout(timer);
   }, [flashCells]);
+
+  // Sync real futures data when API returns new data
+  useEffect(() => {
+    if (markets?.futures && markets.futures.length > 0) {
+      realFuturesRef.current = markets.futures;
+      const copy = markets.futures.map(f => ({ ...f }));
+      simulatedRef.current = copy;
+      setSimulatedFutures(copy);
+    }
+  }, [markets?.futures]);
+
+  // Simulated price jitter for futures - runs continuously once data is available
+  const hasSimData = simulatedFutures.length > 0;
+  useEffect(() => {
+    if (!hasSimData) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const tick = () => {
+      const realData = realFuturesRef.current;
+      const prev = simulatedRef.current;
+      if (realData.length === 0 || prev.length === 0) {
+        timeoutId = setTimeout(tick, 3000);
+        return;
+      }
+
+      // Pick 2-5 random items to jitter
+      const numUpdates = 2 + Math.floor(Math.random() * 4);
+      const indices = new Set<number>();
+      while (indices.size < Math.min(numUpdates, realData.length)) {
+        indices.add(Math.floor(Math.random() * realData.length));
+      }
+
+      const next = prev.map((item, idx) => {
+        if (!indices.has(idx)) return item;
+        const realItem = realData[idx];
+        if (!realItem) return item;
+        // Tiny price jitter: ±0.03% from real base price
+        const priceJitter = (Math.random() - 0.5) * 0.0006;
+        const newPrice = +(realItem.price * (1 + priceJitter)).toFixed(2);
+        // Tiny change1D jitter: ±0.02 from real base
+        const changeJitter = (Math.random() - 0.5) * 0.04;
+        const newChange = +(realItem.change1D + changeJitter).toFixed(2);
+        return { ...item, price: newPrice, change1D: newChange };
+      });
+
+      // Compute flashes for changed items
+      const newFlashes: FlashCells = {};
+      for (const idx of indices) {
+        const oldItem = prev[idx];
+        const newItem = next[idx];
+        if (!oldItem || !newItem) continue;
+        if (newItem.price !== oldItem.price) {
+          newFlashes[`${newItem.name}:price`] = newItem.price > oldItem.price ? 'up' : 'down';
+        }
+        if (newItem.change1D !== oldItem.change1D) {
+          newFlashes[`${newItem.name}:change1D`] = newItem.change1D > oldItem.change1D ? 'up' : 'down';
+        }
+      }
+
+      simulatedRef.current = next;
+      setSimulatedFutures(next);
+      if (Object.keys(newFlashes).length > 0) {
+        setFlashCells(f => ({ ...f, ...newFlashes }));
+      }
+
+      // Next tick in 2-4 seconds (random for natural feel)
+      timeoutId = setTimeout(tick, 2000 + Math.random() * 2000);
+    };
+
+    timeoutId = setTimeout(tick, 2000 + Math.random() * 2000);
+    return () => clearTimeout(timeoutId);
+  }, [hasSimData]);
 
   const tickerItems = markets?.globalMarkets || [];
 
@@ -522,8 +601,8 @@ export default function MarketsPage() {
           </TabsContent>
           <TabsContent value="futures">
             <FuturesGroupedView
-              futures={markets?.futures || []}
-              isLoading={isLoading}
+              futures={simulatedFutures.length > 0 ? simulatedFutures : (markets?.futures || [])}
+              isLoading={isLoading && simulatedFutures.length === 0}
               flashCells={flashCells}
             />
           </TabsContent>
