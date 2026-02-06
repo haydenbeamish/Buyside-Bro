@@ -181,7 +181,7 @@ export async function registerRoutes(
         crypto: data.crypto || [],
       };
 
-      await storage.setCachedData("markets", marketsData, 1);
+      await storage.setCachedData("markets", marketsData, 1440);
       res.json(marketsData);
     } catch (error) {
       console.error("Markets API error:", error);
@@ -234,7 +234,7 @@ export async function registerRoutes(
             lastUpdated: new Date().toLocaleTimeString(),
           };
 
-          await storage.setCachedData("markets_full", marketsFullData, 2);
+          await storage.setCachedData("markets_full", marketsFullData, 1440);
           return marketsFullData;
         })();
         
@@ -269,7 +269,7 @@ export async function registerRoutes(
         cached: data.cached || false,
       };
 
-      await storage.setCachedData("market_summary", summaryData, 5);
+      await storage.setCachedData("market_summary", summaryData, 1440);
       res.json(summaryData);
     } catch (error) {
       console.error("Market summary error:", error);
@@ -1279,7 +1279,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         }));
 
       const earningsData = { upcoming, recent };
-      await storage.setCachedData("earnings", earningsData, 30);
+      await storage.setCachedData("earnings", earningsData, 1440);
       res.json(earningsData);
     } catch (error) {
       console.error("Earnings error:", error);
@@ -1358,7 +1358,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
 
       const newsData = { market: marketNews, general: portfolioNews };
-      await storage.setCachedData("news", newsData, 10);
+      await storage.setCachedData("news", newsData, 1440);
       res.json(newsData);
     } catch (error) {
       console.error("News error:", error);
