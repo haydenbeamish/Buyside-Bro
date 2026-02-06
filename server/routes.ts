@@ -819,7 +819,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/analysis/profile/:ticker", isAuthenticated, async (req: any, res: Response) => {
+  app.get("/api/analysis/profile/:ticker", async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
       const fmpUrl = `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker.toUpperCase())}&apikey=${process.env.FMP_API_KEY}`;
@@ -851,7 +851,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/analysis/financials/:ticker", isAuthenticated, async (req: any, res: Response) => {
+  app.get("/api/analysis/financials/:ticker", async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
       const tickerUpper = ticker.toUpperCase();
@@ -890,7 +890,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Historical price data for 1-year chart
-  app.get("/api/analysis/history/:ticker", isAuthenticated, async (req: any, res: Response) => {
+  app.get("/api/analysis/history/:ticker", async (req: any, res: Response) => {
     try {
       const ticker = (req.params.ticker as string).toUpperCase();
       const toDate = new Date().toISOString().split('T')[0];
@@ -918,7 +918,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Forward metrics (P/E, EPS growth)
-  app.get("/api/analysis/forward/:ticker", isAuthenticated, async (req: any, res: Response) => {
+  app.get("/api/analysis/forward/:ticker", async (req: any, res: Response) => {
     try {
       const ticker = (req.params.ticker as string).toUpperCase();
       
@@ -980,7 +980,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/analysis/sec-filings/:ticker", isAuthenticated, async (req: any, res: Response) => {
+  app.get("/api/analysis/sec-filings/:ticker", async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
       const apiKey = process.env.FMP_API_KEY;
