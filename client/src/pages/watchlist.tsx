@@ -307,14 +307,22 @@ export default function WatchlistPage() {
     }
   };
 
-  const { data: items, isLoading } = useQuery<EnrichedWatchlistItem[]>({
+  const { data: personalItems, isLoading: personalLoading } = useQuery<EnrichedWatchlistItem[]>({
     queryKey: ["/api/watchlist/enriched"],
     refetchInterval: 60000,
     enabled: isAuthenticated,
   });
 
+  const { data: defaultItems, isLoading: defaultLoading } = useQuery<EnrichedWatchlistItem[]>({
+    queryKey: ["/api/watchlist/default"],
+    enabled: !isAuthenticated,
+  });
+
+  const items = isAuthenticated ? personalItems : defaultItems;
+  const isLoading = isAuthenticated ? personalLoading : defaultLoading;
+
   useEffect(() => {
-    if (!hasSeeded.current && items !== undefined && items.length === 0) {
+    if (isAuthenticated && !hasSeeded.current && personalItems !== undefined && personalItems.length === 0) {
       hasSeeded.current = true;
       apiRequest("POST", "/api/watchlist/seed")
         .then(() => {
@@ -323,7 +331,7 @@ export default function WatchlistPage() {
         })
         .catch(() => {});
     }
-  }, [items]);
+  }, [personalItems, isAuthenticated]);
 
   const addMutation = useMutation({
     mutationFn: async (data: { ticker: string; name: string }) => {
@@ -381,42 +389,44 @@ export default function WatchlistPage() {
             {items && items.length > 0 && (
               <Button
                 variant="outline"
-                className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800 hover:border-zinc-500"
+                className="border-zinc-700 bg-zinc-900"
                 onClick={() => downloadCSV(items)}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Export CSV
               </Button>
             )}
-            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="border-green-900/50 bg-zinc-900 hover:bg-zinc-800 hover:border-green-500/50" data-testid="button-add-watchlist">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Stock
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-zinc-900 border-green-900/30 text-white">
-                <DialogHeader>
-                  <DialogTitle>Add to Watchlist</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-zinc-300">Search for a stock</Label>
-                    <WatchlistStockSearch
-                      onSelect={(symbol, name) => addMutation.mutate({ ticker: symbol, name })}
-                    />
+            {isAuthenticated && (
+              <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="border-green-900/50 bg-zinc-900" data-testid="button-add-watchlist">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Stock
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-zinc-900 border-green-900/30 text-white">
+                  <DialogHeader>
+                    <DialogTitle>Add to Watchlist</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-zinc-300">Search for a stock</Label>
+                      <WatchlistStockSearch
+                        onSelect={(symbol, name) => addMutation.mutate({ ticker: symbol, name })}
+                      />
+                    </div>
+                    <p className="text-xs text-zinc-500">
+                      Search by ticker or company name. Supports all global exchanges.
+                    </p>
                   </div>
-                  <p className="text-xs text-zinc-500">
-                    Search by ticker or company name. Supports all global exchanges.
-                  </p>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
 
         <div className="text-sm text-zinc-500 mb-4">
-          {items ? `${items.length} stocks` : "Loading..."} on your watchlist
+          {items ? `${items.length} stocks` : "Loading..."} {isAuthenticated ? "on your watchlist" : "— sign in to customize"}
         </div>
 
         <div className="bg-zinc-900 border border-green-900/30 rounded-lg">
@@ -452,15 +462,17 @@ export default function WatchlistPage() {
                           </span>
                           <span className="text-xs"><PercentDisplay value={item.dayChangePercent || 0} /></span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteMutation.mutate(item.id)}
-                          className="text-zinc-600 hover:text-red-400 h-7 w-7"
-                          data-testid={`button-remove-${item.ticker}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        {isAuthenticated && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteMutation.mutate(item.id)}
+                            className="text-zinc-600 hover:text-red-400 h-7 w-7"
+                            data-testid={`button-remove-${item.ticker}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -475,8 +487,8 @@ export default function WatchlistPage() {
                     <col />
                     <col />
                     <col style={{ width: "110px" }} />
-                    <col style={{ width: "140px" }} />
-                    <col style={{ width: "44px" }} />
+                    {isAuthenticated && <col style={{ width: "140px" }} />}
+                    {isAuthenticated && <col style={{ width: "44px" }} />}
                   </colgroup>
                   <thead>
                     <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
@@ -496,8 +508,8 @@ export default function WatchlistPage() {
                       <SortHeader label="Mkt Cap" sortKey="marketCap" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-mktcap" />
                       <SortHeader label="P/E" sortKey="pe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-pe" />
                       <th className="px-3 py-3 text-center font-medium whitespace-nowrap text-xs">52W Range</th>
-                      <th className="px-3 py-3 text-left font-medium whitespace-nowrap text-xs">Notes</th>
-                      <th className="px-3 py-3"></th>
+                      {isAuthenticated && <th className="px-3 py-3 text-left font-medium whitespace-nowrap text-xs">Notes</th>}
+                      {isAuthenticated && <th className="px-3 py-3"></th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -539,20 +551,24 @@ export default function WatchlistPage() {
                           <td className="px-3 py-2.5">
                             <FiftyTwoWeekBar price={item.price} low={item.yearLow} high={item.yearHigh} />
                           </td>
-                          <td className="px-3 py-2.5 overflow-hidden">
-                            <InlineNoteEditor itemId={item.id} initialNote={item.notes ?? null} />
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => deleteMutation.mutate(item.id)}
-                              className="text-zinc-600 hover:text-red-400"
-                              data-testid={`button-remove-${item.ticker}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
+                          {isAuthenticated && (
+                            <td className="px-3 py-2.5 overflow-hidden">
+                              <InlineNoteEditor itemId={item.id} initialNote={item.notes ?? null} />
+                            </td>
+                          )}
+                          {isAuthenticated && (
+                            <td className="px-3 py-2.5">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteMutation.mutate(item.id)}
+                                className="text-zinc-600 hover:text-red-400"
+                                data-testid={`button-remove-${item.ticker}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          )}
                         </tr>
                       );
                     })}

@@ -1733,6 +1733,103 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
+  // Default watchlist (public, no auth) - returns enriched default stocks
+  const DEFAULT_WATCHLIST_STOCKS = [
+    { ticker: "AAPL", name: "Apple Inc." },
+    { ticker: "MSFT", name: "Microsoft Corporation" },
+    { ticker: "GOOGL", name: "Alphabet Inc." },
+    { ticker: "AMZN", name: "Amazon.com Inc." },
+    { ticker: "NVDA", name: "NVIDIA Corporation" },
+    { ticker: "META", name: "Meta Platforms Inc." },
+    { ticker: "TSLA", name: "Tesla Inc." },
+    { ticker: "AVGO", name: "Broadcom Inc." },
+    { ticker: "COST", name: "Costco Wholesale" },
+    { ticker: "NFLX", name: "Netflix Inc." },
+    { ticker: "AMD", name: "Advanced Micro Devices" },
+    { ticker: "ADBE", name: "Adobe Inc." },
+    { ticker: "CRM", name: "Salesforce Inc." },
+    { ticker: "INTC", name: "Intel Corporation" },
+    { ticker: "PYPL", name: "PayPal Holdings Inc." },
+    { ticker: "BHP.AX", name: "BHP Group Ltd" },
+    { ticker: "CBA.AX", name: "Commonwealth Bank of Australia" },
+    { ticker: "CSL.AX", name: "CSL Ltd" },
+    { ticker: "9988.HK", name: "Alibaba Group Holding Ltd" },
+  ];
+
+  app.get("/api/watchlist/default", async (req: Request, res: Response) => {
+    try {
+      const cached = await storage.getCachedData("watchlist_default");
+      if (cached) {
+        return res.json(cached);
+      }
+
+      const apiKey = process.env.FMP_API_KEY;
+      const quoteMap = new Map<string, any>();
+      const metricsMap = new Map<string, any>();
+      const profileMap = new Map<string, any>();
+
+      if (apiKey) {
+        try {
+          const allRequests: Promise<void>[] = [];
+          for (const item of DEFAULT_WATCHLIST_STOCKS) {
+            const ticker = item.ticker.toUpperCase();
+            allRequests.push(
+              fetchWithTimeout(`https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+                .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) quoteMap.set(ticker, d[0]); } })
+                .catch(() => {})
+            );
+            allRequests.push(
+              fetchWithTimeout(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+                .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) metricsMap.set(ticker, d[0]); } })
+                .catch(() => {})
+            );
+            allRequests.push(
+              fetchWithTimeout(`https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+                .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) profileMap.set(ticker, d[0]); } })
+                .catch(() => {})
+            );
+          }
+          await Promise.all(allRequests);
+        } catch (e) {
+          console.error("Failed to fetch FMP data for default watchlist:", e);
+        }
+      }
+
+      const enriched = DEFAULT_WATCHLIST_STOCKS.map((item, idx) => {
+        const ticker = item.ticker.toUpperCase();
+        const quote = quoteMap.get(ticker) || {};
+        const metrics = metricsMap.get(ticker) || {};
+        const profile = profileMap.get(ticker) || {};
+        const price = quote.price || profile.price || null;
+        const dayChangePercent = quote.changePercentage || profile.changePercentage || 0;
+        const earningsYield = metrics.earningsYieldTTM;
+        const pe = earningsYield && earningsYield > 0 ? 1 / earningsYield : null;
+
+        return {
+          id: idx + 1,
+          ticker: item.ticker,
+          name: profile.companyName || item.name,
+          notes: null,
+          addedAt: new Date(),
+          price,
+          dayChangePercent,
+          marketCap: quote.marketCap || profile.marketCap || null,
+          pe,
+          yearHigh: quote.yearHigh ?? null,
+          yearLow: quote.yearLow ?? null,
+          volume: quote.volume ?? null,
+          avgVolume: quote.avgVolume ?? null,
+        };
+      });
+
+      await storage.setCachedData("watchlist_default", enriched, 1440);
+      res.json(enriched);
+    } catch (error) {
+      console.error("Default watchlist error:", error);
+      res.status(500).json({ error: "Failed to fetch default watchlist" });
+    }
+  });
+
   // Watchlist routes
   app.get("/api/watchlist", isAuthenticated, async (req: any, res: Response) => {
     try {
@@ -1872,26 +1969,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.json({ message: "Watchlist already has items", count: existing.length });
       }
 
-      const defaultStocks = [
-        { ticker: "AAPL", name: "Apple Inc." },
-        { ticker: "MSFT", name: "Microsoft Corporation" },
-        { ticker: "GOOGL", name: "Alphabet Inc." },
-        { ticker: "AMZN", name: "Amazon.com Inc." },
-        { ticker: "NVDA", name: "NVIDIA Corporation" },
-        { ticker: "META", name: "Meta Platforms Inc." },
-        { ticker: "TSLA", name: "Tesla Inc." },
-        { ticker: "AVGO", name: "Broadcom Inc." },
-        { ticker: "COST", name: "Costco Wholesale" },
-        { ticker: "NFLX", name: "Netflix Inc." },
-        { ticker: "AMD", name: "Advanced Micro Devices" },
-        { ticker: "CRM", name: "Salesforce Inc." },
-        { ticker: "BHP.AX", name: "BHP Group Ltd" },
-        { ticker: "CBA.AX", name: "Commonwealth Bank of Australia" },
-        { ticker: "CSL.AX", name: "CSL Ltd" },
-        { ticker: "WES.AX", name: "Wesfarmers Ltd" },
-        { ticker: "NAB.AX", name: "National Australia Bank" },
-        { ticker: "9988.HK", name: "Alibaba Group Holding Ltd" },
-      ];
+      const defaultStocks = DEFAULT_WATCHLIST_STOCKS;
 
       for (const stock of defaultStocks) {
         try {
