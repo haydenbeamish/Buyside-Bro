@@ -924,6 +924,24 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
+  app.get("/api/analysis/sec-filings/:ticker", async (req: any, res: Response) => {
+    try {
+      const ticker = req.params.ticker as string;
+      const apiKey = process.env.FMP_API_KEY;
+      const response = await fetchWithTimeout(
+        `https://financialmodelingprep.com/api/v3/sec_filings/${encodeURIComponent(ticker)}?limit=20&apikey=${apiKey}`
+      );
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "Failed to fetch SEC filings" });
+      }
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("SEC filings error:", error);
+      res.status(500).json({ error: "Failed to fetch SEC filings" });
+    }
+  });
+
   app.get("/api/analysis/ai/:ticker", async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
