@@ -1,6 +1,6 @@
-import { Link, useLocation } from "wouter";
-import { ReactNode } from "react";
-import { LayoutGrid, Briefcase, TrendingUp, Newspaper, MessageSquare, ChevronRight, Menu, X, Sparkles, CreditCard, LogOut, User, Eye, Shield, Brain, Building2 } from "lucide-react";
+import { Link, useLocation, Redirect } from "wouter";
+import { ReactNode, useEffect } from "react";
+import { LayoutGrid, Briefcase, TrendingUp, Newspaper, MessageSquare, ChevronRight, Menu, X, Sparkles, CreditCard, LogOut, User, Eye, Shield, Brain, Building2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -32,6 +32,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     enabled: isAuthenticated,
   });
   const isAdmin = adminCheck?.isAdmin ?? false;
+
+  const { data: subscriptionStatus, isLoading: subscriptionLoading } = useQuery<{ isActive: boolean }>({
+    queryKey: ["/api/subscription/status"],
+    enabled: isAuthenticated,
+  });
+
+  const isExemptRoute = ["/dashboard/subscription", "/admin"].includes(location);
+
+  if (isAuthenticated && subscriptionLoading && !isExemptRoute) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+      </div>
+    );
+  }
+
+  if (isAuthenticated && !subscriptionStatus?.isActive && !isExemptRoute) {
+    return <Redirect to="/dashboard/subscription" />;
+  }
 
   return (
     <div className="min-h-screen bg-black flex">

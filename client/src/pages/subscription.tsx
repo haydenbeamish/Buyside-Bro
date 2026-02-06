@@ -65,6 +65,7 @@ export default function SubscriptionPage() {
 
   useEffect(() => {
     if (success === "true") {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription/status"] });
       toast({
         title: "Welcome to Buy Side Bro Pro!",
         description: "Your subscription is now active. Enjoy full access to all features.",
