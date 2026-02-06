@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+
+type FlashCells = Record<string, "up" | "down">;
 
 interface MarketItem {
   name: string;
@@ -28,7 +30,7 @@ interface MarketsData {
 }
 
 
-function TickerTape({ items }: { items: MarketItem[] }) {
+function TickerTape({ items, flashCells }: { items: MarketItem[]; flashCells: FlashCells }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<MarketItem[]>(items);
   
@@ -76,7 +78,7 @@ function TickerTape({ items }: { items: MarketItem[] }) {
             <span className="text-zinc-200 text-xs sm:text-sm ticker-font">
               {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className={`text-xs sm:text-sm ticker-font ${item.change1D >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            <span className={`text-xs sm:text-sm ticker-font ${item.change1D >= 0 ? 'text-green-500' : 'text-red-500'} ${flashCells[`${item.name}:change1D`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:change1D`] === 'down' ? 'cell-flash-down' : ''}`}>
               {item.change1D >= 0 ? '+' : ''}{item.change1D.toFixed(1)}%
             </span>
           </div>
@@ -86,33 +88,35 @@ function TickerTape({ items }: { items: MarketItem[] }) {
   );
 }
 
-function PercentCell({ value, compact = false }: { value: number | undefined; compact?: boolean }) {
+function PercentCell({ value, compact = false, flash }: { value: number | undefined; compact?: boolean; flash?: "up" | "down" }) {
   if (value === undefined || value === null) {
     return (
       <td className={`${compact ? 'px-1 py-1.5' : 'px-3 py-2'} text-zinc-600 ticker-font text-right`}>-</td>
     );
   }
   const color = value >= 0 ? 'text-green-500' : 'text-red-500';
+  const flashClass = flash === 'up' ? 'cell-flash-up' : flash === 'down' ? 'cell-flash-down' : '';
   return (
-    <td className={`${compact ? 'px-1 py-1.5 text-xs' : 'px-3 py-2 text-sm'} text-right ticker-font ${color}`}>
+    <td className={`${compact ? 'px-1 py-1.5 text-xs' : 'px-3 py-2 text-sm'} text-right ticker-font ${color} ${flashClass}`}>
       {value >= 0 ? '+' : ''}{value.toFixed(1)}%
     </td>
   );
 }
 
-function MobilePercentCell({ value }: { value: number | undefined }) {
+function MobilePercentCell({ value, flash }: { value: number | undefined; flash?: "up" | "down" }) {
   if (value === undefined || value === null) {
     return <span className="text-zinc-600 ticker-font">-</span>;
   }
   const color = value >= 0 ? 'text-green-500' : 'text-red-500';
+  const flashClass = flash === 'up' ? 'cell-flash-up' : flash === 'down' ? 'cell-flash-down' : '';
   return (
-    <span className={`ticker-font ${color}`}>
+    <span className={`ticker-font ${color} ${flashClass}`}>
       {value >= 0 ? '+' : ''}{value.toFixed(1)}%
     </span>
   );
 }
 
-function GroupedSection({ title, items }: { title: string; items: MarketItem[] }) {
+function GroupedSection({ title, items, flashCells }: { title: string; items: MarketItem[]; flashCells: FlashCells }) {
   return (
     <div className="mb-6">
       <div className="border-l-2 border-green-500 pl-3 mb-3">
@@ -127,19 +131,19 @@ function GroupedSection({ title, items }: { title: string; items: MarketItem[] }
           <span className="text-right">1M%</span>
         </div>
         {items.map((item) => (
-          <div 
-            key={item.name} 
+          <div
+            key={item.name}
             className="grid grid-cols-4 gap-1 px-2 py-2 border-b border-zinc-800/50 text-xs"
           >
             <span className="text-zinc-200 truncate">{item.name}</span>
-            <span className="text-right font-mono text-zinc-300">
-              {item.price >= 10000 
+            <span className={`text-right font-mono text-zinc-300 ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
+              {item.price >= 10000
                 ? item.price.toLocaleString(undefined, { maximumFractionDigits: 0 })
                 : item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
               }
             </span>
-            <span className="text-right"><MobilePercentCell value={item.change1D} /></span>
-            <span className="text-right"><MobilePercentCell value={item.change1M} /></span>
+            <span className="text-right"><MobilePercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} /></span>
+            <span className="text-right"><MobilePercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} /></span>
           </div>
         ))}
       </div>
@@ -159,13 +163,13 @@ function GroupedSection({ title, items }: { title: string; items: MarketItem[] }
           {items.map((item) => (
             <tr key={item.name} className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors">
               <td className="px-3 py-2 font-medium text-zinc-200">{item.name}</td>
-              <td className="px-3 py-2 text-right font-mono text-zinc-300">
+              <td className={`px-3 py-2 text-right font-mono text-zinc-300 ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
                 {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </td>
-              <PercentCell value={item.change1D} />
-              <PercentCell value={item.change1M} />
-              <PercentCell value={item.change1Q} />
-              <PercentCell value={item.change1Y} />
+              <PercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} />
+              <PercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} />
+              <PercentCell value={item.change1Q} flash={flashCells[`${item.name}:change1Q`]} />
+              <PercentCell value={item.change1Y} flash={flashCells[`${item.name}:change1Y`]} />
             </tr>
           ))}
         </tbody>
@@ -174,9 +178,10 @@ function GroupedSection({ title, items }: { title: string; items: MarketItem[] }
   );
 }
 
-function FuturesGroupedView({ futures, isLoading }: { 
-  futures: MarketItem[]; 
+function FuturesGroupedView({ futures, isLoading, flashCells }: {
+  futures: MarketItem[];
   isLoading: boolean;
+  flashCells: FlashCells;
 }) {
   if (isLoading) {
     return (
@@ -205,14 +210,14 @@ function FuturesGroupedView({ futures, isLoading }: {
 
   return (
     <div data-testid="futures-grouped-view">
-      <GroupedSection title="Markets" items={marketFutures} />
-      <GroupedSection title="Commodities" items={commodityFutures} />
-      <GroupedSection title="Currencies" items={currencyFutures} />
+      <GroupedSection title="Markets" items={marketFutures} flashCells={flashCells} />
+      <GroupedSection title="Commodities" items={commodityFutures} flashCells={flashCells} />
+      <GroupedSection title="Currencies" items={currencyFutures} flashCells={flashCells} />
     </div>
   );
 }
 
-function MarketsTable({ items, isLoading }: { items: MarketItem[]; isLoading: boolean }) {
+function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; isLoading: boolean; flashCells: FlashCells }) {
   const [sortField, setSortField] = useState<string>('change1D');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -268,20 +273,20 @@ function MarketsTable({ items, isLoading }: { items: MarketItem[]; isLoading: bo
         </div>
         <div className="divide-y divide-zinc-800/50">
           {sortedItems.map((item, idx) => (
-            <div 
-              key={item.name} 
+            <div
+              key={item.name}
               className="grid grid-cols-4 gap-1 px-2 py-2.5 text-xs"
               data-testid={`market-row-mobile-${idx}`}
             >
               <span className="text-zinc-200 truncate pr-1">{item.name}</span>
-              <span className="text-right font-mono text-zinc-300">
-                {item.price >= 10000 
+              <span className={`text-right font-mono text-zinc-300 ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
+                {item.price >= 10000
                   ? item.price.toLocaleString(undefined, { maximumFractionDigits: 0 })
                   : item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                 }
               </span>
-              <span className="text-right"><MobilePercentCell value={item.change1D} /></span>
-              <span className="text-right"><MobilePercentCell value={item.change1M} /></span>
+              <span className="text-right"><MobilePercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} /></span>
+              <span className="text-right"><MobilePercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} /></span>
             </div>
           ))}
         </div>
@@ -340,22 +345,22 @@ function MarketsTable({ items, isLoading }: { items: MarketItem[]; isLoading: bo
           </thead>
           <tbody>
             {sortedItems.map((item, idx) => (
-              <tr 
-                key={item.name} 
+              <tr
+                key={item.name}
                 className="border-b border-zinc-800/50 hover:bg-zinc-900/50 transition-colors"
                 data-testid={`market-row-${idx}`}
               >
                 <td className="px-3 py-2 font-medium text-zinc-200">{item.name}</td>
-                <td className="px-3 py-2 text-right font-mono text-zinc-300">
+                <td className={`px-3 py-2 text-right font-mono text-zinc-300 ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
                   {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
-                <PercentCell value={item.change1D} />
-                <PercentCell value={item.change1M} />
-                <PercentCell value={item.change1Q} />
-                <PercentCell value={item.change1Y} />
-                <PercentCell value={item.vs10D} />
-                <PercentCell value={item.vs20D} />
-                <PercentCell value={item.vs200D} />
+                <PercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} />
+                <PercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} />
+                <PercentCell value={item.change1Q} flash={flashCells[`${item.name}:change1Q`]} />
+                <PercentCell value={item.change1Y} flash={flashCells[`${item.name}:change1Y`]} />
+                <PercentCell value={item.vs10D} flash={flashCells[`${item.name}:vs10D`]} />
+                <PercentCell value={item.vs20D} flash={flashCells[`${item.name}:vs20D`]} />
+                <PercentCell value={item.vs200D} flash={flashCells[`${item.name}:vs200D`]} />
               </tr>
             ))}
           </tbody>
@@ -371,11 +376,69 @@ export default function MarketsPage() {
     refetchInterval: 60000,
   });
 
+  const prevDataRef = useRef<Record<string, MarketItem>>({});
+  const hasLoadedOnce = useRef(false);
+  const [flashCells, setFlashCells] = useState<FlashCells>({});
+
+  const computeFlash = useCallback((items: MarketItem[]) => {
+    const flashes: FlashCells = {};
+    const fields: (keyof MarketItem)[] = ['price', 'change1D', 'change1M', 'change1Q', 'change1Y', 'vs10D', 'vs20D', 'vs200D'];
+    for (const item of items) {
+      const prev = prevDataRef.current[item.name];
+      if (!prev) continue;
+      for (const field of fields) {
+        const cur = item[field] as number | undefined;
+        const old = prev[field] as number | undefined;
+        if (cur !== undefined && old !== undefined && cur !== old) {
+          flashes[`${item.name}:${field}`] = cur > old ? 'up' : 'down';
+        }
+      }
+    }
+    return flashes;
+  }, []);
+
+  useEffect(() => {
+    if (!markets) return;
+
+    const allItems = [
+      ...(markets.globalMarkets || []),
+      ...(markets.futures || []),
+      ...(markets.commodities || []),
+      ...(markets.usaThematics || []),
+      ...(markets.usaSectors || []),
+      ...(markets.usaEqualWeight || []),
+      ...(markets.asxSectors || []),
+      ...(markets.forex || []),
+    ];
+
+    if (hasLoadedOnce.current) {
+      const flashes = computeFlash(allItems);
+      if (Object.keys(flashes).length > 0) {
+        setFlashCells(flashes);
+      }
+    } else {
+      hasLoadedOnce.current = true;
+    }
+
+    const newRef: Record<string, MarketItem> = {};
+    for (const item of allItems) {
+      newRef[item.name] = item;
+    }
+    prevDataRef.current = newRef;
+  }, [markets, computeFlash]);
+
+  // Auto-clear flash after animation completes
+  useEffect(() => {
+    if (Object.keys(flashCells).length === 0) return;
+    const timer = setTimeout(() => setFlashCells({}), 700);
+    return () => clearTimeout(timer);
+  }, [flashCells]);
+
   const tickerItems = markets?.globalMarkets || [];
 
   return (
     <div className="min-h-screen bg-black">
-      <TickerTape items={tickerItems} />
+      <TickerTape items={tickerItems} flashCells={flashCells} />
       
       <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-4 sm:mb-6 px-1">
@@ -451,31 +514,32 @@ export default function MarketsPage() {
           </div>
 
           <TabsContent value="global">
-            <MarketsTable items={markets?.globalMarkets || []} isLoading={isLoading} />
+            <MarketsTable items={markets?.globalMarkets || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="futures">
-            <FuturesGroupedView 
-              futures={markets?.futures || []} 
-              isLoading={isLoading} 
+            <FuturesGroupedView
+              futures={markets?.futures || []}
+              isLoading={isLoading}
+              flashCells={flashCells}
             />
           </TabsContent>
           <TabsContent value="commodities">
-            <MarketsTable items={markets?.commodities || []} isLoading={isLoading} />
+            <MarketsTable items={markets?.commodities || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="usa-thematics">
-            <MarketsTable items={markets?.usaThematics || []} isLoading={isLoading} />
+            <MarketsTable items={markets?.usaThematics || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="usa-sectors">
-            <MarketsTable items={markets?.usaSectors || []} isLoading={isLoading} />
+            <MarketsTable items={markets?.usaSectors || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="usa-equal">
-            <MarketsTable items={markets?.usaEqualWeight || []} isLoading={isLoading} />
+            <MarketsTable items={markets?.usaEqualWeight || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="asx-sectors">
-            <MarketsTable items={markets?.asxSectors || []} isLoading={isLoading} />
+            <MarketsTable items={markets?.asxSectors || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="forex">
-            <MarketsTable items={markets?.forex || []} isLoading={isLoading} />
+            <MarketsTable items={markets?.forex || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
         </Tabs>
       </div>

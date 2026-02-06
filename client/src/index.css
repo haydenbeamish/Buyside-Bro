@@ -301,6 +301,18 @@
     animation: glow-pulse 2s ease-in-out infinite;
   }
 
+  /* Cell flash animations for data changes */
+  @keyframes cell-flash-green {
+    0% { background-color: rgba(34, 197, 94, 0.35); }
+    100% { background-color: transparent; }
+  }
+  @keyframes cell-flash-red {
+    0% { background-color: rgba(239, 68, 68, 0.35); }
+    100% { background-color: transparent; }
+  }
+  .cell-flash-up { animation: cell-flash-green 0.7s ease-out; }
+  .cell-flash-down { animation: cell-flash-red 0.7s ease-out; }
+
   /* Hide scrollbar utility */
   .scrollbar-hide {
     -ms-overflow-style: none;
