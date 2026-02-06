@@ -1664,6 +1664,24 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
+  app.patch("/api/watchlist/:id/notes", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id as string);
+      const { notes } = req.body;
+      if (typeof notes !== "string") {
+        return res.status(400).json({ error: "Notes must be a string" });
+      }
+      const updated = await storage.updateWatchlistNotes(id, notes);
+      if (!updated) {
+        return res.status(404).json({ error: "Watchlist item not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      console.error("Update watchlist notes error:", error);
+      res.status(500).json({ error: "Failed to update notes" });
+    }
+  });
+
   app.get("/api/watchlist/enriched", async (req: Request, res: Response) => {
     try {
       const items = await storage.getWatchlist();
@@ -1721,6 +1739,10 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
           dayChangePercent,
           marketCap: quote.marketCap || profile.marketCap || null,
           pe,
+          yearHigh: quote.yearHigh ?? null,
+          yearLow: quote.yearLow ?? null,
+          volume: quote.volume ?? null,
+          avgVolume: quote.avgVolume ?? null,
         };
       });
 

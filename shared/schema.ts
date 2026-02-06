@@ -33,6 +33,7 @@ export const watchlist = pgTable("watchlist", {
   id: serial("id").primaryKey(),
   ticker: text("ticker").notNull().unique(),
   name: text("name"),
+  notes: text("notes"),
   addedAt: timestamp("added_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 

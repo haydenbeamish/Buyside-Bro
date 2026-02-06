@@ -128,7 +128,7 @@ function TopNav() {
             ) : (
               <a href="/api/login" onClick={() => setMobileMenuOpen(false)}>
                 <button className="border border-green-500 text-green-500 w-full px-5 py-2 rounded text-sm uppercase tracking-wider font-medium mt-2" data-testid="button-member-login-mobile">
-                  Login
+                  Start Free Trial
                 </button>
               </a>
             )}
@@ -291,7 +291,7 @@ function FeaturesSection() {
 function HowItWorks() {
   const steps = [
     { step: "01", title: "Preview the Terminal", description: "See what's inside before you commit" },
-    { step: "02", title: "Login", description: "14 days of full access, no credit card needed" },
+    { step: "02", title: "Start Free Trial", description: "14 days of full access, no credit card needed" },
     { step: "03", title: "Trade Smarter", description: "Use AI-powered tools for real-time market insights" },
   ];
 
@@ -333,7 +333,7 @@ function CTASection() {
         </p>
         <a href="/api/login">
           <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3 mx-auto" data-testid="button-cta">
-            Login <ArrowRight className="w-6 h-6" />
+            Start Free Trial <ArrowRight className="w-6 h-6" />
           </button>
         </a>
         <p className="text-zinc-600 text-xs mt-4">

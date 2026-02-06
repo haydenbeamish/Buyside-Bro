@@ -13,6 +13,7 @@ export interface IStorage {
   getWatchlist(): Promise<WatchlistItem[]>;
   addToWatchlist(item: InsertWatchlistItem): Promise<WatchlistItem>;
   removeFromWatchlist(id: number): Promise<void>;
+  updateWatchlistNotes(id: number, notes: string): Promise<WatchlistItem | undefined>;
   
   getCachedData(key: string): Promise<unknown | null>;
   setCachedData(key: string, data: unknown, expiresInMinutes: number): Promise<void>;
@@ -56,6 +57,14 @@ class DatabaseStorage implements IStorage {
 
   async removeFromWatchlist(id: number): Promise<void> {
     await db.delete(watchlist).where(eq(watchlist.id, id));
+  }
+
+  async updateWatchlistNotes(id: number, notes: string): Promise<WatchlistItem | undefined> {
+    const [updated] = await db.update(watchlist)
+      .set({ notes })
+      .where(eq(watchlist.id, id))
+      .returning();
+    return updated;
   }
 
   async getCachedData(key: string): Promise<unknown | null> {
