@@ -16,7 +16,30 @@
       "Bash(xargs kill:*)",
       "Bash(ss:*)",
       "Bash(pgrep:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(npm run db:push:*)",
+      "Bash(npx drizzle-kit push:*)",
+      "Bash(node -e:*)",
+      "Bash(npx tsx:*)",
+      "Bash(git -C /home/runner/workspace status)",
+      "Bash(git -C /home/runner/workspace diff)",
+      "Bash(git -C /home/runner/workspace log --oneline -5)",
+      "Bash(git -C /home/runner/workspace log --oneline -3)",
+      "Bash(git -C /home/runner/workspace show --stat HEAD)",
+      "Bash(git -C /home/runner/workspace diff HEAD -- shared/schema.ts server/storage.ts server/routes.ts)",
+      "Bash(git -C /home/runner/workspace diff HEAD~1 HEAD -- shared/schema.ts server/storage.ts server/routes.ts)",
+      "Bash(git -C /home/runner/workspace diff HEAD~2 -- shared/schema.ts server/storage.ts server/routes.ts)",
+      "Bash(git -C /home/runner/workspace log --all --oneline -- shared/schema.ts server/storage.ts server/routes.ts)",
+      "Bash(git -C /home/runner/workspace add shared/schema.ts server/storage.ts server/routes.ts client/src/pages/watchlist.tsx)",
+      "Bash(git -C /home/runner/workspace show --stat de467d7)",
+      "Bash(git -C /home/runner/workspace log --oneline -5 --all)",
+      "Bash(git -C /home/runner/workspace show --stat b9b0d09)",
+      "Bash(git -C /home/runner/workspace show --stat 93614d3)",
+      "Bash(git -C /home/runner/workspace log --graph --oneline -6)",
+      "Bash(git -C /home/runner/workspace diff 939fccf HEAD -- shared/schema.ts server/storage.ts server/routes.ts)",
+      "Bash(git -C /home/runner/workspace diff 8da0030 HEAD -- shared/schema.ts server/storage.ts server/routes.ts)",
+      "Bash(git -C /home/runner/workspace diff --stat HEAD)",
+      "Bash(git -C /home/runner/workspace push)"
     ]
   }
 }

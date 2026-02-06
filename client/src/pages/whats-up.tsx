@@ -1,7 +1,19 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, Sunrise, Sun, Moon, Newspaper, ChevronDown, ChevronUp } from "lucide-react";
+
+function sanitizeHtml(html: string): string {
+  const allowedTags = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+  const tagPattern = /<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/gi;
+  return html.replace(tagPattern, (match, tagName) => {
+    if (allowedTags.includes(tagName.toLowerCase())) {
+      const isClosing = match.startsWith('</');
+      return isClosing ? `</${tagName.toLowerCase()}>` : `<${tagName.toLowerCase()}>`;
+    }
+    return '';
+  }).replace(/on\w+\s*=/gi, '').replace(/javascript:/gi, '');
+}
 
 interface MarketSummary {
   summary: string;
@@ -88,7 +100,7 @@ function NewsFeedItemCard({ item, defaultExpanded }: { item: NewsFeedItem; defau
         <div className="mt-3 ml-7 sm:ml-8">
           <div 
             className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap [&_b]:text-green-500 [&_b]:font-semibold"
-            dangerouslySetInnerHTML={{ __html: item.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.content) }}
             data-testid={`newsfeed-content-${item.id}`}
           />
         </div>
@@ -190,7 +202,7 @@ export default function WhatsUpPage() {
             <div className="text-zinc-300 text-sm leading-relaxed" data-testid="text-market-summary">
               <div 
                 className="whitespace-pre-wrap [&_b]:text-green-500 [&_b]:font-semibold"
-                dangerouslySetInnerHTML={{ __html: summary.summary }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(summary.summary) }}
               />
               <p className="text-zinc-600 text-xs mt-4 pt-4 border-t border-zinc-800">
                 Last updated: {new Date(summary.generatedAt).toLocaleString()}
