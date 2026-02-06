@@ -1389,14 +1389,24 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
 
       const now = new Date();
-      const isTrialing = user.subscriptionStatus === "trialing" && user.trialEndsAt && new Date(user.trialEndsAt) > now;
-      const isActive = user.subscriptionStatus === "active" || isTrialing;
+      const isStripeTrial = user.subscriptionStatus === "trialing" && user.trialEndsAt && new Date(user.trialEndsAt) > now;
+      const isStripeActive = user.subscriptionStatus === "active";
+
+      // 14-day free trial for new users without a subscription
+      const FREE_TRIAL_DAYS = 14;
+      const accountCreated = user.createdAt ? new Date(user.createdAt) : now;
+      const freeTrialEnd = new Date(accountCreated.getTime() + FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000);
+      const isFreeTrial = !isStripeActive && !isStripeTrial && !user.stripeSubscriptionId && now < freeTrialEnd;
+
+      const isTrialing = isStripeTrial || isFreeTrial;
+      const isActive = isStripeActive || isTrialing;
+      const trialEndsAt = isStripeTrial ? user.trialEndsAt : isFreeTrial ? freeTrialEnd.toISOString() : user.trialEndsAt;
 
       res.json({
-        status: user.subscriptionStatus || "none",
+        status: isFreeTrial ? "trialing" : (user.subscriptionStatus || "none"),
         isActive,
         isTrialing,
-        trialEndsAt: user.trialEndsAt,
+        trialEndsAt,
         subscriptionEndsAt: user.subscriptionEndsAt,
         stripeCustomerId: user.stripeCustomerId,
         stripeSubscriptionId: user.stripeSubscriptionId,
