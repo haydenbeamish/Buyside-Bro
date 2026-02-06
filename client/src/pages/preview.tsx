@@ -159,7 +159,7 @@ export default function PreviewPage() {
             Past performance is not indicative of future results. Always consult a qualified financial advisor before making investment decisions.
           </p>
           <p className="text-zinc-700 text-xs">
-            © 2025 Buy Side Bro. All rights reserved.
+            © 2026 Buy Side Bro. All rights reserved.
           </p>
         </div>
       </footer>

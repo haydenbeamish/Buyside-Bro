@@ -88,7 +88,7 @@ function TopNav() {
             ) : (
               <a href="/api/login">
                 <button className="border border-green-500 text-green-500 hover:bg-green-500/10 px-5 py-2 rounded text-sm uppercase tracking-wider font-medium transition-all" data-testid="button-member-login">
-                  Start Free Trial
+                  Login
                 </button>
               </a>
             )}
@@ -128,7 +128,7 @@ function TopNav() {
             ) : (
               <a href="/api/login" onClick={() => setMobileMenuOpen(false)}>
                 <button className="border border-green-500 text-green-500 w-full px-5 py-2 rounded text-sm uppercase tracking-wider font-medium mt-2" data-testid="button-member-login-mobile">
-                  Start Free Trial
+                  Login
                 </button>
               </a>
             )}
@@ -291,7 +291,7 @@ function FeaturesSection() {
 function HowItWorks() {
   const steps = [
     { step: "01", title: "Preview the Terminal", description: "See what's inside before you commit" },
-    { step: "02", title: "Start Free Trial", description: "14 days of full access, no credit card needed" },
+    { step: "02", title: "Login", description: "14 days of full access, no credit card needed" },
     { step: "03", title: "Trade Smarter", description: "Use AI-powered tools for real-time market insights" },
   ];
 
@@ -333,7 +333,7 @@ function CTASection() {
         </p>
         <a href="/api/login">
           <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3 mx-auto" data-testid="button-cta">
-            Start Free Trial <ArrowRight className="w-6 h-6" />
+            Login <ArrowRight className="w-6 h-6" />
           </button>
         </a>
         <p className="text-zinc-600 text-xs mt-4">
@@ -373,24 +373,23 @@ function Footer() {
             </div>
           </div>
 
-          {/* Resources */}
+          {/* Quick Links */}
           <div>
-            <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Resources</h4>
+            <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Quick Links</h4>
             <div className="space-y-2">
-              <a href="#" className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Documentation</a>
-              <a href="#" className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">API</a>
-              <a href="#" className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Blog</a>
-              <a href="#" className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Support</a>
+              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Features</span></Link>
+              <Link href="/chat"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Ask Bro</span></Link>
+              <Link href="/earnings"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Earnings</span></Link>
+              <Link href="/watchlist"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Watchlist</span></Link>
             </div>
           </div>
 
-          {/* Legal */}
+          {/* Info */}
           <div>
-            <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Legal</h4>
+            <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Info</h4>
             <div className="space-y-2">
-              <a href="#" className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Terms of Service</a>
-              <a href="#" className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Privacy Policy</a>
-              <a href="#" className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Disclaimer</a>
+              <Link href="/dashboard/subscription"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Pricing</span></Link>
+              <a href="mailto:support@buysidebro.com" className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Contact</a>
             </div>
           </div>
         </div>
@@ -398,13 +397,13 @@ function Footer() {
         {/* Bottom */}
         <div className="pt-8 border-t border-green-900/30 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-zinc-500 text-sm">
-            © 2025 Buy Side Bro. All rights reserved.
+            © 2026 Buy Side Bro. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
-            <a href="#" className="text-zinc-500 hover:text-green-400 transition-colors" data-testid="link-twitter">
+            <a href="https://x.com/buysidebro" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-green-400 transition-colors" data-testid="link-twitter">
               <Twitter className="w-5 h-5" />
             </a>
-            <a href="#" className="text-zinc-500 hover:text-green-400 transition-colors" data-testid="link-discord">
+            <a href="https://discord.gg/buysidebro" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-green-400 transition-colors" data-testid="link-discord">
               <SiDiscord className="w-5 h-5" />
             </a>
           </div>
