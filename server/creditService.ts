@@ -262,7 +262,7 @@ const BRO_FEATURES = [
   'earnings_analysis', 'deep_analysis',
 ];
 
-export function getBroQueryLimit(user: User | null): number {
+export function getBroQueryLimit(user: User | null | undefined): number {
   if (!user) return 1;
   if (user.subscriptionStatus === 'active') return 5;
   return 1;
@@ -285,7 +285,7 @@ export async function getDailyBroQueryCount(userId: string): Promise<number> {
   return result[0]?.count ?? 0;
 }
 
-export async function getBroStatus(userId: string, user: User | null): Promise<{
+export async function getBroStatus(userId: string, user: User | null | undefined): Promise<{
   dailyUsed: number;
   dailyLimit: number;
   isPro: boolean;
@@ -298,7 +298,7 @@ export async function getBroStatus(userId: string, user: User | null): Promise<{
   return { dailyUsed, dailyLimit, isPro, credits: creditInfo.availableCreditsCents };
 }
 
-export async function checkBroQueryAllowed(userId: string, user: User | null): Promise<{
+export async function checkBroQueryAllowed(userId: string, user: User | null | undefined): Promise<{
   allowed: boolean;
   message?: string;
   requiresUpgrade?: boolean;

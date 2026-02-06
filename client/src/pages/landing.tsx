@@ -128,7 +128,7 @@ function TopNav() {
             ) : (
               <a href="/api/login" onClick={() => setMobileMenuOpen(false)}>
                 <button className="border border-green-500 text-green-500 w-full px-5 py-2 rounded text-sm uppercase tracking-wider font-medium mt-2" data-testid="button-member-login-mobile">
-                  Start Free Trial
+                  Login
                 </button>
               </a>
             )}
@@ -178,7 +178,7 @@ function HeroSection() {
               ))}
             </div>
 
-            <Link href={isAuthenticated ? "/whats-up" : "/preview"}>
+            <Link href={isAuthenticated ? "/whats-up" : "/dashboard"}>
               <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)]" data-testid="button-launch-terminal">
                 Launch Terminal
               </button>
@@ -194,8 +194,8 @@ function StatsSection() {
   const stats = [
     { value: "50+", label: "Global Markets" },
     { value: "Real-Time", label: "Market Data" },
-    { value: "AI", label: "Powered Insights" },
-    { value: "14 Days", label: "Free Trial" },
+    { value: "Bro", label: "Powered Insights" },
+    { value: "Free", label: "Forever" },
   ];
 
   return (
@@ -228,13 +228,13 @@ function FeaturesSection() {
     },
     {
       icon: Bot,
-      title: "AI ASSISTANT",
-      description: "Chat with our AI-powered assistant for market insights, stock analysis, and trading ideas.",
+      title: "ASK BRO",
+      description: "Chat with Bro for market insights, stock analysis, and trading ideas.",
     },
     {
       icon: BarChart3,
       title: "STOCK ANALYSIS",
-      description: "Deep fundamental analysis powered by AI. Get comprehensive reports on any stock instantly.",
+      description: "Deep fundamental analysis powered by Bro. Get comprehensive reports on any stock instantly.",
     },
     {
       icon: Calendar,
@@ -291,8 +291,8 @@ function FeaturesSection() {
 function HowItWorks() {
   const steps = [
     { step: "01", title: "Preview the Terminal", description: "See what's inside before you commit" },
-    { step: "02", title: "Start Free Trial", description: "14 days of full access, no credit card needed" },
-    { step: "03", title: "Trade Smarter", description: "Use AI-powered tools for real-time market insights" },
+    { step: "02", title: "Sign In", description: "Create your free account and get instant access" },
+    { step: "03", title: "Trade Smarter", description: "Use Bro-powered tools for real-time market insights" },
   ];
 
   return (
@@ -326,16 +326,16 @@ function CTASection() {
           Ready to level up your trading?
         </h2>
         <p className="text-zinc-400 text-lg mb-3">
-          14 days free. No commitment. No credit card required.
+          Free forever. Upgrade for unlimited Bro access.
         </p>
         <p className="text-zinc-500 text-sm mb-8">
-          $10/month after trial. Extra AI credit packs available anytime.
+          $10/month for Pro. Extra Bro credit packs available anytime.
         </p>
-        <a href="/api/login">
+        <Link href="/dashboard">
           <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3 mx-auto" data-testid="button-cta">
-            Start Free Trial <ArrowRight className="w-6 h-6" />
+            Open Terminal <ArrowRight className="w-6 h-6" />
           </button>
-        </a>
+        </Link>
         <p className="text-zinc-600 text-xs mt-4">
           Sign in with Google, Apple, GitHub, or email
         </p>

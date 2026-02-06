@@ -196,15 +196,15 @@ export default function SubscriptionPage() {
   }
 
   const isActive = subscriptionStatus?.isActive;
-  const isTrialing = subscriptionStatus?.isTrialing;
   const product = productsData?.products?.[0];
   const price = product?.prices?.[0];
 
   const features = [
     { icon: TrendingUp, text: "Real-time market data & analysis" },
     { icon: BarChart3, text: "Interactive charts & visualizations" },
-    { icon: Bot, text: "AI-powered stock analysis with Kimi K2.5" },
+    { icon: Bot, text: "Bro-powered stock analysis" },
     { icon: Zap, text: "Deep dive earnings analysis" },
+    { icon: Coins, text: "5 Bro queries/day + $5 credits/month" },
     { icon: CreditCard, text: "Portfolio tracking & performance" },
     { icon: Crown, text: "Priority support" },
   ];
@@ -239,19 +239,11 @@ export default function SubscriptionPage() {
                   </CardDescription>
                 </div>
                 <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
-                  {isTrialing ? "Trial" : "Active"}
+                  Active
                 </Badge>
               </div>
             </CardHeader>
             <CardContent>
-              {isTrialing && subscriptionStatus?.trialEndsAt && (
-                <p className="text-zinc-400 mb-4">
-                  Your trial ends on{" "}
-                  <span className="text-white">
-                    {new Date(subscriptionStatus.trialEndsAt).toLocaleDateString()}
-                  </span>
-                </p>
-              )}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {features.map((feature, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm text-zinc-300">
@@ -383,7 +375,7 @@ export default function SubscriptionPage() {
                   </div>
                   <div className="text-zinc-400 text-sm mt-1">per month</div>
                   <Badge className="mt-3 bg-green-500/20 text-green-500 border-green-500/30">
-                    2 weeks free trial
+                    Free tier included
                   </Badge>
                 </div>
 
@@ -408,7 +400,7 @@ export default function SubscriptionPage() {
                   ) : (
                     <Zap className="w-4 h-4 mr-2" />
                   )}
-                  Start Free Trial
+                  Go Pro
                 </Button>
               </CardFooter>
             </Card>
@@ -423,7 +415,7 @@ export default function SubscriptionPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>AI-powered insights using advanced language models</span>
+                    <span>Bro-powered insights using advanced language models</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
@@ -431,7 +423,7 @@ export default function SubscriptionPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span>14-day free trial - try before you pay</span>
+                    <span>Pro: 5 Bro queries/day + $5 credits (Free: 1/day)</span>
                   </li>
                 </ul>
               </div>

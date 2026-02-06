@@ -199,7 +199,7 @@ export default function AdminPage() {
     { id: "overview" as const, label: "Overview", icon: BarChart3 },
     { id: "users" as const, label: "Users", icon: Users },
     { id: "activity" as const, label: "Activity Log", icon: Activity },
-    { id: "ai-usage" as const, label: "AI Usage", icon: Zap },
+    { id: "ai-usage" as const, label: "Bro Usage", icon: Zap },
   ];
 
   return (
@@ -208,7 +208,7 @@ export default function AdminPage() {
         <Shield className="h-6 w-6 text-green-400" />
         <h1 className="display-font text-xl md:text-2xl tracking-wider neon-green">ADMIN DASHBOARD</h1>
       </div>
-      <p className="text-sm text-zinc-500">Monitor user activity, AI costs, and platform usage.</p>
+      <p className="text-sm text-zinc-500">Monitor user activity, Bro costs, and platform usage.</p>
 
       <div className="flex gap-2 border-b border-green-900/30 pb-2 overflow-x-auto">
         {tabs.map((tab) => (
@@ -244,7 +244,7 @@ export default function AdminPage() {
               <StatCard icon={TrendingUp} label="Calls This Week" value={stats.apiCallsThisWeek} />
               <StatCard icon={Users} label="Active This Week" value={stats.activeUsersThisWeek} />
               <StatCard icon={Activity} label="Total API Calls" value={stats.totalApiCalls} />
-              <StatCard icon={DollarSign} label="Total AI Cost" value={formatCents(stats.totalAiCostCents)} />
+              <StatCard icon={DollarSign} label="Total Bro Cost" value={formatCents(stats.totalAiCostCents)} />
               <StatCard icon={Clock} label="Avg Cost/User" value={
                 stats.totalUsers > 0 ? formatCents(Math.round(stats.totalAiCostCents / stats.totalUsers)) : "$0.00"
               } />
@@ -289,7 +289,7 @@ export default function AdminPage() {
 
           {userList && (
             <div className="bg-zinc-900/50 border border-green-900/30 rounded-md p-4">
-              <h3 className="text-sm text-zinc-400 uppercase tracking-wider mb-4">Top Users by AI Cost</h3>
+              <h3 className="text-sm text-zinc-400 uppercase tracking-wider mb-4">Top Users by Bro Cost</h3>
               <div className="space-y-2">
                 {[...userList].sort((a, b) => b.totalAiCostCents - a.totalAiCostCents).slice(0, 5).map((u) => (
                   <div key={u.id} className="flex items-center justify-between py-2 border-b border-zinc-800 last:border-0">
@@ -325,8 +325,8 @@ export default function AdminPage() {
                     <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase tracking-wider">
                       <th className="px-4 py-3 text-left">User</th>
                       <th className="px-3 py-3 text-center">Status</th>
-                      <th className="px-3 py-3 text-right">AI Cost</th>
-                      <th className="px-3 py-3 text-right">AI Calls</th>
+                      <th className="px-3 py-3 text-right">Bro Cost</th>
+                      <th className="px-3 py-3 text-right">Bro Calls</th>
                       <th className="px-3 py-3 text-right">Page Views</th>
                       <th className="px-3 py-3 text-right">Credits Used</th>
                       <th className="px-3 py-3 text-right">Last Active</th>
@@ -459,7 +459,7 @@ export default function AdminPage() {
                         </tr>
                       ))}
                       {aiUsage.perUserCost.length === 0 && (
-                        <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-500">No AI usage recorded yet</td></tr>
+                        <tr><td colSpan={6} className="px-4 py-8 text-center text-zinc-500">No Bro usage recorded yet</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -467,7 +467,7 @@ export default function AdminPage() {
               </div>
 
               <div className="bg-zinc-900/50 border border-green-900/30 rounded-md p-4">
-                <h3 className="text-sm text-zinc-400 uppercase tracking-wider mb-4">Recent AI Calls</h3>
+                <h3 className="text-sm text-zinc-400 uppercase tracking-wider mb-4">Recent Bro Calls</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -496,7 +496,7 @@ export default function AdminPage() {
                         </tr>
                       ))}
                       {aiUsage.recentUsage.length === 0 && (
-                        <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-500">No recent AI calls</td></tr>
+                        <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-500">No recent Bro calls</td></tr>
                       )}
                     </tbody>
                   </table>

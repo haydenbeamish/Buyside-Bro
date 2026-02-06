@@ -27,6 +27,10 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { useLoginGate } from "@/hooks/use-login-gate";
+import { LoginGateModal } from "@/components/login-gate-modal";
+import { useBroStatus } from "@/hooks/use-bro-status";
+import { BroLimitModal } from "@/components/bro-limit-modal";
 
 interface StockSearchResult {
   symbol: string;
@@ -541,7 +545,7 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
     { label: "Gathering data", threshold: 20, icon: Search },
     { label: "Analyzing financials", threshold: 40, icon: BarChart3 },
     { label: "Evaluating market position", threshold: 60, icon: TrendingUp },
-    { label: "Running AI analysis", threshold: 80, icon: Brain },
+    { label: "Running Bro analysis", threshold: 80, icon: Brain },
     { label: "Generating recommendation", threshold: 100, icon: Target },
   ];
   
@@ -901,6 +905,15 @@ export default function AnalysisPage() {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const skipNextAutoStart = useRef(!!urlJobId);
 
+  const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
+  const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
+  const [showBroLimit, setShowBroLimit] = useState(false);
+
+  const handleAnalyze = useCallback((symbol: string) => {
+    if (!gate()) return;
+    setActiveTicker(symbol);
+  }, [gate]);
+
   const { data: profile, isLoading: profileLoading } = useQuery<StockProfile>({
     queryKey: ["/api/analysis/profile", activeTicker],
     enabled: !!activeTicker,
@@ -936,8 +949,13 @@ export default function AnalysisPage() {
       setDeepJobStatus({ jobId: data.jobId, status: "pending", progress: 0, message: "Starting analysis..." });
       setDeepResult(null);
       setDeepError(null);
+      refetchBroStatus();
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      if (error?.message?.includes("429")) {
+        setShowBroLimit(true);
+        return;
+      }
       setDeepError("Failed to start analysis. Please try again.");
       console.error("Deep analysis error:", error);
     },
@@ -995,6 +1013,11 @@ export default function AnalysisPage() {
         skipNextAutoStart.current = false;
         return;
       }
+      if (!gate()) return;
+      if (isAtLimit) {
+        setShowBroLimit(true);
+        return;
+      }
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
@@ -1032,7 +1055,7 @@ export default function AnalysisPage() {
             COMPANY
           </h1>
           <p className="text-zinc-500">
-            Deep dive into company fundamentals with AI-powered insights
+            Deep dive into company fundamentals with Bro-powered insights
           </p>
         </div>
 
@@ -1040,13 +1063,13 @@ export default function AnalysisPage() {
           <StockSearchInput
             value={searchTicker}
             onSelect={(symbol) => setSearchTicker(symbol)}
-            onSubmit={(symbol) => setActiveTicker(symbol)}
+            onSubmit={(symbol) => handleAnalyze(symbol)}
           />
           <Button 
             type="button" 
             variant="outline"
             className="border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
-            onClick={() => searchTicker.trim() && setActiveTicker(searchTicker.toUpperCase().trim())}
+            onClick={() => searchTicker.trim() && handleAnalyze(searchTicker.toUpperCase().trim())}
             data-testid="button-search"
           >
             <ArrowRight className="h-4 w-4" />
@@ -1061,7 +1084,7 @@ export default function AnalysisPage() {
             </h3>
             <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
               Enter a ticker symbol above to see company profile, financial metrics,
-              and AI-powered analysis.
+              and Bro-powered analysis.
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {["AAPL", "MSFT", "GOOGL", "NVDA", "TSLA"].map((ticker) => (
@@ -1071,7 +1094,7 @@ export default function AnalysisPage() {
                   className="cursor-pointer border-zinc-700 bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
                   onClick={() => {
                     setSearchTicker(ticker);
-                    setActiveTicker(ticker);
+                    handleAnalyze(ticker);
                   }}
                   data-testid={`quick-search-${ticker}`}
                 >
@@ -1167,6 +1190,11 @@ export default function AnalysisPage() {
                     size="sm"
                     className="ml-auto border-zinc-700"
                     onClick={() => {
+                      if (!gate()) return;
+                      if (isAtLimit) {
+                        setShowBroLimit(true);
+                        return;
+                      }
                       if (activeTicker) {
                         // Clear error and state before retrying
                         setDeepError(null);
@@ -1200,6 +1228,8 @@ export default function AnalysisPage() {
           </div>
         )}
       </div>
+      <LoginGateModal open={showLoginModal} onClose={closeLoginModal} />
+      <BroLimitModal open={showBroLimit} onClose={() => setShowBroLimit(false)} />
     </div>
   );
 }

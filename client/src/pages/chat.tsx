@@ -14,6 +14,10 @@ import {
   Sparkles,
   RefreshCw,
 } from "lucide-react";
+import { useLoginGate } from "@/hooks/use-login-gate";
+import { LoginGateModal } from "@/components/login-gate-modal";
+import { useBroStatus } from "@/hooks/use-bro-status";
+import { BroLimitModal } from "@/components/bro-limit-modal";
 
 interface ChatMessage {
   id: number;
@@ -112,6 +116,9 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const messageIdRef = useRef(0);
+  const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
+  const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
+  const [showBroLimit, setShowBroLimit] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -122,6 +129,11 @@ export default function ChatPage() {
   }, [messages, streamingMessage]);
 
   const handleSendMessage = async () => {
+    if (!gate()) return;
+    if (isAtLimit) {
+      setShowBroLimit(true);
+      return;
+    }
     if (!inputValue.trim() || isStreaming) return;
 
     const userMessage = inputValue.trim();
@@ -141,6 +153,12 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: userMessage, history: messages }),
       });
+
+      if (response.status === 429) {
+        setShowBroLimit(true);
+        setIsStreaming(false);
+        return;
+      }
 
       if (!response.ok) throw new Error("Failed to send message");
 
@@ -171,6 +189,7 @@ export default function ChatPage() {
                 setMessages(prev => [...prev, { id: assistantMsgId, role: "assistant", content: fullResponse }]);
                 setIsStreaming(false);
                 setStreamingMessage("");
+                refetchBroStatus();
               }
             } catch {
               // Ignore parse errors
@@ -388,6 +407,8 @@ export default function ChatPage() {
           </div>
         )}
       </div>
+      <LoginGateModal open={showLoginModal} onClose={closeLoginModal} />
+      <BroLimitModal open={showBroLimit} onClose={() => setShowBroLimit(false)} />
     </div>
   );
 }

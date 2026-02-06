@@ -29,6 +29,11 @@ import {
 import type { PortfolioHolding } from "@shared/schema";
 import logoImg from "@assets/image_1770292490089.png";
 import ReactMarkdown from "react-markdown";
+import { useLoginGate } from "@/hooks/use-login-gate";
+import { LoginGateModal } from "@/components/login-gate-modal";
+import { useBroStatus } from "@/hooks/use-bro-status";
+import { BroLimitModal } from "@/components/bro-limit-modal";
+import { useAuth } from "@/hooks/use-auth";
 
 interface PortfolioStats {
   totalValue: number;
@@ -242,19 +247,23 @@ export default function PortfolioPage() {
   });
   const { toast } = useToast();
   const broSectionRef = useRef<HTMLDivElement>(null);
+  const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
+  const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
+  const [showBroLimit, setShowBroLimit] = useState(false);
 
   const { data: holdings, isLoading: holdingsLoading } = useQuery<EnrichedHolding[]>({
     queryKey: ["/api/portfolio/enriched"],
-    refetchInterval: 60000,
+    enabled: isAuthenticated, refetchInterval: 60000,
   });
 
   const { data: stats, isLoading: statsLoading } = useQuery<PortfolioStats>({
     queryKey: ["/api/portfolio/stats"],
+    enabled: isAuthenticated,
   });
 
   const { data: analysis } = useQuery<{ analysis: string }>({
     queryKey: ["/api/portfolio/analysis"],
-    enabled: !!holdings && holdings.length > 0,
+    enabled: isAuthenticated && !!holdings && holdings.length > 0,
   });
 
   const reviewMutation = useMutation({
@@ -263,11 +272,16 @@ export default function PortfolioPage() {
       return res.json();
     },
     onSuccess: () => {
+      refetchBroStatus();
       setTimeout(() => {
         broSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
     },
-    onError: () => {
+    onError: (error: any) => {
+      if (error?.message?.includes("429")) {
+        setShowBroLimit(true);
+        return;
+      }
       toast({
         title: "Error",
         description: "Failed to get your bro's opinion. Please try again.",
@@ -277,6 +291,11 @@ export default function PortfolioPage() {
   });
 
   const handleGetBroOpinion = () => {
+    if (!gate()) return;
+    if (isAtLimit) {
+      setShowBroLimit(true);
+      return;
+    }
     reviewMutation.mutate();
     setTimeout(() => {
       broSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -327,6 +346,7 @@ export default function PortfolioPage() {
 
   const handleAddHolding = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!gate()) return;
     if (!newHolding.ticker || !newHolding.shares || !newHolding.avgCost) return;
     addMutation.mutate(newHolding);
   };
@@ -496,7 +516,7 @@ export default function PortfolioPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => deleteMutation.mutate(holding.id)}
+                              onClick={() => { if (gate()) deleteMutation.mutate(holding.id); }}
                               disabled={deleteMutation.isPending}
                               className="text-zinc-500 hover:text-red-500 h-7 w-7"
                               data-testid={`button-delete-${holding.ticker}`}
@@ -582,7 +602,7 @@ export default function PortfolioPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => deleteMutation.mutate(holding.id)}
+                                onClick={() => { if (gate()) deleteMutation.mutate(holding.id); }}
                                 disabled={deleteMutation.isPending}
                                 className="text-zinc-500 hover:text-red-500 h-7 w-7"
                                 data-testid={`button-delete-${holding.ticker}`}
@@ -708,6 +728,8 @@ export default function PortfolioPage() {
           </div>
         </div>
       </div>
+        <LoginGateModal open={showLoginModal} onClose={closeLoginModal} />
+        <BroLimitModal open={showBroLimit} onClose={() => setShowBroLimit(false)} />
     </div>
   );
 }

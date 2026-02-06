@@ -1,8 +1,9 @@
-import { Link, useLocation, Redirect } from "wouter";
-import { ReactNode, useEffect } from "react";
-import { LayoutGrid, Briefcase, TrendingUp, Newspaper, MessageSquare, ChevronRight, Menu, X, Sparkles, CreditCard, LogOut, User, Eye, Shield, Brain, Building2, Loader2 } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { ReactNode } from "react";
+import { LayoutGrid, Briefcase, Newspaper, MessageSquare, Menu, X, Sparkles, CreditCard, LogOut, User, Eye, Shield, Brain, Building2, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useBroStatus } from "@/hooks/use-bro-status";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -27,23 +28,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, isLoading, isAuthenticated } = useAuth();
+  const { broStatus } = useBroStatus();
   const { data: adminCheck } = useQuery<{ isAdmin: boolean }>({
     queryKey: ["/api/admin/check"],
     enabled: isAuthenticated,
   });
   const isAdmin = adminCheck?.isAdmin ?? false;
-
-  const { data: subscriptionStatus, isLoading: subscriptionLoading } = useQuery<{ isActive: boolean }>({
-    queryKey: ["/api/subscription/status"],
-    enabled: isAuthenticated,
-  });
-
-  // Auth guard: redirect unauthenticated users to login
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      window.location.href = "/api/login";
-    }
-  }, [isLoading, isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -53,34 +43,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  const isExemptRoute = ["/dashboard/subscription", "/admin"].includes(location);
-
-  if (isAuthenticated && subscriptionLoading && !isExemptRoute) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-green-500" />
-      </div>
-    );
-  }
-
-  if (isAuthenticated && !subscriptionStatus?.isActive && !isExemptRoute) {
-    return <Redirect to="/dashboard/subscription" />;
-  }
-
   return (
     <div className="min-h-screen bg-black flex">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
-      
+
       {/* Sidebar */}
       <aside className={`
         fixed lg:static inset-y-0 left-0 z-50
@@ -98,7 +70,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             </Link>
           </div>
-          
+
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-1">
             {navItems.map((item) => {
@@ -112,8 +84,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <div
                     className={`
                       flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200
-                      ${isActive 
-                        ? 'bg-green-900/20 border border-green-900/40 text-green-400' 
+                      ${isActive
+                        ? 'bg-green-900/20 border border-green-900/40 text-green-400'
                         : 'text-zinc-400 hover:text-green-400 hover:bg-green-900/10'
                       }
                     `}
@@ -126,7 +98,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               );
             })}
           </nav>
-          
+
           {/* Bottom section */}
           <div className="p-4 border-t border-green-900/30 space-y-3">
             {isAdmin && (
@@ -134,8 +106,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <div
                   className={`
                     flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200
-                    ${location === '/admin' 
-                      ? 'bg-green-900/20 border border-green-900/40 text-green-400' 
+                    ${location === '/admin'
+                      ? 'bg-green-900/20 border border-green-900/40 text-green-400'
                       : 'text-zinc-400 hover:text-green-400 hover:bg-green-900/10'
                     }
                   `}
@@ -147,22 +119,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </Link>
             )}
 
-            {/* Subscription Link */}
-            <Link href="/dashboard/subscription" onClick={() => setSidebarOpen(false)}>
-              <div
-                className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200
-                  ${location === '/dashboard/subscription' 
-                    ? 'bg-green-900/20 border border-green-900/40 text-green-400' 
-                    : 'text-zinc-400 hover:text-green-400 hover:bg-green-900/10'
-                  }
-                `}
-                data-testid="nav-subscription"
-              >
-                <CreditCard className="w-5 h-5" />
-                <span className="text-sm font-medium">Subscription</span>
-              </div>
-            </Link>
+            {/* Subscription Link - only for authenticated users */}
+            {isAuthenticated && (
+              <Link href="/dashboard/subscription" onClick={() => setSidebarOpen(false)}>
+                <div
+                  className={`
+                    flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200
+                    ${location === '/dashboard/subscription'
+                      ? 'bg-green-900/20 border border-green-900/40 text-green-400'
+                      : 'text-zinc-400 hover:text-green-400 hover:bg-green-900/10'
+                    }
+                  `}
+                  data-testid="nav-subscription"
+                >
+                  <CreditCard className="w-5 h-5" />
+                  <span className="text-sm font-medium">Subscription</span>
+                </div>
+              </Link>
+            )}
 
             {/* User Profile */}
             {isAuthenticated && user ? (
@@ -192,7 +166,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </div>
       </aside>
-      
+
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
@@ -205,9 +179,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            
+
             <div className="flex-1" />
-            
+
+            {/* Bro query status for logged-in users */}
+            {isAuthenticated && broStatus && (
+              <div className="flex items-center gap-3 mr-4">
+                <span className="text-xs text-zinc-400">
+                  <span className="text-green-400 font-mono">{broStatus.dailyUsed}/{broStatus.dailyLimit}</span> Bro queries
+                </span>
+                {broStatus.isPro && (
+                  <span className="text-xs text-zinc-500">
+                    <span className="text-green-400 font-mono">${(broStatus.credits / 100).toFixed(2)}</span> credits
+                  </span>
+                )}
+              </div>
+            )}
+
             <div className="display-font text-xs tracking-wider hidden sm:block">
               <span className="text-zinc-500">TERMINAL</span>
               <span className="mx-2 text-green-500">●</span>
@@ -215,7 +203,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </div>
         </header>
-        
+
         {/* Page content */}
         <main className="flex-1 overflow-auto">
           {children}

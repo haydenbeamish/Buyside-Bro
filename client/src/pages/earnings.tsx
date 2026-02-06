@@ -28,6 +28,10 @@ import {
   Building2,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { useLoginGate } from "@/hooks/use-login-gate";
+import { LoginGateModal } from "@/components/login-gate-modal";
+import { useBroStatus } from "@/hooks/use-bro-status";
+import { BroLimitModal } from "@/components/bro-limit-modal";
 
 interface StockSearchResult {
   symbol: string;
@@ -446,7 +450,7 @@ function AnalysisLoader({ ticker, mode, progress: apiProgress, message, isComple
     { label: "Gathering data", threshold: 20, icon: Search },
     { label: "Analyzing financials", threshold: 40, icon: BarChart3 },
     { label: "Evaluating estimates", threshold: 60, icon: TrendingUp },
-    { label: "Running AI analysis", threshold: 80, icon: Brain },
+    { label: "Running Bro analysis", threshold: 80, icon: Brain },
     { label: "Generating report", threshold: 100, icon: Target },
   ];
 
@@ -572,6 +576,10 @@ export default function EarningsAnalysisPage() {
   const { toast } = useToast();
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000;
 
+  const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
+  const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
+  const [showBroLimit, setShowBroLimit] = useState(false);
+
   const { data: profile, isLoading: profileLoading, isError: profileError } = useQuery<StockProfile>({
     queryKey: ["/api/analysis/profile", activeTicker],
     enabled: !!activeTicker,
@@ -593,6 +601,11 @@ export default function EarningsAnalysisPage() {
   const hasDataErrors = profileError || chartError || metricsError;
 
   const startAnalysis = useCallback(async (ticker: string, analysisMode: AnalysisMode) => {
+    if (!gate()) return;
+    if (isAtLimit) {
+      setShowBroLimit(true);
+      return;
+    }
     setIsStarting(true);
     setError(null);
     setResult(null);
@@ -612,10 +625,15 @@ export default function EarningsAnalysisPage() {
       if (data.jobId) {
         setJobId(data.jobId);
         setJobStatus({ jobId: data.jobId, status: "pending", progress: 0, message: "Starting analysis..." });
+        refetchBroStatus();
       } else {
         throw new Error("No job ID returned");
       }
-    } catch (err) {
+    } catch (err: any) {
+      if (err?.message?.includes("429")) {
+        setShowBroLimit(true);
+        return;
+      }
       setError("Failed to start analysis. Please try again.");
       toast({
         title: "Error",
@@ -625,7 +643,7 @@ export default function EarningsAnalysisPage() {
     } finally {
       setIsStarting(false);
     }
-  }, [toast]);
+  }, [toast, gate, isAtLimit, refetchBroStatus]);
 
   const pollJobStatus = useCallback(async (currentJobId: string) => {
     const elapsed = Date.now() - jobStartTimeRef.current;
@@ -678,6 +696,7 @@ export default function EarningsAnalysisPage() {
   }, [jobId, jobStatus?.status, pollJobStatus]);
 
   const handleSubmit = (ticker: string) => {
+    if (!gate()) return;
     setActiveTicker(ticker);
     if (!hasAutoStarted.current) {
       startAnalysis(ticker, mode);
@@ -705,7 +724,7 @@ export default function EarningsAnalysisPage() {
             </h1>
           </div>
           <p className="text-zinc-500">
-            AI-powered earnings analysis — preview what's ahead or review what just happened
+            Bro-powered earnings analysis — preview what's ahead or review what just happened
           </p>
         </div>
 
@@ -836,7 +855,7 @@ export default function EarningsAnalysisPage() {
             {hasDataErrors && !profileLoading && !chartLoading && !metricsLoading && (
               <div className="flex items-center gap-2 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-400">
                 <AlertCircle className="h-4 w-4 text-zinc-500 shrink-0" />
-                Some market data is temporarily unavailable. The AI analysis will still proceed using available data.
+                Some market data is temporarily unavailable. The Bro analysis will still proceed using available data.
               </div>
             )}
 
@@ -873,6 +892,8 @@ export default function EarningsAnalysisPage() {
           </div>
         )}
       </div>
+      <LoginGateModal open={showLoginModal} onClose={closeLoginModal} />
+      <BroLimitModal open={showBroLimit} onClose={() => setShowBroLimit(false)} />
     </div>
   );
 }

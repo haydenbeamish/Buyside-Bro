@@ -15,8 +15,8 @@ const features = [
     image: screenshotWhatsUp,
     icon: Sparkles,
     title: "WHAT'S UP",
-    subtitle: "Your daily AI market briefing",
-    description: "Start every session with an AI-generated summary of what's moving. Get overnight market recaps, midday pulse checks, and closing wraps for the ASX, US, and European markets — all in one feed.",
+    subtitle: "Your daily Bro market briefing",
+    description: "Start every session with a Bro-generated summary of what's moving. Get overnight market recaps, midday pulse checks, and closing wraps for the ASX, US, and European markets — all in one feed.",
   },
   {
     image: screenshotMarkets,
@@ -29,8 +29,8 @@ const features = [
     image: screenshotPortfolio,
     icon: Briefcase,
     title: "PORTFOLIO TRACKER",
-    subtitle: "Manage your holdings with AI-powered insights",
-    description: "Track total value, gain/loss, and day changes at a glance. Add positions from any global exchange, see cost basis and P&L per holding, and view your allocation breakdown. Hit \"Get Your Bro's Opinion\" for a full AI portfolio review.",
+    subtitle: "Manage your holdings with Bro-powered insights",
+    description: "Track total value, gain/loss, and day changes at a glance. Add positions from any global exchange, see cost basis and P&L per holding, and view your allocation breakdown. Hit \"Get Your Bro's Opinion\" for a full Bro portfolio review.",
   },
   {
     image: screenshotWatchlist,
@@ -44,14 +44,14 @@ const features = [
     icon: BarChart3,
     title: "COMPANY ANALYSIS",
     subtitle: "Hedge fund quality research at your fingertips",
-    description: "Search any stock for a full company profile, 15+ key metrics, 1-year price chart, and SEC filings. AI automatically runs a deep fundamental analysis with buy/hold/sell recommendations, target prices, and confidence scores.",
+    description: "Search any stock for a full company profile, 15+ key metrics, 1-year price chart, and SEC filings. Bro automatically runs a deep fundamental analysis with buy/hold/sell recommendations, target prices, and confidence scores.",
   },
   {
     image: screenshotEarnings,
     icon: Brain,
     title: "EARNINGS ANALYSIS",
     subtitle: "Preview upcoming and review past earnings",
-    description: "See upcoming earnings dates with EPS and revenue estimates. Run AI-powered earnings previews before the announcement or post-earnings reviews after — complete with price targets and actionable recommendations.",
+    description: "See upcoming earnings dates with EPS and revenue estimates. Run Bro-powered earnings previews before the announcement or post-earnings reviews after — complete with price targets and actionable recommendations.",
   },
   {
     image: screenshotAskBro,
@@ -64,8 +64,8 @@ const features = [
     image: screenshotFullTerminal,
     icon: Newspaper,
     title: "MARKET NEWS",
-    subtitle: "Curated financial news with AI sentiment",
-    description: "Browse market and general financial news from top sources. Every article is tagged with AI sentiment (bullish, bearish, neutral) and related ticker symbols so you can quickly filter what matters to your portfolio.",
+    subtitle: "Curated financial news with Bro sentiment",
+    description: "Browse market and general financial news from top sources. Every article is tagged with Bro sentiment (bullish, bearish, neutral) and related ticker symbols so you can quickly filter what matters to your portfolio.",
   },
 ];
 
@@ -83,11 +83,11 @@ export default function PreviewPage() {
                 </span>
               </div>
             </Link>
-            <a href="/api/login">
+            <Link href="/dashboard">
               <button className="border border-green-500 text-green-500 hover:bg-green-500/10 px-5 py-2 rounded text-sm uppercase tracking-wider font-medium transition-all" data-testid="button-preview-signin">
-                Start Free Trial
+                Open Terminal
               </button>
-            </a>
+            </Link>
           </div>
         </div>
       </nav>
@@ -101,7 +101,7 @@ export default function PreviewPage() {
             Professional-grade market intelligence. No Bloomberg terminal required.
           </p>
           <p className="text-green-400 text-sm md:text-base display-font">
-            8 powerful tools. 14 days free. No credit card.
+            8 powerful tools. Free to explore. No credit card.
           </p>
         </div>
       </section>
@@ -146,22 +146,22 @@ export default function PreviewPage() {
               <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
                 <Clock className="w-6 h-6 text-green-500" />
               </div>
-              <h4 className="display-font text-sm neon-green-subtle tracking-wider">14-DAY FREE TRIAL</h4>
-              <p className="text-zinc-400 text-sm">Full access to every feature. No restrictions. Cancel anytime.</p>
+              <h4 className="display-font text-sm neon-green-subtle tracking-wider">FREE FOREVER</h4>
+              <p className="text-zinc-400 text-sm">Full access to every feature. No restrictions. Upgrade when you're ready.</p>
             </div>
             <div className="flex flex-col items-center gap-3">
               <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
                 <Shield className="w-6 h-6 text-green-500" />
               </div>
-              <h4 className="display-font text-sm neon-green-subtle tracking-wider">NO CREDIT CARD</h4>
-              <p className="text-zinc-400 text-sm">Start exploring immediately. No payment details needed upfront.</p>
+              <h4 className="display-font text-sm neon-green-subtle tracking-wider">INSTANT ACCESS</h4>
+              <p className="text-zinc-400 text-sm">Start exploring immediately. Sign in and go.</p>
             </div>
             <div className="flex flex-col items-center gap-3">
               <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
                 <Zap className="w-6 h-6 text-green-500" />
               </div>
               <h4 className="display-font text-sm neon-green-subtle tracking-wider">$10/MONTH AFTER</h4>
-              <p className="text-zinc-400 text-sm">Includes $5 of AI credits. Buy more as you need them.</p>
+              <p className="text-zinc-400 text-sm">Includes $5 of Bro credits. Buy more as you need them.</p>
             </div>
           </div>
         </div>
@@ -173,19 +173,19 @@ export default function PreviewPage() {
             Ready to see it in action?
           </h2>
           <p className="text-zinc-400 text-lg mb-2">
-            Sign in to start your free 14-day trial. No commitment required.
+            Free to explore. No commitment required.
           </p>
           <p className="text-zinc-500 text-sm mb-8">
-            After your trial, it's just $10/month. Need more AI power? Grab extra credit packs anytime.
+            Upgrade for just $10/month. Need more Bro power? Grab extra credit packs anytime.
           </p>
-          <a href="/api/login">
+          <Link href="/dashboard">
             <button
               className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3"
               data-testid="button-start-trial"
             >
-              Start Free Trial <ArrowRight className="w-5 h-5" />
+              Open Terminal <ArrowRight className="w-5 h-5" />
             </button>
-          </a>
+          </Link>
           <p className="text-zinc-600 text-xs mt-4">
             Sign in with Google, Apple, GitHub, or email
           </p>

@@ -16,6 +16,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Search, Loader2, Eye, ArrowUp, ArrowDown, Download } from "lucide-react";
 import { Link } from "wouter";
 import type { WatchlistItem } from "@shared/schema";
+import { useLoginGate } from "@/hooks/use-login-gate";
+import { LoginGateModal } from "@/components/login-gate-modal";
+import { useAuth } from "@/hooks/use-auth";
 
 interface EnrichedWatchlistItem extends WatchlistItem {
   price: number | null;
@@ -293,6 +296,7 @@ export default function WatchlistPage() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const { toast } = useToast();
   const hasSeeded = useRef(false);
+  const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -306,6 +310,7 @@ export default function WatchlistPage() {
   const { data: items, isLoading } = useQuery<EnrichedWatchlistItem[]>({
     queryKey: ["/api/watchlist/enriched"],
     refetchInterval: 60000,
+    enabled: isAuthenticated,
   });
 
   useEffect(() => {
@@ -322,6 +327,7 @@ export default function WatchlistPage() {
 
   const addMutation = useMutation({
     mutationFn: async (data: { ticker: string; name: string }) => {
+      if (!gate()) return;
       const res = await apiRequest("POST", "/api/watchlist", data);
       return res.json();
     },
@@ -348,6 +354,7 @@ export default function WatchlistPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
+      if (!gate()) return;
       await apiRequest("DELETE", `/api/watchlist/${id}`);
     },
     onSuccess: () => {
@@ -562,6 +569,7 @@ export default function WatchlistPage() {
           </div>
         </div>
       </div>
+      <LoginGateModal open={showLoginModal} onClose={closeLoginModal} />
     </div>
   );
 }

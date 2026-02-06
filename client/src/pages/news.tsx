@@ -12,6 +12,8 @@ import {
   TrendingUp,
   Globe,
 } from "lucide-react";
+import { useLoginGate } from "@/hooks/use-login-gate";
+import { LoginGateModal } from "@/components/login-gate-modal";
 
 interface NewsArticle {
   title: string;
@@ -31,6 +33,7 @@ interface NewsData {
 
 export default function NewsPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
 
   const { data: news, isLoading } = useQuery<NewsData>({
     queryKey: ["/api/news"],
@@ -144,7 +147,7 @@ export default function NewsPage() {
               type="search"
               placeholder="Search news..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { if (!gate()) return; setSearchQuery(e.target.value); }}
               className="pl-10 bg-zinc-900 border-zinc-800 text-white"
               data-testid="input-search-news"
             />
@@ -260,6 +263,7 @@ export default function NewsPage() {
           </Tabs>
         )}
       </div>
+      <LoginGateModal open={showLoginModal} onClose={closeLoginModal} />
     </div>
   );
 }
