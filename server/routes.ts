@@ -277,7 +277,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/portfolio", async (req: Request, res: Response) => {
+  app.get("/api/portfolio", isAuthenticated, async (req: any, res: Response) => {
     try {
       const holdings = await storage.getPortfolioHoldings();
       res.json(holdings);
@@ -362,7 +362,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/portfolio", async (req: Request, res: Response) => {
+  app.post("/api/portfolio", isAuthenticated, async (req: any, res: Response) => {
     try {
       const validation = insertPortfolioHoldingSchema.safeParse(req.body);
       if (!validation.success) {
@@ -400,7 +400,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/portfolio/:id", async (req: Request, res: Response) => {
+  app.delete("/api/portfolio/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
       const id = parseInt(req.params.id as string);
       await storage.deletePortfolioHolding(id);
@@ -412,7 +412,7 @@ export async function registerRoutes(
   });
 
   // Enriched portfolio data with market data from FMP
-  app.get("/api/portfolio/enriched", async (req: Request, res: Response) => {
+  app.get("/api/portfolio/enriched", isAuthenticated, async (req: any, res: Response) => {
     try {
       const holdings = await storage.getPortfolioHoldings();
       if (holdings.length === 0) {
@@ -494,7 +494,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/portfolio/stats", async (req: Request, res: Response) => {
+  app.get("/api/portfolio/stats", isAuthenticated, async (req: any, res: Response) => {
     try {
       const holdings = await storage.getPortfolioHoldings();
       
@@ -529,7 +529,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/portfolio/analysis", async (req: any, res: Response) => {
+  app.get("/api/portfolio/analysis", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user?.claims?.sub;
       
@@ -586,7 +586,7 @@ export async function registerRoutes(
   });
 
   // Comprehensive portfolio review - "Get Your Bro's Opinion"
-  app.post("/api/portfolio/review", async (req: any, res: Response) => {
+  app.post("/api/portfolio/review", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user?.claims?.sub;
       
@@ -768,7 +768,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/analysis/profile/:ticker", async (req: Request, res: Response) => {
+  app.get("/api/analysis/profile/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
       const fmpUrl = `https://financialmodelingprep.com/api/v3/profile/${ticker.toUpperCase()}?apikey=${process.env.FMP_API_KEY}`;
@@ -800,7 +800,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/analysis/financials/:ticker", async (req: Request, res: Response) => {
+  app.get("/api/analysis/financials/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
       const fmpUrl = `https://financialmodelingprep.com/api/v3/ratios-ttm/${ticker.toUpperCase()}?apikey=${process.env.FMP_API_KEY}`;
@@ -834,7 +834,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Historical price data for 1-year chart
-  app.get("/api/analysis/history/:ticker", async (req: Request, res: Response) => {
+  app.get("/api/analysis/history/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const ticker = (req.params.ticker as string).toUpperCase();
       const fmpUrl = `https://financialmodelingprep.com/api/v3/historical-price-full/${ticker}?timeseries=365&apikey=${process.env.FMP_API_KEY}`;
@@ -862,7 +862,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Forward metrics (P/E, EPS growth)
-  app.get("/api/analysis/forward/:ticker", async (req: Request, res: Response) => {
+  app.get("/api/analysis/forward/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const ticker = (req.params.ticker as string).toUpperCase();
       
@@ -924,7 +924,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/analysis/sec-filings/:ticker", async (req: any, res: Response) => {
+  app.get("/api/analysis/sec-filings/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
       const apiKey = process.env.FMP_API_KEY;
@@ -942,7 +942,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/analysis/ai/:ticker", async (req: any, res: Response) => {
+  app.get("/api/analysis/ai/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
       const userId = req.user?.claims?.sub;
@@ -1036,7 +1036,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   // Deep analysis async job endpoints using Laser Beam Capital API
   // Route used by earnings page (POST body with ticker and mode)
-  app.post("/api/fundamental-analysis/jobs", async (req: Request, res: Response) => {
+  app.post("/api/fundamental-analysis/jobs", isAuthenticated, async (req: any, res: Response) => {
     try {
       const { ticker, mode } = req.body;
       if (!ticker) {
@@ -1073,7 +1073,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Route used by analysis page (ticker in URL params)
-  app.post("/api/analysis/deep/:ticker", async (req: Request, res: Response) => {
+  app.post("/api/analysis/deep/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const ticker = (req.params.ticker as string).toUpperCase();
       
@@ -1105,7 +1105,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/analysis/deep/job/:jobId", async (req: Request, res: Response) => {
+  app.get("/api/analysis/deep/job/:jobId", isAuthenticated, async (req: any, res: Response) => {
     try {
       const jobId = req.params.jobId;
       
@@ -1129,7 +1129,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/analysis/deep/result/:jobId", async (req: Request, res: Response) => {
+  app.get("/api/analysis/deep/result/:jobId", isAuthenticated, async (req: any, res: Response) => {
     try {
       const jobId = req.params.jobId;
       
@@ -1148,7 +1148,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/earnings", async (req: Request, res: Response) => {
+  app.get("/api/earnings", isAuthenticated, async (req: any, res: Response) => {
     try {
       const cached = await storage.getCachedData("earnings");
       if (cached) {
@@ -1217,7 +1217,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/news", async (req: Request, res: Response) => {
+  app.get("/api/news", isAuthenticated, async (req: any, res: Response) => {
     try {
       const cached = await storage.getCachedData("news");
       if (cached) {
@@ -1290,7 +1290,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/news/search", async (req: Request, res: Response) => {
+  app.get("/api/news/search", isAuthenticated, async (req: any, res: Response) => {
     try {
       const query = req.query.q as string;
       if (!query || query.length < 2) {
@@ -1561,7 +1561,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Newsfeed API endpoints
-  app.get("/api/newsfeed", async (req: Request, res: Response) => {
+  app.get("/api/newsfeed", isAuthenticated, async (req: any, res: Response) => {
     try {
       const limit = parseInt(req.query.limit as string) || 20;
       const items = await getNewsFeed(limit);
@@ -1598,7 +1598,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Market summary generation endpoint (can be called by scheduler)
-  app.post("/api/newsfeed/generate-summary", async (req: Request, res: Response) => {
+  app.post("/api/newsfeed/generate-summary", isAuthenticated, async (req: any, res: Response) => {
     try {
       const { market, eventType } = req.body;
       
@@ -1641,7 +1641,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Watchlist routes
-  app.get("/api/watchlist", async (req: Request, res: Response) => {
+  app.get("/api/watchlist", isAuthenticated, async (req: any, res: Response) => {
     try {
       const items = await storage.getWatchlist();
       res.json(items);
@@ -1651,7 +1651,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.post("/api/watchlist", async (req: Request, res: Response) => {
+  app.post("/api/watchlist", isAuthenticated, async (req: any, res: Response) => {
     try {
       const validation = insertWatchlistSchema.safeParse(req.body);
       if (!validation.success) {
@@ -1671,7 +1671,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.delete("/api/watchlist/:id", async (req: Request, res: Response) => {
+  app.delete("/api/watchlist/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
       const id = parseInt(req.params.id as string);
       await storage.removeFromWatchlist(id);
@@ -1682,7 +1682,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.patch("/api/watchlist/:id/notes", async (req: Request, res: Response) => {
+  app.patch("/api/watchlist/:id/notes", isAuthenticated, async (req: any, res: Response) => {
     try {
       const id = parseInt(req.params.id as string);
       const { notes } = req.body;
@@ -1700,7 +1700,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.get("/api/watchlist/enriched", async (req: Request, res: Response) => {
+  app.get("/api/watchlist/enriched", isAuthenticated, async (req: any, res: Response) => {
     try {
       const items = await storage.getWatchlist();
       if (items.length === 0) {
@@ -1772,7 +1772,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Seed watchlist endpoint (one-time use)
-  app.post("/api/watchlist/seed", async (req: Request, res: Response) => {
+  app.post("/api/watchlist/seed", isAuthenticated, async (req: any, res: Response) => {
     try {
       const existing = await storage.getWatchlist();
       if (existing.length > 0) {

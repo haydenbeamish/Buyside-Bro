@@ -38,6 +38,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     enabled: isAuthenticated,
   });
 
+  // Auth guard: redirect unauthenticated users to login
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      window.location.href = "/api/login";
+    }
+  }, [isLoading, isAuthenticated]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const isExemptRoute = ["/dashboard/subscription", "/admin"].includes(location);
 
   if (isAuthenticated && subscriptionLoading && !isExemptRoute) {

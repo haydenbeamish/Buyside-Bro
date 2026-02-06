@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { 
   TrendingUp, BarChart3, 
@@ -366,10 +366,10 @@ function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Product</h4>
             <div className="space-y-2">
-              <Link href="/dashboard"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Markets</span></Link>
-              <Link href="/portfolio"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Portfolio</span></Link>
-              <Link href="/analysis"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Analysis</span></Link>
-              <Link href="/news"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">News</span></Link>
+              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Markets</span></Link>
+              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Portfolio</span></Link>
+              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Analysis</span></Link>
+              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">News</span></Link>
             </div>
           </div>
 
@@ -378,9 +378,9 @@ function Footer() {
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Quick Links</h4>
             <div className="space-y-2">
               <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Features</span></Link>
-              <Link href="/chat"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Ask Bro</span></Link>
-              <Link href="/earnings"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Earnings</span></Link>
-              <Link href="/watchlist"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Watchlist</span></Link>
+              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Ask Bro</span></Link>
+              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Earnings</span></Link>
+              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Watchlist</span></Link>
             </div>
           </div>
 
@@ -388,7 +388,7 @@ function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Info</h4>
             <div className="space-y-2">
-              <Link href="/dashboard/subscription"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Pricing</span></Link>
+              <Link href="/preview"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Pricing</span></Link>
               <a href="mailto:support@buysidebro.com" className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Contact</a>
             </div>
           </div>
@@ -427,6 +427,14 @@ function Footer() {
 }
 
 export default function LandingPage() {
+  const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+
+  if (isAuthenticated) {
+    setLocation("/whats-up");
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-black scanline">
       <TopNav />

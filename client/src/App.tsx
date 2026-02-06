@@ -25,7 +25,6 @@ function DashboardRoutes() {
       <Switch>
         <Route path="/whats-up" component={WhatsUpPage} />
         <Route path="/dashboard/subscription" component={SubscriptionPage} />
-        <Route path="/dashboard/chat" component={ChatPage} />
         <Route path="/dashboard" component={MarketsPage} />
         <Route path="/portfolio" component={PortfolioPage} />
         <Route path="/watchlist" component={WatchlistPage} />
