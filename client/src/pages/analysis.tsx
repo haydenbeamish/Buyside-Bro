@@ -898,7 +898,7 @@ export default function AnalysisPage() {
   const urlTicker = urlParams.get("ticker");
   const urlJobId = urlParams.get("jobId");
 
-  const [searchTicker, setSearchTicker] = useState("");
+  const [searchTicker, setSearchTicker] = useState(urlTicker || "MSFT");
   const [activeTicker, setActiveTicker] = useState<string | null>(urlTicker || "MSFT");
   const [deepJobId, setDeepJobId] = useState<string | null>(urlJobId || null);
   const [deepJobStatus, setDeepJobStatus] = useState<JobStatus | null>(
@@ -914,9 +914,9 @@ export default function AnalysisPage() {
   const [showBroLimit, setShowBroLimit] = useState(false);
 
   const handleAnalyze = useCallback((symbol: string) => {
-    if (!gate()) return;
+    setSearchTicker(symbol);
     setActiveTicker(symbol);
-  }, [gate]);
+  }, []);
 
   const { data: profile, isLoading: profileLoading } = useQuery<StockProfile>({
     queryKey: ["/api/analysis/profile", activeTicker],
