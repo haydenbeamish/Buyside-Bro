@@ -148,6 +148,7 @@ function TopNav() {
 }
 
 function HeroSection() {
+  const { isAuthenticated } = useAuth();
   const valueProps = [
     "Real time global market data",
     "Deep stock analysis",
@@ -160,14 +161,14 @@ function HeroSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="flex flex-col lg:flex-row items-center lg:items-end justify-between gap-8 lg:gap-16">
           <div className="lg:w-1/2 flex justify-center order-2 lg:order-1">
-            <img 
-              src={heroImg} 
-              alt="Buy Side Bro" 
+            <img
+              src={heroImg}
+              alt="Buy Side Bro"
               className="w-72 h-72 md:w-96 md:h-96 lg:w-[28rem] lg:h-[28rem] object-contain"
               data-testid="img-hero"
             />
           </div>
-          
+
           <div className="lg:w-1/2 text-center lg:text-left order-1 lg:order-2">
             <h1 className="display-font text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 leading-tight text-white">
               Markets. Stocks.<br />Portfolios. Sorted.
@@ -175,7 +176,7 @@ function HeroSection() {
             <p className="text-green-400 text-xl md:text-2xl mb-8 display-font italic">
               The Buy Side Terminal. Rebuilt.
             </p>
-            
+
             <div className="space-y-3 mb-8">
               {valueProps.map((prop, i) => (
                 <div key={i} className="flex items-center gap-3 justify-center lg:justify-start">
@@ -185,7 +186,7 @@ function HeroSection() {
               ))}
             </div>
 
-            <Link href="/preview">
+            <Link href={isAuthenticated ? "/whats-up" : "/preview"}>
               <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)]" data-testid="button-launch-terminal">
                 Launch Terminal
               </button>
