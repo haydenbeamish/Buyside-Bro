@@ -1,31 +1,71 @@
 import { Link } from "wouter";
-import { ArrowRight, BarChart3, Bot, TrendingUp, Shield, Zap, Clock } from "lucide-react";
+import { ArrowRight, BarChart3, Bot, TrendingUp, Shield, Zap, Clock, Briefcase, Eye, Brain, Newspaper, Sparkles } from "lucide-react";
 import logoImg from "@assets/image_1770296632105.png";
+import screenshotWhatsUp from "@assets/image_1770329842941.png";
 import screenshotMarkets from "@assets/image_1770353894237.png";
-import screenshotAskBro from "@assets/image_1770353921106.png";
+import screenshotPortfolio from "@assets/image_1770293388261.png";
+import screenshotWatchlist from "@assets/image_1770343802069.png";
 import screenshotDeepAnalysis from "@assets/image_1770353948671.png";
+import screenshotEarnings from "@assets/image_1770330036938.png";
+import screenshotAskBro from "@assets/image_1770353921106.png";
+import screenshotFullTerminal from "@assets/image_1770284481271.png";
 
 const features = [
   {
+    image: screenshotWhatsUp,
+    icon: Sparkles,
+    title: "WHAT'S UP",
+    subtitle: "Your daily AI market briefing",
+    description: "Start every session with an AI-generated summary of what's moving. Get overnight market recaps, midday pulse checks, and closing wraps for the ASX, US, and European markets — all in one feed.",
+  },
+  {
     image: screenshotMarkets,
     icon: TrendingUp,
-    title: "THEMATIC MOVEMENTS",
-    subtitle: "See what's moving — across sectors, themes, and global markets",
-    description: "Track USA Thematics like Robots & AI, Clean Energy, Cyber Security and more. Real-time price data with 1-day, 1-month, and quarterly change percentages. Spot trends before the crowd.",
+    title: "LIVE MARKETS",
+    subtitle: "Global indices, futures, commodities, forex, and thematics",
+    description: "Track 8 categories of market data in real-time: Global Markets, Futures, Commodities, USA Thematics, USA Sectors, Equal Weight, ASX Sectors, and Forex. Sort by 1-day, 1-month, quarterly, and yearly performance with moving average comparisons.",
+  },
+  {
+    image: screenshotPortfolio,
+    icon: Briefcase,
+    title: "PORTFOLIO TRACKER",
+    subtitle: "Manage your holdings with AI-powered insights",
+    description: "Track total value, gain/loss, and day changes at a glance. Add positions from any global exchange, see cost basis and P&L per holding, and view your allocation breakdown. Hit \"Get Your Bro's Opinion\" for a full AI portfolio review.",
+  },
+  {
+    image: screenshotWatchlist,
+    icon: Eye,
+    title: "WATCHLIST",
+    subtitle: "Monitor the stocks you care about",
+    description: "Build a watchlist of any stock worldwide. Track price, day change, volume spikes, market cap, P/E ratios, and 52-week range at a glance. Add inline notes, sort by any column, and export to CSV.",
+  },
+  {
+    image: screenshotDeepAnalysis,
+    icon: BarChart3,
+    title: "COMPANY ANALYSIS",
+    subtitle: "Hedge fund quality research at your fingertips",
+    description: "Search any stock for a full company profile, 15+ key metrics, 1-year price chart, and SEC filings. AI automatically runs a deep fundamental analysis with buy/hold/sell recommendations, target prices, and confidence scores.",
+  },
+  {
+    image: screenshotEarnings,
+    icon: Brain,
+    title: "EARNINGS ANALYSIS",
+    subtitle: "Preview upcoming and review past earnings",
+    description: "See upcoming earnings dates with EPS and revenue estimates. Run AI-powered earnings previews before the announcement or post-earnings reviews after — complete with price targets and actionable recommendations.",
   },
   {
     image: screenshotAskBro,
     icon: Bot,
     title: "ASK BRO",
     subtitle: "Your autonomous financial research agent",
-    description: "Ask complex questions and get data-backed answers. Compare revenue growth, analyze P/E ratios, break down operating margins — your bro thinks, plans, and researches using real-time market data.",
+    description: "Ask complex financial questions and get data-backed answers. Compare revenue growth, analyze P/E ratios, break down operating margins — your bro thinks, plans, and researches using real-time market data.",
   },
   {
-    image: screenshotDeepAnalysis,
-    icon: BarChart3,
-    title: "DEEP ANALYSIS",
-    subtitle: "Hedge fund quality research at your fingertips",
-    description: "AI-powered fundamental analysis that gathers data, analyzes financials, evaluates market position, and generates buy/hold/sell recommendations with target prices and confidence scores.",
+    image: screenshotFullTerminal,
+    icon: Newspaper,
+    title: "MARKET NEWS",
+    subtitle: "Curated financial news with AI sentiment",
+    description: "Browse market and general financial news from top sources. Every article is tagged with AI sentiment (bullish, bearish, neutral) and related ticker symbols so you can quickly filter what matters to your portfolio.",
   },
 ];
 
@@ -61,7 +101,7 @@ export default function PreviewPage() {
             Professional-grade market intelligence. No Bloomberg terminal required.
           </p>
           <p className="text-green-400 text-sm md:text-base display-font">
-            14 days free. No commitment. No credit card.
+            8 powerful tools. 14 days free. No credit card.
           </p>
         </div>
       </section>
