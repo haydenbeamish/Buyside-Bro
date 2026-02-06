@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { 
   TrendingUp, BarChart3, 
@@ -428,12 +428,6 @@ function Footer() {
 
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
-  const [, setLocation] = useLocation();
-
-  if (isAuthenticated) {
-    setLocation("/whats-up");
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-black scanline">

@@ -1233,7 +1233,40 @@ export default function AnalysisPage() {
               />
             ) : deepResult ? (
               <DeepAnalysisResult result={deepResult} />
-            ) : null}
+            ) : (
+              <div className="bg-zinc-900 border border-zinc-800 border-dashed rounded-lg py-12 text-center">
+                <Brain className="h-10 w-10 text-green-500/60 mx-auto mb-4" />
+                <h3 className="font-semibold text-white mb-2">Deep Analysis</h3>
+                <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
+                  Get a comprehensive AI-powered fundamental analysis with buy/hold/sell recommendation for {activeTicker}.
+                </p>
+                <Button
+                  className="bg-green-600 text-black font-bold uppercase tracking-wider"
+                  onClick={() => {
+                    if (!gate()) return;
+                    if (isAtLimit) {
+                      setShowBroLimit(true);
+                      return;
+                    }
+                    if (activeTicker) {
+                      setDeepError(null);
+                      setDeepJobId(null);
+                      setDeepJobStatus(null);
+                      setDeepResult(null);
+                      if (pollingRef.current) {
+                        clearInterval(pollingRef.current);
+                        pollingRef.current = null;
+                      }
+                      startDeepAnalysis.mutate(activeTicker);
+                    }
+                  }}
+                  disabled={startDeepAnalysis.isPending}
+                  data-testid="button-run-deep-analysis"
+                >
+                  Run Deep Analysis
+                </Button>
+              </div>
+            )}
 
           </div>
         )}
