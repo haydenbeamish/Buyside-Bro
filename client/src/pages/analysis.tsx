@@ -916,9 +916,12 @@ export default function AnalysisPage() {
   const [showBroLimit, setShowBroLimit] = useState(false);
 
   const handleAnalyze = useCallback((symbol: string) => {
+    if (!isAuthenticated && symbol.toUpperCase() !== "MSFT") {
+      if (!gate()) return;
+    }
     setSearchTicker(symbol);
     setActiveTicker(symbol);
-  }, []);
+  }, [isAuthenticated, gate]);
 
   const { data: profile, isLoading: profileLoading } = useQuery<StockProfile>({
     queryKey: ["/api/analysis/profile", activeTicker],
@@ -1047,6 +1050,20 @@ export default function AnalysisPage() {
       }
     };
   }, [activeTicker]);
+
+  useEffect(() => {
+    if (!isAuthenticated && activeTicker === "MSFT" && !deepResult && !deepJobId) {
+      fetch("/api/analysis/deep/cached/MSFT")
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data) {
+            setDeepResult(data);
+            deepResultCache.current["MSFT"] = data;
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isAuthenticated, activeTicker]);
 
   const isDeepLoading = startDeepAnalysis.isPending || 
     (deepJobStatus?.status === "pending" || deepJobStatus?.status === "processing");
