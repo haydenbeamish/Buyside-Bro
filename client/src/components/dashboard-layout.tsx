@@ -20,7 +20,7 @@ const navItems = [
   { path: "/watchlist", label: "Watchlist", icon: Eye },
   { path: "/analysis", label: "Company", icon: Building2 },
   { path: "/earnings", label: "Earnings", icon: Brain },
-  { path: "/news", label: "News", icon: Newspaper },
+  // { path: "/news", label: "News", icon: Newspaper },
   { path: "/chat", label: "Ask Bro", icon: MessageSquare },
 ];
 
