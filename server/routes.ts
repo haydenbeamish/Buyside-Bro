@@ -555,7 +555,7 @@ export async function registerRoutes(
       ).join(", ");
 
       const completion = await openrouter.chat.completions.create({
-        model: "moonshotai/kimi-k2.5",
+        model: "google/gemini-2.0-flash-001",
         messages: [
           {
             role: "system",
@@ -573,7 +573,7 @@ export async function registerRoutes(
       
       // Record usage for authenticated users
       if (userId) {
-        await recordUsage(userId, 'portfolio_analysis', 'moonshotai/kimi-k2.5', holdingsSummary.length / 4, content.length / 4);
+        await recordUsage(userId, 'portfolio_analysis', 'google/gemini-2.0-flash-001', holdingsSummary.length / 4, content.length / 4);
       }
 
       res.json({
@@ -743,7 +743,7 @@ Conduct a comprehensive portfolio review covering:
 Be specific with price targets, stop losses, position sizes (in bps), and timeframes.`;
 
       const completion = await openrouter.chat.completions.create({
-        model: "moonshotai/kimi-k2.5",
+        model: "google/gemini-2.0-flash-001",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -756,7 +756,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       // Record usage for authenticated users
       if (userId) {
         const promptLength = systemPrompt.length + userPrompt.length;
-        await recordUsage(userId, 'portfolio_review', 'moonshotai/kimi-k2.5', promptLength / 4, review.length / 4);
+        await recordUsage(userId, 'portfolio_review', 'google/gemini-2.0-flash-001', promptLength / 4, review.length / 4);
       }
 
       res.json({ review });
@@ -969,7 +969,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
       // Fallback to OpenRouter AI
       const completion = await openrouter.chat.completions.create({
-        model: "moonshotai/kimi-k2.5",
+        model: "google/gemini-2.0-flash-001",
         messages: [
           {
             role: "system",
@@ -989,7 +989,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       // Record usage for authenticated users
       if (userId) {
         const promptText = `Give a brief investment analysis for ${ticker.toUpperCase()}. Consider recent performance, market position, and outlook.`;
-        await recordUsage(userId, 'stock_analysis', 'moonshotai/kimi-k2.5', promptText.length / 4, content.length / 4);
+        await recordUsage(userId, 'stock_analysis', 'google/gemini-2.0-flash-001', promptText.length / 4, content.length / 4);
       }
 
       try {
@@ -1032,7 +1032,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         body: JSON.stringify({ 
           ticker: upperTicker,
           mode: mode || "preview",
-          model: "moonshotai/kimi-k2-instruct"
+          model: "google/gemini-2.0-flash-001"
         }),
       });
       
@@ -1065,7 +1065,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           ticker,
-          model: "moonshotai/kimi-k2-instruct"
+          model: "google/gemini-2.0-flash-001"
         }),
       });
       
