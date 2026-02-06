@@ -895,7 +895,7 @@ export default function AnalysisPage() {
   const urlJobId = urlParams.get("jobId");
 
   const [searchTicker, setSearchTicker] = useState("");
-  const [activeTicker, setActiveTicker] = useState<string | null>(urlTicker || null);
+  const [activeTicker, setActiveTicker] = useState<string | null>(urlTicker || "MSFT");
   const [deepJobId, setDeepJobId] = useState<string | null>(urlJobId || null);
   const [deepJobStatus, setDeepJobStatus] = useState<JobStatus | null>(
     urlJobId ? { jobId: urlJobId, status: "pending", progress: 0, message: "Starting analysis..." } : null
@@ -903,7 +903,7 @@ export default function AnalysisPage() {
   const [deepResult, setDeepResult] = useState<DeepAnalysisResult | null>(null);
   const [deepError, setDeepError] = useState<string | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  const skipNextAutoStart = useRef(!!urlJobId);
+  const deepResultCache = useRef<Record<string, DeepAnalysisResult>>({});
 
   const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
   const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
@@ -978,6 +978,9 @@ export default function AnalysisPage() {
         if (resultRes.ok) {
           const result = await resultRes.json();
           setDeepResult(result);
+          if (activeTicker) {
+            deepResultCache.current[activeTicker] = result;
+          }
         }
         if (pollingRef.current) {
           clearInterval(pollingRef.current);
@@ -1007,27 +1010,24 @@ export default function AnalysisPage() {
     }
   }, [deepJobId, deepJobStatus?.status, pollJobStatus]);
 
+  const prevTickerRef = useRef<string | null>(activeTicker);
   useEffect(() => {
-    if (activeTicker) {
-      if (skipNextAutoStart.current) {
-        skipNextAutoStart.current = false;
-        return;
-      }
-      if (!gate()) return;
-      if (isAtLimit) {
-        setShowBroLimit(true);
-        return;
-      }
+    if (activeTicker && activeTicker !== prevTickerRef.current) {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
       }
       setDeepJobId(null);
       setDeepJobStatus(null);
-      setDeepResult(null);
       setDeepError(null);
-      startDeepAnalysis.mutate(activeTicker);
+      const cached = deepResultCache.current[activeTicker];
+      if (cached) {
+        setDeepResult(cached);
+      } else {
+        setDeepResult(null);
+      }
     }
+    prevTickerRef.current = activeTicker;
     return () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
