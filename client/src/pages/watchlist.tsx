@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Search, Loader2, Eye } from "lucide-react";
+import { Plus, Trash2, Search, Loader2, Eye, ArrowUp, ArrowDown } from "lucide-react";
 import type { WatchlistItem } from "@shared/schema";
 
 interface EnrichedWatchlistItem extends WatchlistItem {
@@ -193,11 +193,45 @@ function useResizableColumn(minWidth: number = 80, maxWidth: number = 400) {
   return { width, colRef, measureContent, onPointerDown, onPointerMove, onPointerUp };
 }
 
+type SortKey = "ticker" | "price" | "dayChangePercent" | "marketCap" | "pe";
+type SortDir = "asc" | "desc";
+
+function getSortValue(item: EnrichedWatchlistItem, key: SortKey): number | string {
+  switch (key) {
+    case "ticker": return item.ticker.toLowerCase();
+    case "price": return item.price ?? -Infinity;
+    case "dayChangePercent": return item.dayChangePercent ?? -Infinity;
+    case "marketCap": return item.marketCap ?? -Infinity;
+    case "pe": return item.pe ?? -Infinity;
+  }
+}
+
+function sortItems(items: EnrichedWatchlistItem[], key: SortKey, dir: SortDir): EnrichedWatchlistItem[] {
+  return [...items].sort((a, b) => {
+    const av = getSortValue(a, key);
+    const bv = getSortValue(b, key);
+    if (av < bv) return dir === "asc" ? -1 : 1;
+    if (av > bv) return dir === "asc" ? 1 : -1;
+    return 0;
+  });
+}
+
 export default function WatchlistPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("dayChangePercent");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const { toast } = useToast();
   const hasSeeded = useRef(false);
   const tickerCol = useResizableColumn(80, 350);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir(key === "ticker" ? "asc" : "desc");
+    }
+  };
 
   const { data: items, isLoading } = useQuery<EnrichedWatchlistItem[]>({
     queryKey: ["/api/watchlist/enriched"],
@@ -321,30 +355,56 @@ export default function WatchlistPage() {
                   <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
                     <th
                       ref={tickerCol.colRef}
-                      className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-10 relative select-none whitespace-nowrap"
+                      className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-10 relative select-none whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors"
                       style={tickerCol.width ? { width: `${tickerCol.width}px` } : undefined}
+                      onClick={() => toggleSort("ticker")}
+                      data-testid="sort-ticker"
                     >
-                      Ticker
+                      <span className="inline-flex items-center gap-1">
+                        Ticker
+                        {sortKey === "ticker" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
+                      </span>
                       <div
                         className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-20 group"
                         onPointerDown={tickerCol.onPointerDown}
                         onPointerMove={tickerCol.onPointerMove}
                         onPointerUp={tickerCol.onPointerUp}
+                        onClick={(e) => e.stopPropagation()}
                         style={{ touchAction: "none" }}
                         data-testid="resize-handle-ticker"
                       >
                         <div className="absolute right-0 top-2 bottom-2 w-[2px] bg-green-900/40 group-hover:bg-green-500/60 transition-colors" />
                       </div>
                     </th>
-                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Price</th>
-                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Day %</th>
-                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Mkt Cap</th>
-                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap">P/E</th>
+                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors" onClick={() => toggleSort("price")} data-testid="sort-price">
+                      <span className="inline-flex items-center justify-end gap-1">
+                        Price
+                        {sortKey === "price" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
+                      </span>
+                    </th>
+                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors" onClick={() => toggleSort("dayChangePercent")} data-testid="sort-day">
+                      <span className="inline-flex items-center justify-end gap-1">
+                        Day %
+                        {sortKey === "dayChangePercent" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
+                      </span>
+                    </th>
+                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors" onClick={() => toggleSort("marketCap")} data-testid="sort-mktcap">
+                      <span className="inline-flex items-center justify-end gap-1">
+                        Mkt Cap
+                        {sortKey === "marketCap" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
+                      </span>
+                    </th>
+                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors" onClick={() => toggleSort("pe")} data-testid="sort-pe">
+                      <span className="inline-flex items-center justify-end gap-1">
+                        P/E
+                        {sortKey === "pe" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
+                      </span>
+                    </th>
                     <th className="px-3 py-3 w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item) => (
+                  {sortItems(items, sortKey, sortDir).map((item) => (
                     <tr
                       key={item.id}
                       className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
