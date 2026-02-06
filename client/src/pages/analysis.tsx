@@ -622,7 +622,11 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
 
 function DeepAnalysisResult({ result }: { result: DeepAnalysisResult }) {
   const rec = result.recommendation;
-  
+  const targetPrice = rec?.targetPrice != null ? Number(rec.targetPrice) : NaN;
+  const upside = rec?.upside != null ? Number(rec.upside) : NaN;
+  const confidence = rec?.confidence != null ? Number(rec.confidence) : 50;
+  const analysisText = typeof result.analysis === "string" ? result.analysis : "";
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-green-950/10 border border-green-500/20 rounded-lg p-6">
@@ -635,41 +639,41 @@ function DeepAnalysisResult({ result }: { result: DeepAnalysisResult }) {
                 {result.mode || "Deep Dive"}
               </Badge>
             </div>
-            <RecommendationBadge action={rec?.action || "Hold"} confidence={rec?.confidence || 50} />
+            <RecommendationBadge action={rec?.action || "Hold"} confidence={confidence} />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4 md:text-right">
             <div>
               <p className="text-xs text-zinc-500 uppercase tracking-wide">Target Price</p>
               <p className="text-2xl font-bold font-mono text-white">
-                ${rec?.targetPrice?.toFixed(2) || "—"}
+                {!isNaN(targetPrice) ? `$${targetPrice.toFixed(2)}` : "—"}
               </p>
             </div>
             <div>
               <p className="text-xs text-zinc-500 uppercase tracking-wide">Upside</p>
-              <p className={`text-2xl font-bold font-mono ${(rec?.upside || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
-                {(rec?.upside || 0) >= 0 ? "+" : ""}{rec?.upside?.toFixed(1) || 0}%
+              <p className={`text-2xl font-bold font-mono ${!isNaN(upside) && upside >= 0 ? "text-green-500" : "text-red-500"}`}>
+                {!isNaN(upside) ? `${upside >= 0 ? "+" : ""}${upside.toFixed(1)}%` : "—"}
               </p>
             </div>
           </div>
         </div>
-        
+
         {rec?.timeHorizon && (
           <div className="mt-4 flex items-center gap-2 text-sm text-zinc-400">
             <Clock className="h-4 w-4" />
             Time horizon: <span className="text-white">{rec.timeHorizon}</span>
           </div>
         )}
-        
+
         {rec?.reasoning && (
           <div className="mt-4 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
             <p className="text-sm text-zinc-300 leading-relaxed">{rec.reasoning}</p>
           </div>
         )}
       </div>
-      
-      {result.analysis && (
-        <MarkdownSection content={result.analysis} />
+
+      {analysisText && (
+        <MarkdownSection content={analysisText} />
       )}
     </div>
   );
@@ -967,13 +971,12 @@ export default function AnalysisPage() {
       if (!res.ok) throw new Error("Job not found");
       const status = await res.json();
       // Guard against stale updates - only update if this is still the current job
-      if (status.jobId === jobId) {
-        setDeepJobStatus(status);
-      } else {
+      if (status.jobId !== jobId) {
         return; // Ignore stale update
       }
-      
+
       if (status.status === "completed") {
+        // Fetch result BEFORE updating status so the loader stays visible
         const resultRes = await fetch(`/api/analysis/deep/result/${jobId}`);
         if (resultRes.ok) {
           const result = await resultRes.json();
@@ -981,17 +984,24 @@ export default function AnalysisPage() {
           if (activeTicker) {
             deepResultCache.current[activeTicker] = result;
           }
+        } else {
+          setDeepError("Failed to load analysis result. Please try again.");
         }
+        // Update status after result is set so both render together
+        setDeepJobStatus(status);
         if (pollingRef.current) {
           clearInterval(pollingRef.current);
           pollingRef.current = null;
         }
       } else if (status.status === "failed") {
+        setDeepJobStatus(status);
         setDeepError("Analysis failed. Please try again.");
         if (pollingRef.current) {
           clearInterval(pollingRef.current);
           pollingRef.current = null;
         }
+      } else {
+        setDeepJobStatus(status);
       }
     } catch (e) {
       console.error("Poll error:", e);
