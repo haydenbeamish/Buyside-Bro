@@ -174,13 +174,13 @@ export default function WhatsUpPage() {
   });
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <h1 className="display-font text-3xl tracking-wider neon-green mb-8 uppercase" data-testid="text-whats-up-title">
         What's Up?
       </h1>
 
       <div className="space-y-6">
-        <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-6">
+        <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-full bg-green-900/30 border border-green-500/30 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-green-500" />

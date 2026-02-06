@@ -230,7 +230,7 @@ function StockChart({ data, isLoading }: { data?: HistoricalData; isLoading: boo
           </span>
         </div>
       </div>
-      <div className="h-64">
+      <div className="h-48 sm:h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
             <defs>
@@ -553,7 +553,7 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,0,0.05),transparent_70%)]" />
       
       <div className="relative">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="h-14 w-14 rounded-full bg-green-500/10 flex items-center justify-center">
@@ -569,7 +569,7 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
             </div>
           </div>
           <div className="text-right">
-            <p className="text-3xl font-bold font-mono text-green-400">{displayProgress}%</p>
+            <p className="text-2xl sm:text-3xl font-bold font-mono text-green-400">{displayProgress}%</p>
           </div>
         </div>
         
@@ -580,7 +580,7 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
           />
         </div>
         
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
           {loadingStages.map((stage, i) => {
             const isActive = i === currentStage;
             const isComplete = displayProgress >= stage.threshold;
@@ -1028,7 +1028,7 @@ export default function AnalysisPage() {
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
             COMPANY
           </h1>
           <p className="text-zinc-500">

@@ -209,7 +209,7 @@ function ThinkingLoader() {
       <p className="text-lg text-green-400 font-medium mb-2">Bro is thinking...</p>
       <p className="text-sm text-zinc-400 animate-pulse">{statuses[statusIndex]}</p>
       
-      <div className="flex items-center gap-8 mt-8">
+      <div className="flex items-center gap-4 sm:gap-8 mt-8">
         {[
           { icon: BarChart3, label: "Analysis" },
           { icon: Target, label: "Targets" },
@@ -335,7 +335,7 @@ export default function PortfolioPage() {
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-          <h1 className="text-4xl font-bold tracking-tight display-font neon-green-subtle">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle">
             PORTFOLIO
           </h1>
           <div className="flex items-center gap-3">
@@ -407,7 +407,7 @@ export default function PortfolioPage() {
             {statsLoading ? (
               <Skeleton className="h-8 w-28 bg-zinc-800" />
             ) : (
-              <p className="text-2xl font-bold font-mono text-white">
+              <p className="text-xl sm:text-2xl font-bold font-mono text-white truncate">
                 ${stats?.totalValue?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}
               </p>
             )}
@@ -418,7 +418,7 @@ export default function PortfolioPage() {
               <Skeleton className="h-8 w-28 bg-zinc-800" />
             ) : (
               <div>
-                <p className="text-2xl font-bold font-mono text-white">
+                <p className="text-xl sm:text-2xl font-bold font-mono text-white truncate">
                   ${Math.abs(stats?.totalGain || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
                 <PercentDisplay value={stats?.totalGainPercent || 0} />
@@ -437,7 +437,7 @@ export default function PortfolioPage() {
                   <TrendingDown className="h-5 w-5 text-red-500" />
                 )}
                 <div>
-                  <p className="text-2xl font-bold font-mono text-white">
+                  <p className="text-xl sm:text-2xl font-bold font-mono text-white truncate">
                     ${Math.abs(stats?.dayChange || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                   <PercentDisplay value={stats?.dayChangePercent || 0} />
@@ -450,7 +450,7 @@ export default function PortfolioPage() {
             {holdingsLoading ? (
               <Skeleton className="h-8 w-12 bg-zinc-800" />
             ) : (
-              <p className="text-2xl font-bold font-mono text-white">{holdings?.length || 0}</p>
+              <p className="text-xl sm:text-2xl font-bold font-mono text-white">{holdings?.length || 0}</p>
             )}
           </div>
         </div>
@@ -467,76 +467,32 @@ export default function PortfolioPage() {
                   ))}
                 </div>
               ) : holdings && holdings.length > 0 ? (
-                <table className="w-full text-sm" data-testid="holdings-table">
-                  <thead>
-                    <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
-                      <th className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-10 min-w-[100px]">Ticker</th>
-                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Price</th>
-                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Cost</th>
-                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">% P&L</th>
-                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Day %</th>
-                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Qty</th>
-                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Value</th>
-                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Day P&L</th>
-                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Total P&L</th>
-                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Mkt Cap</th>
-                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">P/E</th>
-                      <th className="px-3 py-3 w-10"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <>
+                  {/* Mobile card view */}
+                  <div className="sm:hidden divide-y divide-zinc-800/50" data-testid="holdings-mobile">
                     {holdings.map((holding) => {
                       const currentPrice = Number(holding.currentPrice || holding.avgCost);
-                      const avgCost = Number(holding.avgCost);
-                      const shares = Number(holding.shares);
-
                       return (
-                        <tr 
-                          key={holding.id} 
-                          className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
+                        <div
+                          key={holding.id}
+                          className="px-3 py-3 flex items-center justify-between"
                           data-testid={`holding-row-${holding.ticker}`}
                         >
-                          <td className="px-3 py-2.5 sticky left-0 bg-zinc-900 z-10">
-                            <div className="flex flex-col">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
                               <span className="font-mono font-semibold text-green-400">{holding.ticker}</span>
-                              <span className="text-xs text-zinc-500 truncate max-w-[120px]">{holding.name || holding.ticker}</span>
+                              <span className="text-xs text-zinc-500 truncate">{holding.name || holding.ticker}</span>
                             </div>
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap">
-                            ${currentPrice.toFixed(2)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
-                            ${avgCost.toFixed(2)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                            <PercentDisplay value={holding.pnlPercent || 0} />
-                          </td>
-                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                            <PercentDisplay value={holding.dayChangePercent || 0} />
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
-                            {shares.toLocaleString()}
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
-                            ${(holding.value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                          </td>
-                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                            <span className={`font-mono text-sm ${(holding.dayPnL || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
-                              {(holding.dayPnL || 0) >= 0 ? "+" : ""}${Math.abs(holding.dayPnL || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                            <span className={`font-mono text-sm ${(holding.totalPnL || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
-                              {(holding.totalPnL || 0) >= 0 ? "+" : ""}${Math.abs(holding.totalPnL || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
-                            {formatMarketCap(holding.marketCap)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
-                            {holding.pe ? holding.pe.toFixed(1) : "-"}
-                          </td>
-                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-3 mt-1">
+                              <span className="font-mono text-sm text-white">${currentPrice.toFixed(2)}</span>
+                              <span className="text-xs text-zinc-400">${(holding.value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                            </div>
+                          </div>
+                          <div className="text-right flex items-center gap-3">
+                            <div>
+                              <div className="text-sm"><PercentDisplay value={holding.pnlPercent || 0} /></div>
+                              <div className="text-xs"><PercentDisplay value={holding.dayChangePercent || 0} /></div>
+                            </div>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -547,12 +503,99 @@ export default function PortfolioPage() {
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
-                          </td>
-                        </tr>
+                          </div>
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </div>
+                  {/* Desktop table */}
+                  <table className="hidden sm:table w-full text-sm" data-testid="holdings-table">
+                    <thead>
+                      <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
+                        <th className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-10 min-w-[100px]">Ticker</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Price</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Cost</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">% P&L</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Day %</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Qty</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Value</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Day P&L</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Total P&L</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Mkt Cap</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">P/E</th>
+                        <th className="px-3 py-3 w-10"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {holdings.map((holding) => {
+                        const currentPrice = Number(holding.currentPrice || holding.avgCost);
+                        const avgCost = Number(holding.avgCost);
+                        const shares = Number(holding.shares);
+
+                        return (
+                          <tr
+                            key={holding.id}
+                            className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
+                            data-testid={`holding-row-${holding.ticker}`}
+                          >
+                            <td className="px-3 py-2.5 sticky left-0 bg-zinc-900 z-10">
+                              <div className="flex flex-col">
+                                <span className="font-mono font-semibold text-green-400">{holding.ticker}</span>
+                                <span className="text-xs text-zinc-500 truncate max-w-[120px]">{holding.name || holding.ticker}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap">
+                              ${currentPrice.toFixed(2)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
+                              ${avgCost.toFixed(2)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                              <PercentDisplay value={holding.pnlPercent || 0} />
+                            </td>
+                            <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                              <PercentDisplay value={holding.dayChangePercent || 0} />
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
+                              {shares.toLocaleString()}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono text-zinc-300 whitespace-nowrap">
+                              ${(holding.value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </td>
+                            <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                              <span className={`font-mono text-sm ${(holding.dayPnL || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                                {(holding.dayPnL || 0) >= 0 ? "+" : ""}${Math.abs(holding.dayPnL || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                              <span className={`font-mono text-sm ${(holding.totalPnL || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                                {(holding.totalPnL || 0) >= 0 ? "+" : ""}${Math.abs(holding.totalPnL || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
+                              {formatMarketCap(holding.marketCap)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
+                              {holding.pe ? holding.pe.toFixed(1) : "-"}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteMutation.mutate(holding.id)}
+                                disabled={deleteMutation.isPending}
+                                className="text-zinc-500 hover:text-red-500 h-7 w-7"
+                                data-testid={`button-delete-${holding.ticker}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </>
               ) : (
                 <div className="text-center py-12">
                   <p className="text-zinc-500 mb-4">No holdings yet</p>

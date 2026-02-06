@@ -366,7 +366,7 @@ export default function WatchlistPage() {
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <div className="flex items-center gap-3">
             <Eye className="h-8 w-8 text-green-400" />
-            <h1 className="text-4xl font-bold tracking-tight display-font neon-green-subtle" data-testid="text-watchlist-title">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle" data-testid="text-watchlist-title">
               WATCHLIST
             </h1>
           </div>
@@ -421,98 +421,137 @@ export default function WatchlistPage() {
                 ))}
               </div>
             ) : items && items.length > 0 ? (
-              <table className="w-full text-sm" style={{ tableLayout: "fixed" }} data-testid="watchlist-table">
-                <colgroup>
-                  <col style={{ width: `${TICKER_COL_WIDTH}px` }} />
-                  <col />
-                  <col />
-                  <col />
-                  <col />
-                  <col />
-                  <col style={{ width: "110px" }} />
-                  <col style={{ width: "140px" }} />
-                  <col style={{ width: "44px" }} />
-                </colgroup>
-                <thead>
-                  <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
-                    <th
-                      className="px-3 py-3 text-left font-medium select-none whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors"
-                      onClick={() => toggleSort("ticker")}
-                      data-testid="sort-ticker"
+              <>
+                {/* Mobile card view */}
+                <div className="sm:hidden divide-y divide-zinc-800/50" data-testid="watchlist-mobile">
+                  {sortItems(items, sortKey, sortDir).map((item) => (
+                    <div
+                      key={item.id}
+                      className="px-3 py-3 flex items-center justify-between"
+                      data-testid={`watchlist-row-${item.ticker}`}
                     >
-                      <span className="inline-flex items-center gap-1">
-                        Ticker
-                        {sortKey === "ticker" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
-                      </span>
-                    </th>
-                    <SortHeader label="Price" sortKey="price" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-price" />
-                    <SortHeader label="Day %" sortKey="dayChangePercent" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-day" />
-                    <SortHeader label="Volume" sortKey="volume" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-volume" />
-                    <SortHeader label="Mkt Cap" sortKey="marketCap" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-mktcap" />
-                    <SortHeader label="P/E" sortKey="pe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-pe" />
-                    <th className="px-3 py-3 text-center font-medium whitespace-nowrap text-xs">52W Range</th>
-                    <th className="px-3 py-3 text-left font-medium whitespace-nowrap text-xs">Notes</th>
-                    <th className="px-3 py-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortItems(items, sortKey, sortDir).map((item) => {
-                    const volRatio = item.volume && item.avgVolume && item.avgVolume > 0
-                      ? item.volume / item.avgVolume
-                      : null;
-                    const highVol = volRatio !== null && volRatio >= 1.5;
-
-                    return (
-                      <tr
-                        key={item.id}
-                        className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
-                        data-testid={`watchlist-row-${item.ticker}`}
+                      <div className="min-w-0">
+                        <Link href={`/analysis?ticker=${item.ticker}`} className="hover:underline">
+                          <span className="font-mono font-semibold text-green-400">{item.ticker}</span>
+                        </Link>
+                        {item.name && item.name !== item.ticker && (
+                          <span className="text-[11px] text-zinc-500 truncate block leading-tight">{item.name}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <span className="font-mono text-sm text-white block">
+                            {item.price ? `$${item.price.toFixed(2)}` : "-"}
+                          </span>
+                          <span className="text-xs"><PercentDisplay value={item.dayChangePercent || 0} /></span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteMutation.mutate(item.id)}
+                          className="text-zinc-600 hover:text-red-400 h-7 w-7"
+                          data-testid={`button-remove-${item.ticker}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop table */}
+                <table className="hidden sm:table w-full text-sm" style={{ tableLayout: "fixed" }} data-testid="watchlist-table">
+                  <colgroup>
+                    <col style={{ width: `${TICKER_COL_WIDTH}px` }} />
+                    <col />
+                    <col />
+                    <col />
+                    <col />
+                    <col />
+                    <col style={{ width: "110px" }} />
+                    <col style={{ width: "140px" }} />
+                    <col style={{ width: "44px" }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
+                      <th
+                        className="px-3 py-3 text-left font-medium select-none whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors"
+                        onClick={() => toggleSort("ticker")}
+                        data-testid="sort-ticker"
                       >
-                        <td className="px-3 py-2.5 overflow-hidden">
-                          <Link href={`/analysis?ticker=${item.ticker}`} className="hover:underline">
-                            <span className="font-mono font-semibold text-green-400 truncate block">{item.ticker}</span>
-                          </Link>
-                          {item.name && item.name !== item.ticker && (
-                            <span className="text-[11px] text-zinc-500 truncate block leading-tight">{item.name}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap overflow-hidden text-ellipsis">
-                          {item.price ? `$${item.price.toFixed(2)}` : "-"}
-                        </td>
-                        <td className="px-3 py-2.5 text-right whitespace-nowrap overflow-hidden text-ellipsis">
-                          <PercentDisplay value={item.dayChangePercent || 0} />
-                        </td>
-                        <td className={`px-3 py-2.5 text-right font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis ${highVol ? "text-yellow-400 font-semibold" : "text-zinc-400"}`}>
-                          {formatVolume(item.volume)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
-                          {formatMarketCap(item.marketCap)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
-                          {item.pe ? item.pe.toFixed(1) : "-"}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <FiftyTwoWeekBar price={item.price} low={item.yearLow} high={item.yearHigh} />
-                        </td>
-                        <td className="px-3 py-2.5 overflow-hidden">
-                          <InlineNoteEditor itemId={item.id} initialNote={item.notes ?? null} />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteMutation.mutate(item.id)}
-                            className="text-zinc-600 hover:text-red-400"
-                            data-testid={`button-remove-${item.ticker}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        <span className="inline-flex items-center gap-1">
+                          Ticker
+                          {sortKey === "ticker" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
+                        </span>
+                      </th>
+                      <SortHeader label="Price" sortKey="price" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-price" />
+                      <SortHeader label="Day %" sortKey="dayChangePercent" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-day" />
+                      <SortHeader label="Volume" sortKey="volume" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-volume" />
+                      <SortHeader label="Mkt Cap" sortKey="marketCap" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-mktcap" />
+                      <SortHeader label="P/E" sortKey="pe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-pe" />
+                      <th className="px-3 py-3 text-center font-medium whitespace-nowrap text-xs">52W Range</th>
+                      <th className="px-3 py-3 text-left font-medium whitespace-nowrap text-xs">Notes</th>
+                      <th className="px-3 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortItems(items, sortKey, sortDir).map((item) => {
+                      const volRatio = item.volume && item.avgVolume && item.avgVolume > 0
+                        ? item.volume / item.avgVolume
+                        : null;
+                      const highVol = volRatio !== null && volRatio >= 1.5;
+
+                      return (
+                        <tr
+                          key={item.id}
+                          className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
+                          data-testid={`watchlist-row-${item.ticker}`}
+                        >
+                          <td className="px-3 py-2.5 overflow-hidden">
+                            <Link href={`/analysis?ticker=${item.ticker}`} className="hover:underline">
+                              <span className="font-mono font-semibold text-green-400 truncate block">{item.ticker}</span>
+                            </Link>
+                            {item.name && item.name !== item.ticker && (
+                              <span className="text-[11px] text-zinc-500 truncate block leading-tight">{item.name}</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap overflow-hidden text-ellipsis">
+                            {item.price ? `$${item.price.toFixed(2)}` : "-"}
+                          </td>
+                          <td className="px-3 py-2.5 text-right whitespace-nowrap overflow-hidden text-ellipsis">
+                            <PercentDisplay value={item.dayChangePercent || 0} />
+                          </td>
+                          <td className={`px-3 py-2.5 text-right font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis ${highVol ? "text-yellow-400 font-semibold" : "text-zinc-400"}`}>
+                            {formatVolume(item.volume)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
+                            {formatMarketCap(item.marketCap)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
+                            {item.pe ? item.pe.toFixed(1) : "-"}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <FiftyTwoWeekBar price={item.price} low={item.yearLow} high={item.yearHigh} />
+                          </td>
+                          <td className="px-3 py-2.5 overflow-hidden">
+                            <InlineNoteEditor itemId={item.id} initialNote={item.notes ?? null} />
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteMutation.mutate(item.id)}
+                              className="text-zinc-600 hover:text-red-400"
+                              data-testid={`button-remove-${item.ticker}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </>
             ) : (
               <div className="text-center py-12">
                 <Eye className="h-12 w-12 text-zinc-700 mx-auto mb-3" />

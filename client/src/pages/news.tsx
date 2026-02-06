@@ -131,7 +131,7 @@ export default function NewsPage() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
               FINANCIAL NEWS
             </h1>
             <p className="text-zinc-500">

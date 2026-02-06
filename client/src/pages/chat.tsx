@@ -60,7 +60,7 @@ function ThinkingLoader() {
             </div>
           </div>
           
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { icon: TrendingUp, label: "Trends" },
               { icon: BarChart3, label: "Metrics" },
