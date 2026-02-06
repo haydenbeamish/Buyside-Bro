@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { users, usageLogs, newsFeed } from "@shared/schema";
-import { eq, desc, sql, and, gte } from "drizzle-orm";
+import { eq, desc, sql, and, gte, count } from "drizzle-orm";
 import type { User, InsertUsageLog, UsageLog, NewsFeedItem, InsertNewsFeedItem } from "@shared/schema";
 
 const MONTHLY_CREDIT_LIMIT_CENTS = 500; // $5 included in subscription
@@ -89,7 +89,7 @@ export async function checkAndDeductCredits(
   if (credits.availableCreditsCents < estimatedCostCents) {
     return {
       allowed: false,
-      message: "You've used all your AI credits for this month. Purchase additional credits to continue using AI features.",
+      message: "You've used all your Bro credits for this month. Purchase additional credits to continue using Bro features.",
     };
   }
   
@@ -252,4 +252,68 @@ export function getMarketEventTitle(market: string, eventType: string): string {
   };
   
   return `${market} ${eventLabels[eventType] || 'Update'} - ${dateStr}`;
+}
+
+// --- Daily Bro query tracking ---
+
+const BRO_FEATURES = [
+  'chat', 'chat_conversation', 'stock_analysis',
+  'portfolio_analysis', 'portfolio_review',
+  'earnings_analysis', 'deep_analysis',
+];
+
+export function getBroQueryLimit(user: User | null): number {
+  if (!user) return 1;
+  if (user.subscriptionStatus === 'active') return 5;
+  return 1;
+}
+
+export async function getDailyBroQueryCount(userId: string): Promise<number> {
+  const todayMidnight = new Date();
+  todayMidnight.setUTCHours(0, 0, 0, 0);
+
+  const result = await db
+    .select({ count: count() })
+    .from(usageLogs)
+    .where(
+      and(
+        eq(usageLogs.userId, userId),
+        gte(usageLogs.createdAt, todayMidnight),
+        sql`${usageLogs.feature} IN ('chat','chat_conversation','stock_analysis','portfolio_analysis','portfolio_review','earnings_analysis','deep_analysis')`
+      )
+    );
+  return result[0]?.count ?? 0;
+}
+
+export async function getBroStatus(userId: string, user: User | null): Promise<{
+  dailyUsed: number;
+  dailyLimit: number;
+  isPro: boolean;
+  credits: number;
+}> {
+  const dailyUsed = await getDailyBroQueryCount(userId);
+  const dailyLimit = getBroQueryLimit(user);
+  const isPro = user?.subscriptionStatus === 'active';
+  const creditInfo = await getUserCredits(userId);
+  return { dailyUsed, dailyLimit, isPro, credits: creditInfo.availableCreditsCents };
+}
+
+export async function checkBroQueryAllowed(userId: string, user: User | null): Promise<{
+  allowed: boolean;
+  message?: string;
+  requiresUpgrade?: boolean;
+}> {
+  const dailyUsed = await getDailyBroQueryCount(userId);
+  const dailyLimit = getBroQueryLimit(user);
+  if (dailyUsed >= dailyLimit) {
+    const isPro = user?.subscriptionStatus === 'active';
+    return {
+      allowed: false,
+      message: isPro
+        ? "You've used all 5 Bro queries for today. Come back tomorrow!"
+        : "You've used your free Bro query for today. Upgrade to Pro for 5 queries per day.",
+      requiresUpgrade: !isPro,
+    };
+  }
+  return { allowed: true };
 }

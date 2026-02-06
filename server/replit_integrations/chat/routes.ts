@@ -1,8 +1,8 @@
 import type { Express, Request, Response } from "express";
 import OpenAI from "openai";
 import { chatStorage } from "./storage";
-import { checkAndDeductCredits, recordUsage } from "../../creditService";
-import { isAuthenticated } from "../auth";
+import { checkAndDeductCredits, recordUsage, checkBroQueryAllowed } from "../../creditService";
+import { isAuthenticated, authStorage } from "../auth";
 
 const openrouter = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
@@ -59,18 +59,27 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/conversations/:id/messages", async (req: any, res: Response) => {
+  app.post("/api/conversations/:id/messages", isAuthenticated, async (req: any, res: Response) => {
     try {
       const conversationId = parseInt(req.params.id as string);
       const { content } = req.body;
       const model = "anthropic/claude-opus-4-20250514";
       const userId = req.user?.claims?.sub;
 
-      // Check credits if user is authenticated
+      // Check daily Bro query limit + credits
       if (userId) {
+        const user = await authStorage.getUser(userId);
+        const broCheck = await checkBroQueryAllowed(userId, user);
+        if (!broCheck.allowed) {
+          return res.status(429).json({
+            error: "Daily limit reached",
+            message: broCheck.message,
+            requiresUpgrade: broCheck.requiresUpgrade,
+          });
+        }
         const creditCheck = await checkAndDeductCredits(userId, ESTIMATED_COST_CENTS);
         if (!creditCheck.allowed) {
-          return res.status(402).json({ 
+          return res.status(402).json({
             error: "Out of credits",
             message: creditCheck.message,
             requiresCredits: true
@@ -138,7 +147,7 @@ export function registerChatRoutes(app: Express): void {
   });
 
   // Simple chat endpoint - no database persistence (with credit check for authenticated users)
-  app.post("/api/chat/simple", async (req: any, res: Response) => {
+  app.post("/api/chat/simple", isAuthenticated, async (req: any, res: Response) => {
     try {
       const { message, history = [] } = req.body;
       const model = "anthropic/claude-opus-4-20250514";
@@ -148,11 +157,20 @@ export function registerChatRoutes(app: Express): void {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      // Check credits if user is authenticated
+      // Check daily Bro query limit + credits
       if (userId) {
+        const user = await authStorage.getUser(userId);
+        const broCheck = await checkBroQueryAllowed(userId, user);
+        if (!broCheck.allowed) {
+          return res.status(429).json({
+            error: "Daily limit reached",
+            message: broCheck.message,
+            requiresUpgrade: broCheck.requiresUpgrade,
+          });
+        }
         const creditCheck = await checkAndDeductCredits(userId, ESTIMATED_COST_CENTS);
         if (!creditCheck.allowed) {
-          return res.status(402).json({ 
+          return res.status(402).json({
             error: "Out of credits",
             message: creditCheck.message,
             requiresCredits: true

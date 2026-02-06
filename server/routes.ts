@@ -8,14 +8,16 @@ import OpenAI from "openai";
 import { isAuthenticated, authStorage } from "./replit_integrations/auth";
 import { stripeService } from "./stripeService";
 import { getStripePublishableKey } from "./stripeClient";
-import { 
-  getUserCredits, 
-  recordUsage, 
-  getUserUsageHistory, 
-  getNewsFeed, 
+import {
+  getUserCredits,
+  recordUsage,
+  getUserUsageHistory,
+  getNewsFeed,
   addNewsFeedItem,
   getMarketEventTitle,
-  checkAndDeductCredits
+  checkAndDeductCredits,
+  checkBroQueryAllowed,
+  getBroStatus
 } from "./creditService";
 import { db } from "./db";
 import { desc, sql, eq, gte, count, and, isNotNull } from "drizzle-orm";
@@ -532,14 +534,23 @@ export async function registerRoutes(
   app.get("/api/portfolio/analysis", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user?.claims?.sub;
-      
-      // Check credits if user is authenticated
+
+      // Check daily Bro query limit
       if (userId) {
+        const user = await authStorage.getUser(userId);
+        const broCheck = await checkBroQueryAllowed(userId, user);
+        if (!broCheck.allowed) {
+          return res.status(429).json({
+            error: "Daily limit reached",
+            analysis: broCheck.message,
+            requiresUpgrade: broCheck.requiresUpgrade,
+          });
+        }
         const creditCheck = await checkAndDeductCredits(userId, 10);
         if (!creditCheck.allowed) {
-          return res.status(402).json({ 
+          return res.status(402).json({
             error: "Out of credits",
-            analysis: "You've used all your AI credits. Purchase additional credits to continue using AI features.",
+            analysis: "You've used all your Bro credits. Purchase additional credits to continue using Bro features.",
             requiresCredits: true
           });
         }
@@ -547,7 +558,7 @@ export async function registerRoutes(
 
       const holdings = await storage.getPortfolioHoldings();
       if (holdings.length === 0) {
-        return res.json({ analysis: "Add some holdings to get AI-powered portfolio analysis." });
+        return res.json({ analysis: "Add some holdings to get Bro-powered portfolio analysis." });
       }
 
       const holdingsSummary = holdings.map(h => 
@@ -589,14 +600,23 @@ export async function registerRoutes(
   app.post("/api/portfolio/review", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user?.claims?.sub;
-      
-      // Check credits if user is authenticated (larger request = higher cost)
+
+      // Check daily Bro query limit
       if (userId) {
+        const user = await authStorage.getUser(userId);
+        const broCheck = await checkBroQueryAllowed(userId, user);
+        if (!broCheck.allowed) {
+          return res.status(429).json({
+            error: "Daily limit reached",
+            review: `## Daily Limit Reached\n\n${broCheck.message}`,
+            requiresUpgrade: broCheck.requiresUpgrade,
+          });
+        }
         const creditCheck = await checkAndDeductCredits(userId, 30);
         if (!creditCheck.allowed) {
-          return res.status(402).json({ 
+          return res.status(402).json({
             error: "Out of credits",
-            review: "## Out of AI Credits\n\nYou've used all your AI credits. Purchase additional credits to continue using AI features.",
+            review: "## Out of Bro Credits\n\nYou've used all your Bro credits. Purchase additional credits to continue using Bro features.",
             requiresCredits: true
           });
         }
@@ -979,13 +999,24 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         console.error("Laser Beam analysis error:", e);
       }
       
-      // Check credits if user is authenticated (only for OpenRouter fallback)
+      // Check daily Bro query limit + credits (only for OpenRouter fallback)
       if (userId) {
+        const user = await authStorage.getUser(userId);
+        const broCheck = await checkBroQueryAllowed(userId, user);
+        if (!broCheck.allowed) {
+          return res.status(429).json({
+            error: "Daily limit reached",
+            summary: broCheck.message,
+            sentiment: "neutral",
+            keyPoints: [],
+            requiresUpgrade: broCheck.requiresUpgrade,
+          });
+        }
         const creditCheck = await checkAndDeductCredits(userId, 15);
         if (!creditCheck.allowed) {
-          return res.status(402).json({ 
+          return res.status(402).json({
             error: "Out of credits",
-            summary: "You've used all your AI credits. Purchase additional credits to continue using AI features.",
+            summary: "You've used all your Bro credits. Purchase additional credits to continue using Bro features.",
             sentiment: "neutral",
             keyPoints: [],
             requiresCredits: true
@@ -1046,12 +1077,26 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   // Route used by earnings page (POST body with ticker and mode)
   app.post("/api/fundamental-analysis/jobs", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = req.user?.claims?.sub;
       const { ticker, mode } = req.body;
       if (!ticker) {
         return res.status(400).json({ error: "Ticker is required" });
       }
       const upperTicker = ticker.toUpperCase();
-      
+
+      // Check daily Bro query limit
+      if (userId) {
+        const user = await authStorage.getUser(userId);
+        const broCheck = await checkBroQueryAllowed(userId, user);
+        if (!broCheck.allowed) {
+          return res.status(429).json({
+            error: "Daily limit reached",
+            message: broCheck.message,
+            requiresUpgrade: broCheck.requiresUpgrade,
+          });
+        }
+      }
+
       const response = await fetch("https://api.laserbeamcapital.com/api/fundamental-analysis/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1069,7 +1114,13 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
       
       const data = await response.json() as any;
-      res.json({ 
+
+      // Log usage for daily Bro query counter
+      if (userId) {
+        await recordUsage(userId, 'earnings_analysis', 'laserbeam/fundamental', 0, 0);
+      }
+
+      res.json({
         jobId: data.jobId || data.id,
         status: "pending",
         ticker: upperTicker
@@ -1083,8 +1134,22 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   // Route used by analysis page (ticker in URL params)
   app.post("/api/analysis/deep/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = req.user?.claims?.sub;
       const ticker = (req.params.ticker as string).toUpperCase();
-      
+
+      // Check daily Bro query limit
+      if (userId) {
+        const user = await authStorage.getUser(userId);
+        const broCheck = await checkBroQueryAllowed(userId, user);
+        if (!broCheck.allowed) {
+          return res.status(429).json({
+            error: "Daily limit reached",
+            message: broCheck.message,
+            requiresUpgrade: broCheck.requiresUpgrade,
+          });
+        }
+      }
+
       // Start async job with Laser Beam Capital API
       const response = await fetch("https://api.laserbeamcapital.com/api/fundamental-analysis/jobs", {
         method: "POST",
@@ -1102,10 +1167,16 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
       
       const data = await response.json() as any;
-      res.json({ 
+
+      // Log usage for daily Bro query counter
+      if (userId) {
+        await recordUsage(userId, 'deep_analysis', 'laserbeam/fundamental', 0, 0);
+      }
+
+      res.json({
         jobId: data.jobId || data.id,
         status: "pending",
-        ticker 
+        ticker
       });
     } catch (error) {
       console.error("Deep analysis job error:", error);
@@ -1388,25 +1459,13 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.status(404).json({ error: "User not found" });
       }
 
-      const now = new Date();
-      const isStripeTrial = user.subscriptionStatus === "trialing" && user.trialEndsAt && new Date(user.trialEndsAt) > now;
-      const isStripeActive = user.subscriptionStatus === "active";
-
-      // 14-day free trial for new users without a subscription
-      const FREE_TRIAL_DAYS = 14;
-      const accountCreated = user.createdAt ? new Date(user.createdAt) : now;
-      const freeTrialEnd = new Date(accountCreated.getTime() + FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000);
-      const isFreeTrial = !isStripeActive && !isStripeTrial && !user.stripeSubscriptionId && now < freeTrialEnd;
-
-      const isTrialing = isStripeTrial || isFreeTrial;
-      const isActive = isStripeActive || isTrialing;
-      const trialEndsAt = isStripeTrial ? user.trialEndsAt : isFreeTrial ? freeTrialEnd.toISOString() : user.trialEndsAt;
+      const isActive = user.subscriptionStatus === "active";
 
       res.json({
-        status: isFreeTrial ? "trialing" : (user.subscriptionStatus || "none"),
+        status: user.subscriptionStatus || "none",
         isActive,
-        isTrialing,
-        trialEndsAt,
+        isTrialing: false,
+        trialEndsAt: null,
         subscriptionEndsAt: user.subscriptionEndsAt,
         stripeCustomerId: user.stripeCustomerId,
         stripeSubscriptionId: user.stripeSubscriptionId,
@@ -1450,7 +1509,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         priceId,
         `${baseUrl}/dashboard/subscription?success=true`,
         `${baseUrl}/dashboard/subscription?canceled=true`,
-        14
+        0
       );
 
       res.json({ url: session.url });
@@ -1500,6 +1559,22 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     } catch (error) {
       console.error("Error fetching credits:", error);
       res.status(500).json({ error: "Failed to fetch credits" });
+    }
+  });
+
+  // Bro daily query status
+  app.get("/api/bro/status", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const user = await authStorage.getUser(userId);
+      const status = await getBroStatus(userId, user);
+      res.json(status);
+    } catch (error) {
+      console.error("Error fetching bro status:", error);
+      res.status(500).json({ error: "Failed to fetch bro status" });
     }
   });
 
@@ -1579,7 +1654,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Newsfeed API endpoints
-  app.get("/api/newsfeed", isAuthenticated, async (req: any, res: Response) => {
+  app.get("/api/newsfeed", async (req: any, res: Response) => {
     try {
       const limit = parseInt(req.query.limit as string) || 20;
       const items = await getNewsFeed(limit);
