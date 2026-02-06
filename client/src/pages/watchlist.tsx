@@ -13,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Search, Loader2, Eye, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Trash2, Search, Loader2, Eye, ArrowUp, ArrowDown, Download } from "lucide-react";
+import { Link } from "wouter";
 import type { WatchlistItem } from "@shared/schema";
 
 interface EnrichedWatchlistItem extends WatchlistItem {
@@ -21,6 +22,10 @@ interface EnrichedWatchlistItem extends WatchlistItem {
   dayChangePercent: number;
   marketCap: number | null;
   pe: number | null;
+  yearHigh: number | null;
+  yearLow: number | null;
+  volume: number | null;
+  avgVolume: number | null;
 }
 
 interface StockSearchResult {
@@ -126,6 +131,14 @@ function formatMarketCap(value: number | null): string {
   return `$${value.toLocaleString()}`;
 }
 
+function formatVolume(value: number | null): string {
+  if (!value) return "-";
+  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
+  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
+  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
+  return value.toLocaleString();
+}
+
 function PercentDisplay({ value }: { value: number }) {
   const color = value >= 0 ? "text-green-500" : "text-red-500";
   return (
@@ -135,9 +148,100 @@ function PercentDisplay({ value }: { value: number }) {
   );
 }
 
-const TICKER_COL_WIDTH = 100;
+function FiftyTwoWeekBar({ price, low, high }: { price: number | null; low: number | null; high: number | null }) {
+  if (!price || !low || !high || high === low) {
+    return <span className="text-zinc-600 text-xs">-</span>;
+  }
+  const pct = Math.max(0, Math.min(100, ((price - low) / (high - low)) * 100));
+  const color = pct >= 66 ? "bg-green-500" : pct >= 33 ? "bg-yellow-500" : "bg-red-500";
 
-type SortKey = "ticker" | "price" | "dayChangePercent" | "marketCap" | "pe";
+  return (
+    <div className="flex flex-col gap-0.5 min-w-[80px]">
+      <div className="flex justify-between text-[10px] text-zinc-500 font-mono">
+        <span>{low.toFixed(0)}</span>
+        <span>{high.toFixed(0)}</span>
+      </div>
+      <div className="w-full h-1.5 bg-zinc-700 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function InlineNoteEditor({ itemId, initialNote }: { itemId: number; initialNote: string | null }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(initialNote || "");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [editing]);
+
+  const save = async () => {
+    setEditing(false);
+    try {
+      await apiRequest("PATCH", `/api/watchlist/${itemId}/notes`, { notes: value });
+      queryClient.invalidateQueries({ queryKey: ["/api/watchlist/enriched"] });
+    } catch {
+      toast({ title: "Error", description: "Failed to save note.", variant: "destructive" });
+    }
+  };
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
+        className="w-full bg-zinc-800 border border-zinc-600 rounded px-1.5 py-0.5 text-xs text-zinc-300 outline-none focus:border-green-500"
+        maxLength={200}
+      />
+    );
+  }
+
+  return (
+    <span
+      onClick={() => setEditing(true)}
+      className="text-xs text-zinc-500 cursor-pointer hover:text-zinc-300 truncate block"
+      title={value || "Click to add note"}
+    >
+      {value || <span className="italic text-zinc-600">Add note...</span>}
+    </span>
+  );
+}
+
+function downloadCSV(items: EnrichedWatchlistItem[]) {
+  const headers = ["Ticker", "Name", "Price", "Day %", "Volume", "Market Cap", "P/E", "52W Low", "52W High", "Notes"];
+  const rows = items.map((item) => [
+    item.ticker,
+    (item.name || "").replace(/,/g, ""),
+    item.price != null ? item.price.toFixed(2) : "",
+    item.dayChangePercent != null ? item.dayChangePercent.toFixed(2) : "",
+    item.volume != null ? item.volume.toString() : "",
+    item.marketCap != null ? item.marketCap.toString() : "",
+    item.pe != null ? item.pe.toFixed(2) : "",
+    item.yearLow != null ? item.yearLow.toFixed(2) : "",
+    item.yearHigh != null ? item.yearHigh.toFixed(2) : "",
+    (item.notes || "").replace(/,/g, " "),
+  ]);
+  const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `watchlist-${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const TICKER_COL_WIDTH = 160;
+
+type SortKey = "ticker" | "price" | "dayChangePercent" | "volume" | "marketCap" | "pe";
 type SortDir = "asc" | "desc";
 
 function getSortValue(item: EnrichedWatchlistItem, key: SortKey): number | string {
@@ -145,6 +249,7 @@ function getSortValue(item: EnrichedWatchlistItem, key: SortKey): number | strin
     case "ticker": return item.ticker.toLowerCase();
     case "price": return item.price ?? -Infinity;
     case "dayChangePercent": return item.dayChangePercent ?? -Infinity;
+    case "volume": return item.volume ?? -Infinity;
     case "marketCap": return item.marketCap ?? -Infinity;
     case "pe": return item.pe ?? -Infinity;
   }
@@ -158,6 +263,28 @@ function sortItems(items: EnrichedWatchlistItem[], key: SortKey, dir: SortDir): 
     if (av > bv) return dir === "asc" ? 1 : -1;
     return 0;
   });
+}
+
+function SortHeader({ label, sortKey: colKey, currentKey, currentDir, onToggle, testId }: {
+  label: string;
+  sortKey: SortKey;
+  currentKey: SortKey;
+  currentDir: SortDir;
+  onToggle: (key: SortKey) => void;
+  testId?: string;
+}) {
+  return (
+    <th
+      className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors"
+      onClick={() => onToggle(colKey)}
+      data-testid={testId}
+    >
+      <span className="inline-flex items-center justify-end gap-1">
+        {label}
+        {currentKey === colKey && (currentDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
+      </span>
+    </th>
+  );
 }
 
 export default function WatchlistPage() {
@@ -243,30 +370,42 @@ export default function WatchlistPage() {
               WATCHLIST
             </h1>
           </div>
-          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="border-green-900/50 bg-zinc-900 hover:bg-zinc-800 hover:border-green-500/50" data-testid="button-add-watchlist">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Stock
+          <div className="flex items-center gap-2">
+            {items && items.length > 0 && (
+              <Button
+                variant="outline"
+                className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800 hover:border-zinc-500"
+                onClick={() => downloadCSV(items)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
               </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-zinc-900 border-green-900/30 text-white">
-              <DialogHeader>
-                <DialogTitle>Add to Watchlist</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-zinc-300">Search for a stock</Label>
-                  <WatchlistStockSearch
-                    onSelect={(symbol, name) => addMutation.mutate({ ticker: symbol, name })}
-                  />
+            )}
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="border-green-900/50 bg-zinc-900 hover:bg-zinc-800 hover:border-green-500/50" data-testid="button-add-watchlist">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Stock
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-zinc-900 border-green-900/30 text-white">
+                <DialogHeader>
+                  <DialogTitle>Add to Watchlist</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-zinc-300">Search for a stock</Label>
+                    <WatchlistStockSearch
+                      onSelect={(symbol, name) => addMutation.mutate({ ticker: symbol, name })}
+                    />
+                  </div>
+                  <p className="text-xs text-zinc-500">
+                    Search by ticker or company name. Supports all global exchanges.
+                  </p>
                 </div>
-                <p className="text-xs text-zinc-500">
-                  Search by ticker or company name. Supports all global exchanges.
-                </p>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <div className="text-sm text-zinc-500 mb-4">
@@ -289,6 +428,9 @@ export default function WatchlistPage() {
                   <col />
                   <col />
                   <col />
+                  <col />
+                  <col style={{ width: "110px" }} />
+                  <col style={{ width: "140px" }} />
                   <col style={{ width: "44px" }} />
                 </colgroup>
                 <thead>
@@ -303,68 +445,72 @@ export default function WatchlistPage() {
                         {sortKey === "ticker" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
                       </span>
                     </th>
-                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors" onClick={() => toggleSort("price")} data-testid="sort-price">
-                      <span className="inline-flex items-center justify-end gap-1">
-                        Price
-                        {sortKey === "price" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
-                      </span>
-                    </th>
-                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors" onClick={() => toggleSort("dayChangePercent")} data-testid="sort-day">
-                      <span className="inline-flex items-center justify-end gap-1">
-                        Day %
-                        {sortKey === "dayChangePercent" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
-                      </span>
-                    </th>
-                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors" onClick={() => toggleSort("marketCap")} data-testid="sort-mktcap">
-                      <span className="inline-flex items-center justify-end gap-1">
-                        Mkt Cap
-                        {sortKey === "marketCap" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
-                      </span>
-                    </th>
-                    <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors" onClick={() => toggleSort("pe")} data-testid="sort-pe">
-                      <span className="inline-flex items-center justify-end gap-1">
-                        P/E
-                        {sortKey === "pe" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
-                      </span>
-                    </th>
+                    <SortHeader label="Price" sortKey="price" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-price" />
+                    <SortHeader label="Day %" sortKey="dayChangePercent" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-day" />
+                    <SortHeader label="Volume" sortKey="volume" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-volume" />
+                    <SortHeader label="Mkt Cap" sortKey="marketCap" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-mktcap" />
+                    <SortHeader label="P/E" sortKey="pe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-pe" />
+                    <th className="px-3 py-3 text-center font-medium whitespace-nowrap text-xs">52W Range</th>
+                    <th className="px-3 py-3 text-left font-medium whitespace-nowrap text-xs">Notes</th>
                     <th className="px-3 py-3"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sortItems(items, sortKey, sortDir).map((item) => (
-                    <tr
-                      key={item.id}
-                      className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
-                      data-testid={`watchlist-row-${item.ticker}`}
-                    >
-                      <td className="px-3 py-2.5 overflow-hidden">
-                        <span className="font-mono font-semibold text-green-400 truncate block">{item.ticker}</span>
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap overflow-hidden text-ellipsis">
-                        {item.price ? `$${item.price.toFixed(2)}` : "-"}
-                      </td>
-                      <td className="px-3 py-2.5 text-right whitespace-nowrap overflow-hidden text-ellipsis">
-                        <PercentDisplay value={item.dayChangePercent || 0} />
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
-                        {formatMarketCap(item.marketCap)}
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
-                        {item.pe ? item.pe.toFixed(1) : "-"}
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteMutation.mutate(item.id)}
-                          className="text-zinc-600 hover:text-red-400"
-                          data-testid={`button-remove-${item.ticker}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {sortItems(items, sortKey, sortDir).map((item) => {
+                    const volRatio = item.volume && item.avgVolume && item.avgVolume > 0
+                      ? item.volume / item.avgVolume
+                      : null;
+                    const highVol = volRatio !== null && volRatio >= 1.5;
+
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
+                        data-testid={`watchlist-row-${item.ticker}`}
+                      >
+                        <td className="px-3 py-2.5 overflow-hidden">
+                          <Link href={`/analysis?ticker=${item.ticker}`} className="hover:underline">
+                            <span className="font-mono font-semibold text-green-400 truncate block">{item.ticker}</span>
+                          </Link>
+                          {item.name && item.name !== item.ticker && (
+                            <span className="text-[11px] text-zinc-500 truncate block leading-tight">{item.name}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap overflow-hidden text-ellipsis">
+                          {item.price ? `$${item.price.toFixed(2)}` : "-"}
+                        </td>
+                        <td className="px-3 py-2.5 text-right whitespace-nowrap overflow-hidden text-ellipsis">
+                          <PercentDisplay value={item.dayChangePercent || 0} />
+                        </td>
+                        <td className={`px-3 py-2.5 text-right font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis ${highVol ? "text-yellow-400 font-semibold" : "text-zinc-400"}`}>
+                          {formatVolume(item.volume)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
+                          {formatMarketCap(item.marketCap)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
+                          {item.pe ? item.pe.toFixed(1) : "-"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <FiftyTwoWeekBar price={item.price} low={item.yearLow} high={item.yearHigh} />
+                        </td>
+                        <td className="px-3 py-2.5 overflow-hidden">
+                          <InlineNoteEditor itemId={item.id} initialNote={item.notes ?? null} />
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => deleteMutation.mutate(item.id)}
+                            className="text-zinc-600 hover:text-red-400"
+                            data-testid={`button-remove-${item.ticker}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             ) : (
