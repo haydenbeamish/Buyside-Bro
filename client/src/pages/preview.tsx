@@ -1,14 +1,14 @@
 import { Link } from "wouter";
-import { ArrowRight, BarChart3, Bot, TrendingUp, Shield, Zap, Clock, Briefcase, Eye, Brain, Newspaper, Sparkles } from "lucide-react";
+import { ArrowRight, BarChart3, Bot, TrendingUp, Shield, Zap, Clock, Briefcase, Eye, Brain, /* Newspaper, */ Sparkles } from "lucide-react";
 import logoImg from "@assets/image_1770296632105.png";
-import screenshotWhatsUp from "@assets/image_1770329842941.png";
+import screenshotWhatsUp from "@assets/image_1770367320606.png";
 import screenshotMarkets from "@assets/image_1770353894237.png";
 import screenshotPortfolio from "@assets/image_1770293388261.png";
 import screenshotWatchlist from "@assets/image_1770343802069.png";
 import screenshotDeepAnalysis from "@assets/image_1770353948671.png";
-import screenshotEarnings from "@assets/image_1770330036938.png";
+import screenshotEarnings from "@assets/image_1770367362870.png";
 import screenshotAskBro from "@assets/image_1770353921106.png";
-import screenshotFullTerminal from "@assets/image_1770284481271.png";
+// import screenshotFullTerminal from "@assets/image_1770284481271.png";
 
 const features = [
   {
@@ -60,13 +60,13 @@ const features = [
     subtitle: "Your autonomous financial research agent",
     description: "Ask complex financial questions and get data-backed answers. Compare revenue growth, analyze P/E ratios, break down operating margins — your bro thinks, plans, and researches using real-time market data.",
   },
-  {
-    image: screenshotFullTerminal,
-    icon: Newspaper,
-    title: "MARKET NEWS",
-    subtitle: "Curated financial news with Bro sentiment",
-    description: "Browse market and general financial news from top sources. Every article is tagged with Bro sentiment (bullish, bearish, neutral) and related ticker symbols so you can quickly filter what matters to your portfolio.",
-  },
+  // {
+  //   image: screenshotFullTerminal,
+  //   icon: Newspaper,
+  //   title: "MARKET NEWS",
+  //   subtitle: "Curated financial news with Bro sentiment",
+  //   description: "Browse market and general financial news from top sources. Every article is tagged with Bro sentiment (bullish, bearish, neutral) and related ticker symbols so you can quickly filter what matters to your portfolio.",
+  // },
 ];
 
 export default function PreviewPage() {
@@ -101,7 +101,7 @@ export default function PreviewPage() {
             Professional-grade market intelligence. No Bloomberg terminal required.
           </p>
           <p className="text-green-400 text-sm md:text-base display-font">
-            8 powerful tools. Free to explore. No credit card.
+            7 powerful tools. Free to explore. No credit card.
           </p>
         </div>
       </section>
