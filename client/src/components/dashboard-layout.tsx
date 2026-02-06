@@ -18,7 +18,7 @@ const navItems = [
   { path: "/portfolio", label: "Portfolio", icon: Briefcase },
   { path: "/watchlist", label: "Watchlist", icon: Eye },
   { path: "/analysis", label: "Analysis", icon: TrendingUp },
-  { path: "/earnings", label: "AI Analysis", icon: Brain },
+  { path: "/earnings", label: "Earnings", icon: Brain },
   { path: "/news", label: "News", icon: Newspaper },
   { path: "/chat", label: "Ask Bro", icon: MessageSquare },
 ];

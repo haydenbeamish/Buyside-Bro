@@ -701,7 +701,7 @@ export default function EarningsAnalysisPage() {
           <div className="flex items-center gap-3 mb-2">
             <Brain className="h-8 w-8 text-green-400" />
             <h1 className="text-4xl font-bold tracking-tight display-font neon-green-subtle" data-testid="text-page-title">
-              AI ANALYSIS
+              EARNINGS
             </h1>
           </div>
           <p className="text-zinc-500">
