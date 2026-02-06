@@ -35,7 +35,10 @@ function isAdmin(req: any, res: Response, next: NextFunction) {
   next();
 }
 
-const LASER_BEAM_API = "https://laserbeamcapital.replit.app";
+const LASER_BEAM_API = "https://api.laserbeamcapital.com";
+const LASER_BEAM_HEADERS: HeadersInit = {
+  "X-API-Key": process.env.LASER_BEAM_API_KEY || "",
+};
 
 // Fallback market data constants
 const FALLBACK_INDICES = [
@@ -131,7 +134,7 @@ async function refreshMSFTAnalysisCache() {
   const CACHE_KEY = "deep_analysis_MSFT";
   console.log("[MSFT Cache] Fetching from Laser Beam Capital API...");
   try {
-    const res = await fetchWithTimeout(`${LASER_BEAM_API}/api/cached-analysis/MSFT`, {}, 30000);
+    const res = await fetchWithTimeout(`${LASER_BEAM_API}/api/cached-analysis/MSFT`, { headers: LASER_BEAM_HEADERS }, 30000);
     if (!res.ok) {
       console.error("[MSFT Cache] Laser Beam API error:", res.status);
       return;
@@ -274,7 +277,7 @@ export async function registerRoutes(
 
       let data: any = {};
       try {
-        const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets`);
+        const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS });
         if (response.ok) {
           data = await response.json();
         }
@@ -317,7 +320,7 @@ export async function registerRoutes(
       
       if (!fetchPromise) {
         fetchPromise = (async () => {
-          const response = await fetch("https://api.laserbeamcapital.com/api/markets");
+          const response = await fetch(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS });
           if (!response.ok) {
             throw new Error(`API error: ${response.status}`);
           }
@@ -366,7 +369,7 @@ export async function registerRoutes(
         return res.json(cached);
       }
 
-      const response = await fetch("https://api.laserbeamcapital.com/api/markets/summary");
+      const response = await fetch(`${LASER_BEAM_API}/api/markets/summary`, { headers: LASER_BEAM_HEADERS });
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
@@ -409,13 +412,13 @@ export async function registerRoutes(
 
       const fmpKey = process.env.FMP_API_KEY;
       const searchFetches: Promise<Response>[] = [
-        fetchWithTimeout(`https://api.laserbeamcapital.com/api/ticker-search?q=${encodeURIComponent(query)}`, {}, 5000),
+        fetchWithTimeout(`${LASER_BEAM_API}/api/ticker-search?q=${encodeURIComponent(query)}`, { headers: LASER_BEAM_HEADERS }, 5000),
       ];
 
       const shouldSearchASX = !query.includes('.') && query.length >= 1;
       if (shouldSearchASX) {
         searchFetches.push(
-          fetchWithTimeout(`https://api.laserbeamcapital.com/api/ticker-search?q=${encodeURIComponent(query + '.AX')}`, {}, 5000),
+          fetchWithTimeout(`${LASER_BEAM_API}/api/ticker-search?q=${encodeURIComponent(query + '.AX')}`, { headers: LASER_BEAM_HEADERS }, 5000),
         );
       }
 
@@ -1086,9 +1089,9 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       
       // Try Laser Beam Capital fundamental analysis API first
       try {
-        const response = await fetch("https://api.laserbeamcapital.com/api/fundamental-analysis/analyze", {
+        const response = await fetch(`${LASER_BEAM_API}/api/fundamental-analysis/analyze`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
           body: JSON.stringify({ ticker: ticker.toUpperCase() }),
         });
         
@@ -1206,9 +1209,9 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         }
       }
 
-      const response = await fetch("https://api.laserbeamcapital.com/api/fundamental-analysis/jobs", {
+      const response = await fetch(`${LASER_BEAM_API}/api/fundamental-analysis/jobs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
         body: JSON.stringify({ 
           ticker: upperTicker,
           mode: mode || "preview",
@@ -1260,9 +1263,9 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
 
       // Start async job with Laser Beam Capital API
-      const response = await fetch("https://api.laserbeamcapital.com/api/fundamental-analysis/jobs", {
+      const response = await fetch(`${LASER_BEAM_API}/api/fundamental-analysis/jobs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
         body: JSON.stringify({ 
           ticker,
           model: "moonshotai/kimi-k2.5"
@@ -1298,7 +1301,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       const jobId = req.params.jobId;
       
       // Check job status
-      const response = await fetch(`https://api.laserbeamcapital.com/api/fundamental-analysis/jobs/${jobId}`);
+      const response = await fetch(`${LASER_BEAM_API}/api/fundamental-analysis/jobs/${jobId}`, { headers: LASER_BEAM_HEADERS });
       
       if (!response.ok) {
         return res.status(404).json({ error: "Job not found" });
@@ -1322,7 +1325,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       const jobId = req.params.jobId;
       
       // Get job result
-      const response = await fetch(`https://api.laserbeamcapital.com/api/fundamental-analysis/jobs/${jobId}/result`);
+      const response = await fetch(`${LASER_BEAM_API}/api/fundamental-analysis/jobs/${jobId}/result`, { headers: LASER_BEAM_HEADERS });
       
       if (!response.ok) {
         return res.status(404).json({ error: "Result not ready" });
@@ -1437,7 +1440,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
       // Fetch market news from Laser Beam Capital API
       try {
-        const response = await fetchWithTimeout("https://api.laserbeamcapital.com/api/news/market", {}, 5000);
+        const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/news/market`, { headers: LASER_BEAM_HEADERS }, 5000);
         if (response.ok) {
           const data = await response.json() as any;
           const articles = data.articles || data.news || [];
@@ -1456,7 +1459,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
       // Fetch portfolio news from Laser Beam Capital API  
       try {
-        const response = await fetchWithTimeout("https://api.laserbeamcapital.com/api/news/portfolio", {}, 5000);
+        const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/news/portfolio`, { headers: LASER_BEAM_HEADERS }, 5000);
         if (response.ok) {
           const data = await response.json() as any;
           const articles = data.articles || data.news || [];
@@ -1831,7 +1834,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       // Fetch market summary from Laser Beam API
       let summaryContent = "";
       try {
-        const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/market-summary`);
+        const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/market-summary`, { headers: LASER_BEAM_HEADERS });
         if (response.ok) {
           summaryContent = await response.text();
         }
