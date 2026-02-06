@@ -35,6 +35,7 @@ Preferred communication style: Simple, everyday language.
 - **Stock Search**: Global stock search combining multiple API sources, with deduplication.
 - **Watchlist**: Allows tracking stocks without cost basis, providing live price and fundamental data.
 - **Stock Analysis**: Asynchronous job workflow for deep fundamental analysis, utilizing AI for research output and recommendations (Buy/Hold/Sell).
+- **MSFT Cached Analysis**: Database-backed cached MSFT deep analysis served instantly to non-logged-in users. Background job refreshes daily via Laser Beam Capital API with quality validation (keeps existing cache if API returns poor results). Stored in `market_cache` table with 24h TTL.
 - **Technical SEO**: Implemented with dynamic `robots.txt` and `sitemap.xml`, structured data, meta tags, per-page titles, and performance optimizations.
 
 ### Design Patterns

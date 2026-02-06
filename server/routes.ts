@@ -109,6 +109,140 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeout 
   }
 }
 
+function getMSFTFallbackAnalysis() {
+  return {
+    ticker: "MSFT",
+    mode: "deep_dive",
+    companyName: "Microsoft Corporation",
+    currentPrice: 393.67,
+    recommendation: {
+      action: "Buy",
+      confidence: 82,
+      targetPrice: 480,
+      upside: 21.9,
+      timeHorizon: "12 months",
+      reasoning: "Microsoft's dominant position in enterprise cloud computing through Azure, combined with its rapidly growing AI monetisation via Copilot integrations across Office 365, GitHub, and Dynamics 365, creates a compelling growth trajectory. The company's diversified revenue streams across productivity software, cloud infrastructure, gaming (Activision Blizzard), and LinkedIn provide resilience, while strong free cash flow generation supports continued shareholder returns and strategic investments."
+    },
+    analysis: `## Executive Summary\n\nMicrosoft Corporation (NASDAQ: MSFT) remains one of the highest-quality large-cap technology companies globally, combining a dominant enterprise software franchise with a rapidly scaling cloud and AI platform. Despite trading at a premium valuation, the company's growth profile, margin expansion potential, and strategic positioning in the AI revolution justify a Buy recommendation.\n\n## Business Quality & Competitive Position\n\nMicrosoft operates across three highly profitable segments: Productivity & Business Processes (Office 365, LinkedIn, Dynamics), Intelligent Cloud (Azure, server products, GitHub), and More Personal Computing (Windows, Xbox, Surface). The company benefits from deep enterprise moats including high switching costs, network effects across its collaboration tools, and significant data advantages that strengthen its AI capabilities.\n\nAzure continues to gain cloud market share and is now the second-largest cloud provider globally. The integration of OpenAI's technology directly into Azure gives Microsoft a meaningful competitive advantage in enterprise AI adoption. GitHub Copilot has rapidly scaled to millions of subscribers, validating the AI-assisted developer tools category.\n\n## Financial Analysis\n\nMicrosoft's financial profile is exceptional among mega-cap technology companies. Revenue growth has remained in the mid-teens percentage range, driven primarily by Commercial Cloud growth exceeding 20% year-over-year. Operating margins have expanded consistently, reflecting operating leverage in the cloud business and disciplined cost management. Free cash flow generation exceeds $60 billion annually, providing substantial capital allocation flexibility.\n\nThe balance sheet remains fortress-like with significant cash reserves and manageable debt levels. Return on equity consistently exceeds 35%, demonstrating efficient capital deployment. The company has returned significant capital through a growing dividend and substantial share repurchase program.\n\n## Growth Catalysts\n\n- **Azure AI Services**: Rapid enterprise adoption of Azure OpenAI Service and Copilot integrations across the Microsoft 365 suite represents a multi-billion dollar incremental revenue opportunity over the next 2-3 years.\n- **Copilot Monetisation**: Microsoft 365 Copilot at $30/user/month pricing creates a significant ASP uplift opportunity across the installed base of over 400 million commercial Office 365 seats.\n- **Gaming Division**: The Activision Blizzard acquisition strengthens Microsoft's content library and Game Pass subscription economics, with potential for improved margins as integration synergies materialise.\n- **LinkedIn Revenue Acceleration**: AI-enhanced features and premium tier upgrades are driving accelerating revenue growth in the LinkedIn segment.\n\n## Key Risks\n\n- **Cloud spending deceleration**: A broader slowdown in enterprise IT budgets could impact Azure growth rates, though Microsoft's mission-critical positioning mitigates this risk.\n- **AI competition**: Intensifying competition from Google Cloud (Gemini), Amazon (Bedrock), and emerging AI platforms could pressure market share gains.\n- **Regulatory scrutiny**: Increasing antitrust attention on bundling practices and the OpenAI partnership represents an ongoing regulatory overhang.\n- **Valuation premium**: Trading above historical averages on forward P/E metrics limits margin of safety if growth disappoints.\n\n## Valuation\n\nAt current levels, Microsoft trades at approximately 30-32x forward earnings, which represents a premium to the broader market but is justified by the company's superior growth profile, margin trajectory, and balance sheet quality. On a PEG basis, the stock appears reasonably valued given expected mid-teens earnings growth. A discounted cash flow analysis suggests fair value in the $450-500 range, providing meaningful upside from current levels.\n\n## Conclusion\n\nMicrosoft represents a rare combination of scale, quality, and growth in the large-cap technology universe. The company's strategic positioning at the centre of the enterprise AI adoption cycle, combined with its diversified revenue streams, expanding margins, and exceptional cash generation, supports a Buy recommendation with a 12-month target price of $480, representing approximately 22% upside from current levels. The primary risk to this thesis is a significant deceleration in enterprise cloud and AI spending, which we view as unlikely given current demand signals.`
+  };
+}
+
+async function refreshMSFTAnalysisCache() {
+  const CACHE_KEY = "deep_analysis_MSFT";
+  console.log("[MSFT Cache] Starting daily refresh...");
+  try {
+    const startRes = await fetchWithTimeout("https://api.laserbeamcapital.com/api/fundamental-analysis/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ticker: "MSFT", model: "moonshotai/kimi-k2.5" }),
+    }, 15000);
+
+    if (!startRes.ok) {
+      console.error("[MSFT Cache] Failed to start job:", startRes.status);
+      return;
+    }
+
+    const jobData = await startRes.json() as any;
+    const jobId = jobData.jobId || jobData.id;
+    if (!jobId) {
+      console.error("[MSFT Cache] No jobId returned");
+      return;
+    }
+    console.log("[MSFT Cache] Job started:", jobId);
+
+    let attempts = 0;
+    const maxAttempts = 60;
+    const pollInterval = 10000;
+
+    const poll = async () => {
+      attempts++;
+      if (attempts > maxAttempts) {
+        console.error("[MSFT Cache] Job timed out after", maxAttempts * pollInterval / 1000, "seconds");
+        return;
+      }
+      try {
+        const statusRes = await fetchWithTimeout(`https://api.laserbeamcapital.com/api/fundamental-analysis/jobs/${jobId}`, {}, 10000);
+        if (!statusRes.ok) {
+          console.error("[MSFT Cache] Status check failed, retrying...");
+          setTimeout(poll, pollInterval);
+          return;
+        }
+        const statusData = await statusRes.json() as any;
+
+        if (statusData.status === "completed") {
+          const resultRes = await fetchWithTimeout(`https://api.laserbeamcapital.com/api/fundamental-analysis/jobs/${jobId}/result`, {}, 15000);
+          if (resultRes.ok) {
+            const raw = await resultRes.json() as any;
+            const analysisText = raw.analysis?.fullText || 
+              (typeof raw.analysis === "string" ? raw.analysis : "");
+            const hasQualityResult = analysisText.length > 500 && 
+              raw.recommendation?.confidence > 50 &&
+              raw.recommendation?.targetPrice > 0;
+
+            if (hasQualityResult) {
+              const normalized = {
+                ticker: "MSFT",
+                mode: "deep_dive",
+                companyName: raw.rawData?.overview?.companyName || raw.rawData?.overview?.name || "Microsoft Corporation",
+                currentPrice: raw.rawData?.priceData?.price || raw.rawData?.overview?.price || 0,
+                recommendation: {
+                  action: (raw.recommendation?.action || "Hold").charAt(0).toUpperCase() + (raw.recommendation?.action || "Hold").slice(1).toLowerCase(),
+                  confidence: raw.recommendation?.confidence || 0,
+                  targetPrice: raw.recommendation?.targetPrice || 0,
+                  upside: raw.recommendation?.upside || 0,
+                  timeHorizon: raw.recommendation?.timeHorizon || "12 months",
+                  reasoning: raw.recommendation?.reasoning || "",
+                },
+                analysis: analysisText,
+              };
+              await storage.setCachedData(CACHE_KEY, normalized, 24 * 60);
+              console.log("[MSFT Cache] Successfully refreshed at", new Date().toISOString());
+            } else {
+              console.log("[MSFT Cache] API returned low-quality result, keeping existing cache");
+              const existing = await storage.getCachedData(CACHE_KEY);
+              if (existing) {
+                await storage.setCachedData(CACHE_KEY, existing, 24 * 60);
+              }
+            }
+          } else {
+            console.error("[MSFT Cache] Failed to fetch result:", resultRes.status);
+          }
+        } else if (statusData.status === "failed") {
+          console.error("[MSFT Cache] Job failed:", statusData.message);
+        } else {
+          setTimeout(poll, pollInterval);
+        }
+      } catch (err) {
+        console.error("[MSFT Cache] Poll error:", err);
+        setTimeout(poll, pollInterval);
+      }
+    };
+
+    setTimeout(poll, pollInterval);
+  } catch (error) {
+    console.error("[MSFT Cache] Refresh error:", error);
+  }
+}
+
+function startMSFTCacheScheduler() {
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+
+  (async () => {
+    const existing = await storage.getCachedData("deep_analysis_MSFT");
+    if (!existing) {
+      console.log("[MSFT Cache] No cache found, seeding with fallback and starting refresh...");
+      await storage.setCachedData("deep_analysis_MSFT", getMSFTFallbackAnalysis(), 24 * 60);
+      refreshMSFTAnalysisCache();
+    } else {
+      console.log("[MSFT Cache] Cache exists, will refresh on schedule");
+    }
+  })();
+
+  setInterval(() => {
+    refreshMSFTAnalysisCache();
+  }, TWENTY_FOUR_HOURS);
+}
+
 function classifyAction(method: string, path: string): string {
   if (path.startsWith("/api/auth")) return "auth";
   if (path.startsWith("/api/login")) return "login";
@@ -1264,59 +1398,18 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       return res.status(404).json({ error: "No cached analysis available" });
     }
 
-    const cachedResult = {
-      ticker: "MSFT",
-      mode: "deep_dive",
-      companyName: "Microsoft Corporation",
-      currentPrice: 393.67,
-      recommendation: {
-        action: "Buy",
-        confidence: 82,
-        targetPrice: 480,
-        upside: 21.9,
-        timeHorizon: "12 months",
-        reasoning: "Microsoft's dominant position in enterprise cloud computing through Azure, combined with its rapidly growing AI monetisation via Copilot integrations across Office 365, GitHub, and Dynamics 365, creates a compelling growth trajectory. The company's diversified revenue streams across productivity software, cloud infrastructure, gaming (Activision Blizzard), and LinkedIn provide resilience, while strong free cash flow generation supports continued shareholder returns and strategic investments."
-      },
-      analysis: `## Executive Summary
-
-Microsoft Corporation (NASDAQ: MSFT) remains one of the highest-quality large-cap technology companies globally, combining a dominant enterprise software franchise with a rapidly scaling cloud and AI platform. Despite trading at a premium valuation, the company's growth profile, margin expansion potential, and strategic positioning in the AI revolution justify a Buy recommendation.
-
-## Business Quality & Competitive Position
-
-Microsoft operates across three highly profitable segments: Productivity & Business Processes (Office 365, LinkedIn, Dynamics), Intelligent Cloud (Azure, server products, GitHub), and More Personal Computing (Windows, Xbox, Surface). The company benefits from deep enterprise moats including high switching costs, network effects across its collaboration tools, and significant data advantages that strengthen its AI capabilities.
-
-Azure continues to gain cloud market share and is now the second-largest cloud provider globally. The integration of OpenAI's technology directly into Azure gives Microsoft a meaningful competitive advantage in enterprise AI adoption. GitHub Copilot has rapidly scaled to millions of subscribers, validating the AI-assisted developer tools category.
-
-## Financial Analysis
-
-Microsoft's financial profile is exceptional among mega-cap technology companies. Revenue growth has remained in the mid-teens percentage range, driven primarily by Commercial Cloud growth exceeding 20% year-over-year. Operating margins have expanded consistently, reflecting operating leverage in the cloud business and disciplined cost management. Free cash flow generation exceeds $60 billion annually, providing substantial capital allocation flexibility.
-
-The balance sheet remains fortress-like with significant cash reserves and manageable debt levels. Return on equity consistently exceeds 35%, demonstrating efficient capital deployment. The company has returned significant capital through a growing dividend and substantial share repurchase program.
-
-## Growth Catalysts
-
-- **Azure AI Services**: Rapid enterprise adoption of Azure OpenAI Service and Copilot integrations across the Microsoft 365 suite represents a multi-billion dollar incremental revenue opportunity over the next 2-3 years.
-- **Copilot Monetisation**: Microsoft 365 Copilot at $30/user/month pricing creates a significant ASP uplift opportunity across the installed base of over 400 million commercial Office 365 seats.
-- **Gaming Division**: The Activision Blizzard acquisition strengthens Microsoft's content library and Game Pass subscription economics, with potential for improved margins as integration synergies materialise.
-- **LinkedIn Revenue Acceleration**: AI-enhanced features and premium tier upgrades are driving accelerating revenue growth in the LinkedIn segment.
-
-## Key Risks
-
-- **Cloud spending deceleration**: A broader slowdown in enterprise IT budgets could impact Azure growth rates, though Microsoft's mission-critical positioning mitigates this risk.
-- **AI competition**: Intensifying competition from Google Cloud (Gemini), Amazon (Bedrock), and emerging AI platforms could pressure market share gains.
-- **Regulatory scrutiny**: Increasing antitrust attention on bundling practices and the OpenAI partnership represents an ongoing regulatory overhang.
-- **Valuation premium**: Trading above historical averages on forward P/E metrics limits margin of safety if growth disappoints.
-
-## Valuation
-
-At current levels, Microsoft trades at approximately 30-32x forward earnings, which represents a premium to the broader market but is justified by the company's superior growth profile, margin trajectory, and balance sheet quality. On a PEG basis, the stock appears reasonably valued given expected mid-teens earnings growth. A discounted cash flow analysis suggests fair value in the $450-500 range, providing meaningful upside from current levels.
-
-## Conclusion
-
-Microsoft represents a rare combination of scale, quality, and growth in the large-cap technology universe. The company's strategic positioning at the centre of the enterprise AI adoption cycle, combined with its diversified revenue streams, expanding margins, and exceptional cash generation, supports a Buy recommendation with a 12-month target price of $480, representing approximately 22% upside from current levels. The primary risk to this thesis is a significant deceleration in enterprise cloud and AI spending, which we view as unlikely given current demand signals.`
-    };
-
-    res.json(cachedResult);
+    try {
+      const cached = await storage.getCachedData(`deep_analysis_${ticker}`);
+      if (cached) {
+        return res.json(cached);
+      }
+      const fallback = getMSFTFallbackAnalysis();
+      await storage.setCachedData(`deep_analysis_MSFT`, fallback, 24 * 60);
+      res.json(fallback);
+    } catch (error) {
+      console.error("Cached analysis error:", error);
+      res.json(getMSFTFallbackAnalysis());
+    }
   });
 
   app.get("/api/earnings", isAuthenticated, async (req: any, res: Response) => {
@@ -2280,6 +2373,8 @@ Microsoft represents a rare combination of scale, quality, and growth in the lar
     const email = req.user?.claims?.email;
     res.json({ isAdmin: email === ADMIN_EMAIL });
   });
+
+  startMSFTCacheScheduler();
 
   return httpServer;
 }
