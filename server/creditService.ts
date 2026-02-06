@@ -196,6 +196,22 @@ export async function getNewsFeed(limit = 20): Promise<NewsFeedItem[]> {
 
 export async function addNewsFeedItem(item: InsertNewsFeedItem): Promise<NewsFeedItem> {
   const [newItem] = await db.insert(newsFeed).values(item).returning();
+
+  try {
+    const allItems = await db.select({ id: newsFeed.id })
+      .from(newsFeed)
+      .orderBy(desc(newsFeed.publishedAt), desc(newsFeed.id));
+
+    if (allItems.length > 20) {
+      const idsToDelete = allItems.slice(20).map(r => r.id);
+      for (const id of idsToDelete) {
+        await db.delete(newsFeed).where(eq(newsFeed.id, id));
+      }
+    }
+  } catch (e) {
+    console.error("Error pruning old newsfeed items:", e);
+  }
+
   return newItem;
 }
 

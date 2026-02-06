@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles, Sunrise, Sun, Moon, Newspaper } from "lucide-react";
+import { Sparkles, Sunrise, Sun, Moon, Newspaper, ChevronDown, ChevronUp } from "lucide-react";
 
 interface MarketSummary {
   summary: string;
@@ -18,13 +19,8 @@ interface NewsFeedItem {
   source: string;
 }
 
-function NewsFeed() {
-  const { data, isLoading } = useQuery<{ items: NewsFeedItem[] }>({
-    queryKey: ["/api/newsfeed"],
-    refetchInterval: 120000,
-  });
-
-  const items = data?.items || [];
+function NewsFeedItemCard({ item, defaultExpanded }: { item: NewsFeedItem; defaultExpanded: boolean }) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -56,6 +52,59 @@ function NewsFeed() {
     }
   };
 
+  const plainContent = item.content.replace(/<[^>]*>/g, '');
+
+  return (
+    <div 
+      className="px-3 sm:px-4 py-3 border-b border-zinc-800/50 last:border-b-0"
+      data-testid={`newsfeed-item-${item.id}`}
+    >
+      <button
+        className="w-full text-left flex items-start gap-2 sm:gap-3 cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+        data-testid={`newsfeed-toggle-${item.id}`}
+      >
+        <span className="text-lg mt-0.5">{getEventIcon(item.eventType)}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className={`px-2 py-0.5 rounded text-xs border ${getMarketBadgeColor(item.market)}`}>
+              {item.market}
+            </span>
+            <span className="text-zinc-500 text-xs ticker-font">
+              {formatDate(item.publishedAt)}
+            </span>
+          </div>
+          <h4 className="text-white text-sm font-medium">{item.title}</h4>
+          {!expanded && (
+            <p className="text-zinc-500 text-xs mt-1 line-clamp-1">{plainContent.substring(0, 120)}...</p>
+          )}
+        </div>
+        <div className="mt-1 text-zinc-500 flex-shrink-0">
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="mt-3 ml-7 sm:ml-8">
+          <div 
+            className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap [&_b]:text-green-500 [&_b]:font-semibold"
+            dangerouslySetInnerHTML={{ __html: item.content }}
+            data-testid={`newsfeed-content-${item.id}`}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NewsFeed() {
+  const { data, isLoading } = useQuery<{ items: NewsFeedItem[] }>({
+    queryKey: ["/api/newsfeed"],
+    refetchInterval: 120000,
+  });
+
+  const items = data?.items || [];
+
   if (isLoading) {
     return (
       <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4">
@@ -82,38 +131,25 @@ function NewsFeed() {
   }
 
   return (
-    <div className="bg-zinc-900 border border-green-900/30 rounded-lg">
+    <div className="bg-zinc-900 border border-green-900/30 rounded-lg" data-testid="newsfeed-container">
       <div className="px-3 sm:px-4 py-3 border-b border-green-900/30">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-green-900/30 border border-green-500/30 flex items-center justify-center">
             <Newspaper className="w-5 h-5 text-green-500" />
           </div>
-          <h3 className="text-lg font-semibold text-white">News Feed</h3>
+          <div>
+            <h3 className="text-lg font-semibold text-white">News Feed</h3>
+            <p className="text-zinc-500 text-xs">{items.length} updates</p>
+          </div>
         </div>
       </div>
-      <div className="max-h-[600px] overflow-y-auto">
-        {items.map((item) => (
-          <div 
-            key={item.id} 
-            className="px-3 sm:px-4 py-3 border-b border-zinc-800/50 last:border-b-0 hover-elevate"
-            data-testid={`newsfeed-item-${item.id}`}
-          >
-            <div className="flex items-start gap-2 sm:gap-3">
-              <span className="text-lg">{getEventIcon(item.eventType)}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className={`px-2 py-0.5 rounded text-xs border ${getMarketBadgeColor(item.market)}`}>
-                    {item.market}
-                  </span>
-                  <span className="text-zinc-500 text-xs ticker-font">
-                    {formatDate(item.publishedAt)}
-                  </span>
-                </div>
-                <h4 className="text-white text-sm font-medium mb-1 line-clamp-1">{item.title}</h4>
-                <p className="text-zinc-400 text-xs line-clamp-2">{item.content.replace(/<[^>]*>/g, '').substring(0, 200)}</p>
-              </div>
-            </div>
-          </div>
+      <div className="max-h-[700px] overflow-y-auto">
+        {items.map((item, index) => (
+          <NewsFeedItemCard
+            key={item.id}
+            item={item}
+            defaultExpanded={index === 0}
+          />
         ))}
       </div>
     </div>
