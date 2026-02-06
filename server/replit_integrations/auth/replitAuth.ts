@@ -10,18 +10,9 @@ import { authStorage } from "./storage";
 
 const getOidcConfig = memoize(
   async () => {
-    const auth0Domain = process.env.AUTH0_DOMAIN;
-    if (!auth0Domain) {
-      throw new Error("AUTH0_DOMAIN environment variable is required");
-    }
-    const issuerUrl = `https://${auth0Domain}`;
-    const clientId = process.env.AUTH0_CLIENT_ID!;
-    const clientSecret = process.env.AUTH0_CLIENT_SECRET!;
-
     return await client.discovery(
-      new URL(issuerUrl),
-      clientId,
-      clientSecret
+      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
+      process.env.REPL_ID!
     );
   },
   { maxAge: 3600 * 1000 }
@@ -63,9 +54,9 @@ async function upsertUser(claims: any) {
   await authStorage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
-    firstName: claims["given_name"] || claims["name"]?.split(" ")[0] || null,
-    lastName: claims["family_name"] || claims["name"]?.split(" ").slice(1).join(" ") || null,
-    profileImageUrl: claims["picture"] || null,
+    firstName: claims["first_name"],
+    lastName: claims["last_name"],
+    profileImageUrl: claims["profile_image_url"],
   });
 }
 
@@ -87,10 +78,12 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
+  // Keep track of registered strategies
   const registeredStrategies = new Set<string>();
 
+  // Helper function to ensure strategy exists for a domain
   const ensureStrategy = (domain: string) => {
-    const strategyName = `auth0:${domain}`;
+    const strategyName = `replitauth:${domain}`;
     if (!registeredStrategies.has(strategyName)) {
       const strategy = new Strategy(
         {
@@ -111,28 +104,27 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/login", (req, res, next) => {
     ensureStrategy(req.hostname);
-    passport.authenticate(`auth0:${req.hostname}`, {
-      prompt: "login",
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
     ensureStrategy(req.hostname);
-    passport.authenticate(`auth0:${req.hostname}`, {
+    passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);
   });
 
   app.get("/api/logout", (req, res) => {
-    const auth0Domain = process.env.AUTH0_DOMAIN;
-    const clientId = process.env.AUTH0_CLIENT_ID;
-    const returnTo = `${req.protocol}://${req.hostname}`;
-    
     req.logout(() => {
       res.redirect(
-        `https://${auth0Domain}/v2/logout?client_id=${clientId}&returnTo=${encodeURIComponent(returnTo)}`
+        client.buildEndSessionUrl(config, {
+          client_id: process.env.REPL_ID!,
+          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+        }).href
       );
     });
   });

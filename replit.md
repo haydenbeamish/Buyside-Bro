@@ -57,18 +57,15 @@ Preferred communication style: Simple, everyday language.
 - **Database Table**: `activity_logs` (id, user_id, action, path, method, metadata, created_at)
 
 ### Authentication
-- **Provider**: Auth0 (OpenID Connect) supporting Google, Apple, GitHub, and email/password login
-- **Implementation**: Uses `openid-client` with passport OIDC strategy, configured for Auth0 discovery
-- **Claims Mapping**: Auth0 standard OIDC claims (`sub`, `email`, `given_name`, `family_name`, `picture`) mapped to user model
+- **Provider**: Replit Auth (OpenID Connect) supporting Google, Apple, GitHub, X, and email/password login
 - **Auth Routes** (Express, not client routes):
-  - `/api/login` - Begin Auth0 login flow (redirects to Auth0 Universal Login)
-  - `/api/logout` - Logout via Auth0 `/v2/logout` endpoint
+  - `/api/login` - Begin login flow
+  - `/api/logout` - Begin logout flow
   - `/api/auth/user` - Get current authenticated user
-  - `/api/callback` - Auth0 OAuth callback handler
+  - `/api/callback` - OAuth callback handler
 - **Session**: PostgreSQL-backed sessions with 7-day TTL
-- **Middleware**: `isAuthenticated` middleware for protected routes (supports token refresh)
+- **Middleware**: `isAuthenticated` middleware for protected routes
 - **Client Hook**: `useAuth()` hook provides user, isLoading, isAuthenticated, logout
-- **Environment Variables**: AUTH0_DOMAIN, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET
 
 ### Subscription System
 - **Provider**: Stripe with stripe-replit-sync for webhook management
