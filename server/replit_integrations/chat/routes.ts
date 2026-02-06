@@ -1,15 +1,61 @@
 import type { Express, Request, Response } from "express";
-import OpenAI from "openai";
 import { chatStorage } from "./storage";
 import { checkAndDeductCredits, recordUsage, checkBroQueryAllowed } from "../../creditService";
 import { isAuthenticated, authStorage } from "../auth";
 
-const openrouter = new OpenAI({
-  baseURL: process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY || "",
-});
+const LASER_BEAM_API = "https://laserbeamcapital.replit.app";
+const ESTIMATED_COST_CENTS = 10;
 
-const ESTIMATED_COST_CENTS = 10; // Estimated cost per AI request in cents
+async function proxySSEStream(
+  upstreamResponse: globalThis.Response,
+  res: Response
+): Promise<string> {
+  const reader = upstreamResponse.body!.getReader();
+  const decoder = new TextDecoder();
+  let fullResponse = "";
+  let buffer = "";
+  let streamDone = false;
+
+  try {
+    while (!streamDone) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      const events = buffer.split("\n\n");
+      buffer = events.pop() || "";
+
+      for (const event of events) {
+        const lines = event.split("\n");
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (!jsonStr) continue;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            if (parsed.content) {
+              fullResponse += parsed.content;
+              res.write(`data: ${JSON.stringify({ content: parsed.content })}\n\n`);
+            }
+            if (parsed.done) {
+              streamDone = true;
+              break;
+            }
+          } catch {
+            continue;
+          }
+        }
+        if (streamDone) break;
+      }
+    }
+  } finally {
+    reader.cancel().catch(() => {});
+  }
+
+  return fullResponse;
+}
 
 export function registerChatRoutes(app: Express): void {
   app.get("/api/conversations", async (req: Request, res: Response) => {
@@ -66,7 +112,10 @@ export function registerChatRoutes(app: Express): void {
       const model = "anthropic/claude-opus-4-20250514";
       const userId = req.user?.claims?.sub;
 
-      // Check daily Bro query limit + credits
+      if (!content || typeof content !== "string") {
+        return res.status(400).json({ error: "Message content is required" });
+      }
+
       if (userId) {
         const user = await authStorage.getUser(userId);
         const broCheck = await checkBroQueryAllowed(userId, user);
@@ -99,34 +148,25 @@ export function registerChatRoutes(app: Express): void {
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      const stream = await openrouter.chat.completions.create({
-        model,
-        messages: [
-          {
-            role: "system",
-            content: "You are Buy Side Bro, a friendly and knowledgeable financial assistant. You help users understand markets, stocks, investing, and portfolio management. Be casual, approachable, and helpful - like a knowledgeable friend who happens to work in finance. Avoid jargon when possible, and explain complex concepts simply."
-          },
-          ...chatMessages,
-        ],
-        stream: true,
-        max_tokens: 2048,
+      const response = await fetch(`${LASER_BEAM_API}/api/chat/bro`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: content,
+          history: chatMessages.slice(0, -1),
+        }),
       });
 
-      let fullResponse = "";
-
-      for await (const chunk of stream) {
-        const chunkContent = chunk.choices[0]?.delta?.content || "";
-        if (chunkContent) {
-          fullResponse += chunkContent;
-          res.write(`data: ${JSON.stringify({ content: chunkContent })}\n\n`);
-        }
+      if (!response.ok || !response.body) {
+        throw new Error(`Laser Beam API error: ${response.status}`);
       }
+
+      const fullResponse = await proxySSEStream(response, res);
 
       await chatStorage.createMessage(conversationId, "assistant", fullResponse);
 
-      // Record usage for authenticated users (estimate tokens from character count / 4)
       if (userId) {
-        const systemPromptLength = 350; // Approximate length of system prompt
+        const systemPromptLength = 350;
         const historyLength = chatMessages.reduce((sum, m) => sum + m.content.length, 0);
         const inputTokens = Math.ceil((systemPromptLength + historyLength) / 4);
         const outputTokens = Math.ceil(fullResponse.length / 4);
@@ -146,7 +186,6 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  // Simple chat endpoint - no database persistence (with credit check for authenticated users)
   app.post("/api/chat/simple", isAuthenticated, async (req: any, res: Response) => {
     try {
       const { message, history = [] } = req.body;
@@ -157,7 +196,6 @@ export function registerChatRoutes(app: Express): void {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      // Check daily Bro query limit + credits
       if (userId) {
         const user = await authStorage.getUser(userId);
         const broCheck = await checkBroQueryAllowed(userId, user);
@@ -178,46 +216,26 @@ export function registerChatRoutes(app: Express): void {
         }
       }
 
-      // Build chat history from client-side state
-      const chatMessages = history.map((m: { role: string; content: string }) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      }));
-
-      // Add the new user message
-      chatMessages.push({ role: "user" as const, content: message });
-
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      const stream = await openrouter.chat.completions.create({
-        model,
-        messages: [
-          {
-            role: "system",
-            content: "You are Buy Side Bro, a friendly and knowledgeable financial assistant. You help users understand markets, stocks, investing, and portfolio management. Be casual, approachable, and helpful - like a knowledgeable friend who happens to work in finance. Avoid jargon when possible, and explain complex concepts simply. Use data and specific numbers when discussing financial metrics."
-          },
-          ...chatMessages,
-        ],
-        stream: true,
-        max_tokens: 2048,
+      const response = await fetch(`${LASER_BEAM_API}/api/chat/bro`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, history }),
       });
 
-      let fullResponse = "";
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
-        if (content) {
-          fullResponse += content;
-          res.write(`data: ${JSON.stringify({ content })}\n\n`);
-        }
+      if (!response.ok || !response.body) {
+        throw new Error(`Laser Beam API error: ${response.status}`);
       }
 
-      // Record usage for authenticated users (estimate tokens from character count / 4)
+      const fullResponse = await proxySSEStream(response, res);
+
       if (userId) {
-        const systemPromptLength = 380; // Approximate length of system prompt
-        const historyLength = chatMessages.reduce((sum: number, m: { role: string; content: string }) => sum + m.content.length, 0);
-        const inputTokens = Math.ceil((systemPromptLength + historyLength) / 4);
+        const systemPromptLength = 380;
+        const historyLength = history.reduce((sum: number, m: { role: string; content: string }) => sum + m.content.length, 0);
+        const inputTokens = Math.ceil((systemPromptLength + historyLength + message.length) / 4);
         const outputTokens = Math.ceil(fullResponse.length / 4);
         await recordUsage(userId, 'chat', model, inputTokens, outputTokens);
       }

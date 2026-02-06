@@ -35,7 +35,8 @@ Preferred communication style: Simple, everyday language.
 - **Stock Search**: Global stock search combining multiple API sources, with deduplication.
 - **Watchlist**: Allows tracking stocks without cost basis, providing live price and fundamental data.
 - **Stock Analysis**: Asynchronous job workflow for deep fundamental analysis, utilizing AI for research output and recommendations (Buy/Hold/Sell).
-- **MSFT Cached Analysis**: Database-backed cached MSFT deep analysis served instantly to non-logged-in users. Background job refreshes daily via Laser Beam Capital API with quality validation (keeps existing cache if API returns poor results). Stored in `market_cache` table with 24h TTL.
+- **MSFT Cached Analysis**: Database-backed cached MSFT deep analysis served instantly to non-logged-in users. Fetches from Laser Beam Capital API's `/api/cached-analysis/MSFT` endpoint every 24h. Quality validation keeps existing cache if API returns poor results. Stored in `market_cache` table with 24h TTL.
+- **AI Chat ("Ask Bro")**: Proxied through Laser Beam Capital API's `/api/chat/bro` SSE endpoint. Buy Side Bro handles credit checks, conversation storage, and usage tracking locally; the AI generation happens on the Laser Beam Capital server.
 - **Technical SEO**: Implemented with dynamic `robots.txt` and `sitemap.xml`, structured data, meta tags, per-page titles, and performance optimizations.
 
 ### Design Patterns
@@ -47,12 +48,14 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 ### APIs and Services
-- **Laser Beam Capital API**: Primary source for all market data, fundamental analysis, and news.
-  - `/api/markets`
-  - `/api/news/market`, `/api/news/portfolio`
-  - `/api/market-summary`
-  - `/api/fundamental-analysis/analyze`, `/api/fundamental-analysis/jobs`
-- **OpenRouter**: Used for AI/LLM functionalities (chat, stock analysis), specifically Moonshot AI's Kimi K2.5 model.
+- **Laser Beam Capital API** (`https://laserbeamcapital.replit.app`): Separate always-on Replit project serving as the data engine.
+  - `/api/markets` — market data (indices, futures, commodities, sectors)
+  - `/api/news/market`, `/api/news/portfolio` — news feeds
+  - `/api/market-summary` — market summary
+  - `/api/fundamental-analysis/analyze`, `/api/fundamental-analysis/jobs` — deep analysis jobs
+  - `/api/chat/bro` — AI chat streaming endpoint (SSE, uses Claude Opus 4)
+  - `/api/cached-analysis/MSFT` — pre-cached MSFT deep analysis (refreshed daily on that server)
+- **OpenRouter**: Used for AI/LLM functionalities (stock analysis summaries in routes.ts), specifically Moonshot AI's Kimi K2.5 model. Chat is now proxied through Laser Beam Capital.
 - **Replit Auth**: For user authentication (Google, Apple, GitHub, X, email/password).
 - **Stripe**: For subscription management and credit pack purchases.
 - **Yahoo Finance**: Data source for Market Cap and Trailing P/E Ratio (via Laser Beam Capital API).

@@ -129,96 +129,30 @@ function getMSFTFallbackAnalysis() {
 
 async function refreshMSFTAnalysisCache() {
   const CACHE_KEY = "deep_analysis_MSFT";
-  console.log("[MSFT Cache] Starting daily refresh...");
+  console.log("[MSFT Cache] Fetching from Laser Beam Capital API...");
   try {
-    const startRes = await fetchWithTimeout("https://api.laserbeamcapital.com/api/fundamental-analysis/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ticker: "MSFT", model: "moonshotai/kimi-k2.5" }),
-    }, 15000);
-
-    if (!startRes.ok) {
-      console.error("[MSFT Cache] Failed to start job:", startRes.status);
+    const res = await fetchWithTimeout(`${LASER_BEAM_API}/api/cached-analysis/MSFT`, {}, 30000);
+    if (!res.ok) {
+      console.error("[MSFT Cache] Laser Beam API error:", res.status);
       return;
     }
 
-    const jobData = await startRes.json() as any;
-    const jobId = jobData.jobId || jobData.id;
-    if (!jobId) {
-      console.error("[MSFT Cache] No jobId returned");
-      return;
+    const data = await res.json() as any;
+    const analysisText = data.analysis || "";
+    const hasQualityResult = analysisText.length > 500 &&
+      data.recommendation?.confidence > 50 &&
+      data.recommendation?.targetPrice > 0;
+
+    if (hasQualityResult) {
+      await storage.setCachedData(CACHE_KEY, data, 24 * 60);
+      console.log("[MSFT Cache] Successfully refreshed from Laser Beam Capital at", new Date().toISOString());
+    } else {
+      console.log("[MSFT Cache] Laser Beam returned low-quality result, keeping existing cache");
+      const existing = await storage.getCachedData(CACHE_KEY);
+      if (existing) {
+        await storage.setCachedData(CACHE_KEY, existing, 24 * 60);
+      }
     }
-    console.log("[MSFT Cache] Job started:", jobId);
-
-    let attempts = 0;
-    const maxAttempts = 60;
-    const pollInterval = 10000;
-
-    const poll = async () => {
-      attempts++;
-      if (attempts > maxAttempts) {
-        console.error("[MSFT Cache] Job timed out after", maxAttempts * pollInterval / 1000, "seconds");
-        return;
-      }
-      try {
-        const statusRes = await fetchWithTimeout(`https://api.laserbeamcapital.com/api/fundamental-analysis/jobs/${jobId}`, {}, 10000);
-        if (!statusRes.ok) {
-          console.error("[MSFT Cache] Status check failed, retrying...");
-          setTimeout(poll, pollInterval);
-          return;
-        }
-        const statusData = await statusRes.json() as any;
-
-        if (statusData.status === "completed") {
-          const resultRes = await fetchWithTimeout(`https://api.laserbeamcapital.com/api/fundamental-analysis/jobs/${jobId}/result`, {}, 15000);
-          if (resultRes.ok) {
-            const raw = await resultRes.json() as any;
-            const analysisText = raw.analysis?.fullText || 
-              (typeof raw.analysis === "string" ? raw.analysis : "");
-            const hasQualityResult = analysisText.length > 500 && 
-              raw.recommendation?.confidence > 50 &&
-              raw.recommendation?.targetPrice > 0;
-
-            if (hasQualityResult) {
-              const normalized = {
-                ticker: "MSFT",
-                mode: "deep_dive",
-                companyName: raw.rawData?.overview?.companyName || raw.rawData?.overview?.name || "Microsoft Corporation",
-                currentPrice: raw.rawData?.priceData?.price || raw.rawData?.overview?.price || 0,
-                recommendation: {
-                  action: (raw.recommendation?.action || "Hold").charAt(0).toUpperCase() + (raw.recommendation?.action || "Hold").slice(1).toLowerCase(),
-                  confidence: raw.recommendation?.confidence || 0,
-                  targetPrice: raw.recommendation?.targetPrice || 0,
-                  upside: raw.recommendation?.upside || 0,
-                  timeHorizon: raw.recommendation?.timeHorizon || "12 months",
-                  reasoning: raw.recommendation?.reasoning || "",
-                },
-                analysis: analysisText,
-              };
-              await storage.setCachedData(CACHE_KEY, normalized, 24 * 60);
-              console.log("[MSFT Cache] Successfully refreshed at", new Date().toISOString());
-            } else {
-              console.log("[MSFT Cache] API returned low-quality result, keeping existing cache");
-              const existing = await storage.getCachedData(CACHE_KEY);
-              if (existing) {
-                await storage.setCachedData(CACHE_KEY, existing, 24 * 60);
-              }
-            }
-          } else {
-            console.error("[MSFT Cache] Failed to fetch result:", resultRes.status);
-          }
-        } else if (statusData.status === "failed") {
-          console.error("[MSFT Cache] Job failed:", statusData.message);
-        } else {
-          setTimeout(poll, pollInterval);
-        }
-      } catch (err) {
-        console.error("[MSFT Cache] Poll error:", err);
-        setTimeout(poll, pollInterval);
-      }
-    };
-
-    setTimeout(poll, pollInterval);
   } catch (error) {
     console.error("[MSFT Cache] Refresh error:", error);
   }
