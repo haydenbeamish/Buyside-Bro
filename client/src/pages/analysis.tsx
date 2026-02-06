@@ -4,7 +4,6 @@ import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search,
@@ -147,7 +146,7 @@ function StockChart({ data, isLoading }: { data?: HistoricalData; isLoading: boo
           </span>
         </div>
       </div>
-      <div className="h-48">
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
             <defs>
@@ -204,15 +203,44 @@ function StockChart({ data, isLoading }: { data?: HistoricalData; isLoading: boo
   );
 }
 
-function KeyInfoCard({ 
-  profile, 
+function MetricCard({
+  label,
+  value,
+  isLoading,
+  colorClass
+}: {
+  label: string;
+  value: string;
+  isLoading: boolean;
+  colorClass?: string;
+}) {
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
+      <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">{label}</p>
+      {isLoading ? (
+        <Skeleton className="h-6 w-20 bg-zinc-800" />
+      ) : (
+        <p className={`text-lg font-bold font-mono ${colorClass || "text-white"}`}>
+          {value}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function MetricsGrid({
+  profile,
+  financials,
   forwardMetrics,
   profileLoading,
-  metricsLoading 
-}: { 
+  financialsLoading,
+  metricsLoading
+}: {
   profile?: StockProfile;
+  financials?: Financials;
   forwardMetrics?: ForwardMetrics;
   profileLoading: boolean;
+  financialsLoading: boolean;
   metricsLoading: boolean;
 }) {
   const formatMarketCap = (value: number) => {
@@ -222,69 +250,104 @@ function KeyInfoCard({
     return `$${value.toLocaleString()}`;
   };
 
+  const formatLargeNumber = (value: number | undefined, prefix = "") => {
+    if (value === undefined || value === null) return "N/A";
+    if (value >= 1e12) return `${prefix}${(value / 1e12).toFixed(2)}T`;
+    if (value >= 1e9) return `${prefix}${(value / 1e9).toFixed(2)}B`;
+    if (value >= 1e6) return `${prefix}${(value / 1e6).toFixed(2)}M`;
+    return `${prefix}${value.toLocaleString()}`;
+  };
+
+  const dayChangeColor = (profile?.changesPercentage ?? 0) >= 0 ? "text-green-500" : "text-red-500";
+  const epsGrowthColor = (forwardMetrics?.forwardEpsGrowth ?? 0) >= 0 ? "text-green-500" : "text-red-500";
+
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-      <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-        <Building2 className="h-4 w-4 text-green-500" />
-        Key Information
+    <div className="space-y-3">
+      <h3 className="font-semibold text-white flex items-center gap-2">
+        <BarChart3 className="h-4 w-4 text-green-500" />
+        Key Metrics
       </h3>
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <div>
-          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Market Cap</p>
-          {profileLoading ? (
-            <Skeleton className="h-6 w-20 bg-zinc-800" />
-          ) : (
-            <p className="font-mono font-bold text-white">
-              {profile?.marketCap != null ? formatMarketCap(profile.marketCap) : "—"}
-            </p>
-          )}
-        </div>
-        <div>
-          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Forward P/E</p>
-          {metricsLoading ? (
-            <Skeleton className="h-6 w-16 bg-zinc-800" />
-          ) : (
-            <p className="font-mono font-bold text-white">
-              {forwardMetrics?.forwardPE != null ? forwardMetrics.forwardPE.toFixed(1) + "x" : "—"}
-            </p>
-          )}
-        </div>
-        <div>
-          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Forward EPS Growth</p>
-          {metricsLoading ? (
-            <Skeleton className="h-6 w-16 bg-zinc-800" />
-          ) : (
-            <p className={`font-mono font-bold ${(forwardMetrics?.forwardEpsGrowth ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
-              {forwardMetrics?.forwardEpsGrowth != null 
-                ? `${forwardMetrics.forwardEpsGrowth >= 0 ? "+" : ""}${forwardMetrics.forwardEpsGrowth.toFixed(1)}%` 
-                : "—"}
-            </p>
-          )}
-        </div>
-        <div>
-          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">PEG Ratio</p>
-          {metricsLoading ? (
-            <Skeleton className="h-6 w-16 bg-zinc-800" />
-          ) : (
-            <p className="font-mono font-bold text-white">
-              {forwardMetrics?.pegRatio != null ? forwardMetrics.pegRatio.toFixed(2) : "—"}
-            </p>
-          )}
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        {/* Profile metrics */}
+        <MetricCard
+          label="Market Cap"
+          value={profile?.marketCap != null ? formatMarketCap(profile.marketCap) : "—"}
+          isLoading={profileLoading}
+        />
+        <MetricCard
+          label="Price"
+          value={profile?.price != null ? `$${profile.price.toFixed(2)}` : "—"}
+          isLoading={profileLoading}
+        />
+        <MetricCard
+          label="Day Change"
+          value={profile?.changesPercentage != null
+            ? `${profile.changesPercentage >= 0 ? "+" : ""}${profile.changesPercentage.toFixed(2)}%`
+            : "—"}
+          isLoading={profileLoading}
+          colorClass={dayChangeColor}
+        />
+        {/* Forward metrics */}
+        <MetricCard
+          label="Forward P/E"
+          value={forwardMetrics?.forwardPE != null ? `${forwardMetrics.forwardPE.toFixed(1)}x` : "—"}
+          isLoading={metricsLoading}
+        />
+        <MetricCard
+          label="Fwd EPS Growth"
+          value={forwardMetrics?.forwardEpsGrowth != null
+            ? `${forwardMetrics.forwardEpsGrowth >= 0 ? "+" : ""}${forwardMetrics.forwardEpsGrowth.toFixed(1)}%`
+            : "—"}
+          isLoading={metricsLoading}
+          colorClass={epsGrowthColor}
+        />
+        <MetricCard
+          label="PEG Ratio"
+          value={forwardMetrics?.pegRatio != null ? forwardMetrics.pegRatio.toFixed(2) : "—"}
+          isLoading={metricsLoading}
+        />
+        {/* Financial metrics */}
+        <MetricCard
+          label="Revenue"
+          value={formatLargeNumber(financials?.revenue, "$")}
+          isLoading={financialsLoading}
+        />
+        <MetricCard
+          label="Net Income"
+          value={formatLargeNumber(financials?.netIncome, "$")}
+          isLoading={financialsLoading}
+        />
+        <MetricCard
+          label="EPS"
+          value={financials?.eps != null ? `$${financials.eps.toFixed(2)}` : "N/A"}
+          isLoading={financialsLoading}
+        />
+        <MetricCard
+          label="P/E (TTM)"
+          value={financials?.peRatio != null ? financials.peRatio.toFixed(2) : "N/A"}
+          isLoading={financialsLoading}
+        />
+        <MetricCard
+          label="P/B Ratio"
+          value={financials?.pbRatio != null ? financials.pbRatio.toFixed(2) : "N/A"}
+          isLoading={financialsLoading}
+        />
+        <MetricCard
+          label="ROE"
+          value={financials?.roe != null ? `${(financials.roe * 100).toFixed(2)}%` : "N/A"}
+          isLoading={financialsLoading}
+        />
+        <MetricCard
+          label="Dividend Yield"
+          value={financials?.dividendYield != null ? `${(financials.dividendYield * 100).toFixed(2)}%` : "N/A"}
+          isLoading={financialsLoading}
+        />
+        <MetricCard
+          label="Debt/Equity"
+          value={financials?.debtToEquity != null ? financials.debtToEquity.toFixed(2) : "N/A"}
+          isLoading={financialsLoading}
+        />
       </div>
-      {profileLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-full bg-zinc-800" />
-          <Skeleton className="h-4 w-3/4 bg-zinc-800" />
-        </div>
-      ) : profile?.description ? (
-        <div>
-          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-2">About</p>
-          <p className="text-sm text-zinc-400 leading-relaxed line-clamp-4">
-            {profile.description}
-          </p>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -871,19 +934,13 @@ export default function AnalysisPage() {
     return `$${value.toLocaleString()}`;
   };
 
-  const formatNumber = (value: number | undefined, prefix = "", suffix = "") => {
-    if (value === undefined || value === null) return "N/A";
-    if (value >= 1e9) return `${prefix}${(value / 1e9).toFixed(2)}B${suffix}`;
-    if (value >= 1e6) return `${prefix}${(value / 1e6).toFixed(2)}M${suffix}`;
-    return `${prefix}${value.toLocaleString()}${suffix}`;
-  };
 
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="mb-6">
           <h1 className="text-4xl font-bold tracking-tight mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-            STOCK ANALYSIS
+            COMPANY
           </h1>
           <p className="text-zinc-500">
             Deep dive into company fundamentals with AI-powered insights
@@ -986,21 +1043,21 @@ export default function AnalysisPage() {
               </div>
             ) : null}
 
-            {/* Chart and Key Info Section - loads immediately while deep analysis runs */}
+            {/* Key Metrics Grid - loads immediately */}
             {activeTicker && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2">
-                  <StockChart data={historicalData} isLoading={chartLoading} />
-                </div>
-                <div className="lg:col-span-1">
-                  <KeyInfoCard 
-                    profile={profile} 
-                    forwardMetrics={forwardMetrics}
-                    profileLoading={profileLoading}
-                    metricsLoading={metricsLoading}
-                  />
-                </div>
-              </div>
+              <MetricsGrid
+                profile={profile}
+                financials={financials}
+                forwardMetrics={forwardMetrics}
+                profileLoading={profileLoading}
+                financialsLoading={financialsLoading}
+                metricsLoading={metricsLoading}
+              />
+            )}
+
+            {/* Full-width chart */}
+            {activeTicker && (
+              <StockChart data={historicalData} isLoading={chartLoading} />
             )}
 
             {deepError ? (
@@ -1046,176 +1103,6 @@ export default function AnalysisPage() {
               <DeepAnalysisResult result={deepResult} />
             ) : null}
 
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="bg-transparent border-b border-zinc-800 w-full justify-start rounded-none h-auto p-0 mb-6">
-                <TabsTrigger 
-                  value="overview"
-                  className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
-                  data-testid="tab-overview"
-                >
-                  Overview
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="financials"
-                  className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
-                  data-testid="tab-financials"
-                >
-                  Financials
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="ratios"
-                  className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-4 py-2 text-sm"
-                  data-testid="tab-ratios"
-                >
-                  Ratios
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="overview">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-                    <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Revenue</p>
-                    {financialsLoading ? (
-                      <Skeleton className="h-6 w-24 bg-zinc-800" />
-                    ) : (
-                      <p className="text-xl font-bold font-mono text-white">
-                        {formatNumber(financials?.revenue, "$")}
-                      </p>
-                    )}
-                  </div>
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-                    <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Net Income</p>
-                    {financialsLoading ? (
-                      <Skeleton className="h-6 w-24 bg-zinc-800" />
-                    ) : (
-                      <p className="text-xl font-bold font-mono text-white">
-                        {formatNumber(financials?.netIncome, "$")}
-                      </p>
-                    )}
-                  </div>
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-                    <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">EPS</p>
-                    {financialsLoading ? (
-                      <Skeleton className="h-6 w-16 bg-zinc-800" />
-                    ) : (
-                      <p className="text-xl font-bold font-mono text-white">
-                        ${financials?.eps?.toFixed(2) || "N/A"}
-                      </p>
-                    )}
-                  </div>
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-                    <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Dividend Yield</p>
-                    {financialsLoading ? (
-                      <Skeleton className="h-6 w-16 bg-zinc-800" />
-                    ) : (
-                      <p className="text-xl font-bold font-mono text-white">
-                        {financials?.dividendYield
-                          ? `${(financials.dividendYield * 100).toFixed(2)}%`
-                          : "N/A"}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="financials">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
-                  <div className="p-4 border-b border-zinc-800">
-                    <h3 className="text-lg font-semibold">Financial Metrics</h3>
-                  </div>
-                  <div className="p-4">
-                    {financialsLoading ? (
-                      <div className="space-y-4">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                          <div key={i} className="flex justify-between">
-                            <Skeleton className="h-4 w-24 bg-zinc-800" />
-                            <Skeleton className="h-4 w-20 bg-zinc-800" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : financials ? (
-                      <div className="space-y-4">
-                        <div className="flex justify-between py-2 border-b border-zinc-800">
-                          <span className="text-zinc-500">Revenue (TTM)</span>
-                          <span className="font-mono font-medium text-white">
-                            {formatNumber(financials.revenue, "$")}
-                          </span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-zinc-800">
-                          <span className="text-zinc-500">Net Income (TTM)</span>
-                          <span className="font-mono font-medium text-white">
-                            {formatNumber(financials.netIncome, "$")}
-                          </span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-zinc-800">
-                          <span className="text-zinc-500">Earnings Per Share</span>
-                          <span className="font-mono font-medium text-white">
-                            ${financials.eps?.toFixed(2) || "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-zinc-500 text-center py-8">
-                        No financial data available
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="ratios">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
-                  <div className="p-4 border-b border-zinc-800">
-                    <h3 className="text-lg font-semibold">Valuation Ratios</h3>
-                  </div>
-                  <div className="p-4">
-                    {financialsLoading ? (
-                      <div className="space-y-4">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                          <div key={i} className="flex justify-between">
-                            <Skeleton className="h-4 w-24 bg-zinc-800" />
-                            <Skeleton className="h-4 w-16 bg-zinc-800" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : financials ? (
-                      <div className="space-y-4">
-                        <div className="flex justify-between py-2 border-b border-zinc-800">
-                          <span className="text-zinc-500">P/E Ratio</span>
-                          <span className="font-mono font-medium text-white">
-                            {financials.peRatio?.toFixed(2) || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-zinc-800">
-                          <span className="text-zinc-500">P/B Ratio</span>
-                          <span className="font-mono font-medium text-white">
-                            {financials.pbRatio?.toFixed(2) || "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-zinc-800">
-                          <span className="text-zinc-500">ROE</span>
-                          <span className="font-mono font-medium text-white">
-                            {financials.roe
-                              ? `${(financials.roe * 100).toFixed(2)}%`
-                              : "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between py-2 border-b border-zinc-800">
-                          <span className="text-zinc-500">Debt/Equity</span>
-                          <span className="font-mono font-medium text-white">
-                            {financials.debtToEquity?.toFixed(2) || "N/A"}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-zinc-500 text-center py-8">
-                        No ratio data available
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
           </div>
         )}
       </div>
