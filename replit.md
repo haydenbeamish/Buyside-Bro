@@ -53,8 +53,8 @@ Preferred communication style: Simple, everyday language.
   - `/api/news/market`, `/api/news/portfolio` — news feeds
   - `/api/market-summary` — market summary
   - `/api/fundamental-analysis/analyze`, `/api/fundamental-analysis/jobs` — deep analysis jobs
-  - `/api/chat/bro` — AI chat streaming endpoint (SSE, uses Claude Opus 4)
-  - `/api/cached-analysis/MSFT` — pre-cached MSFT deep analysis (refreshed daily on that server)
+  - `/api/chat/bro` — AI chat streaming endpoint (SSE, uses Claude Opus 4). Stream ends with `data: [DONE]`
+  - `/api/cached-analysis/MSFT` — pre-cached MSFT deep analysis (refreshed daily on that server). Returns `{ loading: true }` if not ready yet
 - **OpenRouter**: Used for AI/LLM functionalities (stock analysis summaries in routes.ts), specifically Moonshot AI's Kimi K2.5 model. Chat is now proxied through Laser Beam Capital.
 - **Replit Auth**: For user authentication (Google, Apple, GitHub, X, email/password).
 - **Stripe**: For subscription management and credit pack purchases.

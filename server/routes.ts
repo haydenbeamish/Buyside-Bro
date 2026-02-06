@@ -138,6 +138,16 @@ async function refreshMSFTAnalysisCache() {
     }
 
     const data = await res.json() as any;
+
+    if (data.loading) {
+      console.log("[MSFT Cache] Laser Beam API still generating, keeping existing cache");
+      const existing = await storage.getCachedData(CACHE_KEY);
+      if (existing) {
+        await storage.setCachedData(CACHE_KEY, existing, 24 * 60);
+      }
+      return;
+    }
+
     const analysisText = data.analysis || "";
     const hasQualityResult = analysisText.length > 500 &&
       data.recommendation?.confidence > 50 &&

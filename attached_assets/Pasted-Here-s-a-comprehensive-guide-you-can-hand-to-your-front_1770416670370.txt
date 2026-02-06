@@ -1,0 +1,45 @@
+Here's a comprehensive guide you can hand to your frontend team for integrating with the API at api.laserbeamcapital.com:
+
+Base URL: https://api.laserbeamcapital.com
+
+Market Data
+GET /api/markets — Live market data (stocks, futures, commodities, forex, sectors). Refreshes every 10 min, futures every 30 sec.
+GET /api/markets/summary — AI generated market summary (HTML formatted). Use ?refresh=true to force a new one.
+Performance / Fund Data
+GET /api/performance — Fund NAV, returns, capture ratios, beta, thematic exposure, holdings, and all site content.
+Portfolio
+GET /api/portfolio — Live portfolio positions with P&L, weights, earnings dates, after hours data, and futures. Includes positions[], sectors[], fundSummary, and cashBalance.
+News
+GET /api/news/market — General market news with sentiment.
+GET /api/news/ticker/:symbol — News for a specific stock (e.g. /api/news/ticker/AAPL).
+GET /api/news/summary — AI summarized company announcements.
+GET /api/news/portfolio — News for current portfolio holdings.
+Fundamental Analysis
+POST /api/fundamental-analysis/analyze — Synchronous deep analysis. Body: { ticker, model (optional), mode (optional: "deep_dive", "earnings_preview", "earnings_review") }.
+POST /api/fundamental-analysis/jobs — Async version, returns { jobId }. Poll with:
+GET /api/fundamental-analysis/jobs/:jobId — Status check.
+GET /api/fundamental-analysis/jobs/:jobId/result — Get completed result.
+GET /api/fundamental-analysis/search?q=apple — Ticker search by name or symbol.
+GET /api/fundamental-analysis/earnings-calendar/:ticker — Upcoming earnings date.
+Portfolio Analysis
+GET /api/portfolio-analysis/models — List available AI models.
+POST /api/portfolio-analysis/jobs — Submit async portfolio analysis. Body: { model (optional), horizonMonths (default 3), coverageLimit (default 10) }. Returns { jobId, pollUrl }.
+GET /api/portfolio-analysis/jobs/:jobId — Poll status with progress %.
+GET /api/portfolio-analysis/jobs/:jobId/result — Get completed analysis with trade recommendations.
+AI Chat (Buy Side Bro)
+POST /api/chat/bro — Streaming chat. Body: { message: "string", history: [{role: "user"/"assistant", content: "..."}] }.
+Returns Server-Sent Events (SSE). Each event: data: {"content":"chunk"}. Stream ends with data: [DONE].
+Frontend should use fetch with streaming or EventSource pattern to read chunks.
+Cached Analysis
+GET /api/cached-analysis/MSFT — Pre generated daily MSFT analysis. Returns { loading: true } if not ready yet.
+Blog Posts
+GET /posts — All blog posts from Beehiiv.
+GET /selectedpost/:id — Single post by ID.
+Health
+GET /health — System status (database, cache, queues).
+Key notes for the frontend team:
+
+All responses are JSON except the chat endpoint which streams SSE.
+Market data includes a stale flag — if true, data is from disk cache and a fresh fetch is in progress.
+Portfolio positions include both equities and futures; check isFutures to render them differently.
+The chat endpoint needs to handle streaming; standard fetch with response.body.getReader() works well.

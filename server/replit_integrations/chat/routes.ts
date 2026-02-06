@@ -33,6 +33,11 @@ async function proxySSEStream(
           const jsonStr = line.slice(6).trim();
           if (!jsonStr) continue;
 
+          if (jsonStr === "[DONE]") {
+            streamDone = true;
+            break;
+          }
+
           try {
             const parsed = JSON.parse(jsonStr);
             if (parsed.content) {
