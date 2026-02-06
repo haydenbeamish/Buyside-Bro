@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -135,10 +135,69 @@ function PercentDisplay({ value }: { value: number }) {
   );
 }
 
+function useResizableColumn(minWidth: number = 80, maxWidth: number = 400) {
+  const [width, setWidth] = useState<number | null>(null);
+  const isResizing = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
+  const colRef = useRef<HTMLTableCellElement>(null);
+  const measured = useRef(false);
+
+  const measureContent = useCallback((items: { ticker: string; name?: string | null }[]) => {
+    if (measured.current) return;
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.font = "600 14px 'JetBrains Mono', monospace";
+    let maxTickerTextWidth = 0;
+    items.forEach((item) => {
+      const w = ctx.measureText(item.ticker).width;
+      maxTickerTextWidth = Math.max(maxTickerTextWidth, w);
+    });
+    ctx.font = "12px system-ui, sans-serif";
+    let maxNameTextWidth = 0;
+    items.forEach((item) => {
+      const name = item.name || item.ticker;
+      const w = ctx.measureText(name).width;
+      maxNameTextWidth = Math.max(maxNameTextWidth, w);
+    });
+    const textWidth = Math.max(maxTickerTextWidth, Math.min(maxNameTextWidth, 180));
+    const padding = 24;
+    const handleWidth = 12;
+    const fitWidth = Math.max(minWidth, Math.min(maxWidth, textWidth + padding + handleWidth));
+    setWidth(fitWidth);
+    measured.current = true;
+  }, [minWidth, maxWidth]);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizing.current = true;
+    startX.current = e.clientX;
+    startWidth.current = width || 160;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [width]);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isResizing.current) return;
+    const diff = e.clientX - startX.current;
+    const newWidth = Math.max(minWidth, Math.min(maxWidth, startWidth.current + diff));
+    setWidth(newWidth);
+  }, [minWidth, maxWidth]);
+
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    isResizing.current = false;
+    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+  }, []);
+
+  return { width, colRef, measureContent, onPointerDown, onPointerMove, onPointerUp };
+}
+
 export default function WatchlistPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const { toast } = useToast();
   const hasSeeded = useRef(false);
+  const tickerCol = useResizableColumn(80, 350);
 
   const { data: items, isLoading } = useQuery<EnrichedWatchlistItem[]>({
     queryKey: ["/api/watchlist/enriched"],
@@ -156,6 +215,12 @@ export default function WatchlistPage() {
         .catch(() => {});
     }
   }, [items]);
+
+  useEffect(() => {
+    if (items && items.length > 0 && tickerCol.width === null) {
+      tickerCol.measureContent(items);
+    }
+  }, [items, tickerCol.width, tickerCol.measureContent]);
 
   const addMutation = useMutation({
     mutationFn: async (data: { ticker: string; name: string }) => {
@@ -246,10 +311,31 @@ export default function WatchlistPage() {
                 ))}
               </div>
             ) : items && items.length > 0 ? (
-              <table className="w-full text-sm" data-testid="watchlist-table">
+              <table className="w-full text-sm" style={tickerCol.width ? { tableLayout: "fixed" } : undefined} data-testid="watchlist-table">
+                {tickerCol.width && (
+                  <colgroup>
+                    <col style={{ width: `${tickerCol.width}px` }} />
+                  </colgroup>
+                )}
                 <thead>
                   <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
-                    <th className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-10 min-w-[100px]">Ticker</th>
+                    <th
+                      ref={tickerCol.colRef}
+                      className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-10 relative select-none whitespace-nowrap"
+                      style={tickerCol.width ? { width: `${tickerCol.width}px` } : undefined}
+                    >
+                      Ticker
+                      <div
+                        className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-20 group"
+                        onPointerDown={tickerCol.onPointerDown}
+                        onPointerMove={tickerCol.onPointerMove}
+                        onPointerUp={tickerCol.onPointerUp}
+                        style={{ touchAction: "none" }}
+                        data-testid="resize-handle-ticker"
+                      >
+                        <div className="absolute right-0 top-2 bottom-2 w-[2px] bg-green-900/40 group-hover:bg-green-500/60 transition-colors" />
+                      </div>
+                    </th>
                     <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Price</th>
                     <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Day %</th>
                     <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Mkt Cap</th>
@@ -264,10 +350,10 @@ export default function WatchlistPage() {
                       className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
                       data-testid={`watchlist-row-${item.ticker}`}
                     >
-                      <td className="px-3 py-2.5 sticky left-0 bg-zinc-900 z-10">
-                        <div className="flex flex-col">
-                          <span className="font-mono font-semibold text-green-400">{item.ticker}</span>
-                          <span className="text-xs text-zinc-500 truncate max-w-[180px]">{item.name || item.ticker}</span>
+                      <td className="px-3 py-2.5 sticky left-0 bg-zinc-900 z-10 overflow-hidden" style={tickerCol.width ? { width: `${tickerCol.width}px` } : undefined}>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-mono font-semibold text-green-400 truncate">{item.ticker}</span>
+                          <span className="text-xs text-zinc-500 truncate">{item.name || item.ticker}</span>
                         </div>
                       </td>
                       <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap">
