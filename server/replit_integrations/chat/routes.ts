@@ -62,7 +62,8 @@ export function registerChatRoutes(app: Express): void {
   app.post("/api/conversations/:id/messages", async (req: any, res: Response) => {
     try {
       const conversationId = parseInt(req.params.id as string);
-      const { content, model = "google/gemini-2.0-flash-001" } = req.body;
+      const { content } = req.body;
+      const model = "anthropic/claude-opus-4-20250514";
       const userId = req.user?.claims?.sub;
 
       // Check credits if user is authenticated
@@ -139,7 +140,8 @@ export function registerChatRoutes(app: Express): void {
   // Simple chat endpoint - no database persistence (with credit check for authenticated users)
   app.post("/api/chat/simple", async (req: any, res: Response) => {
     try {
-      const { message, history = [], model = "google/gemini-2.0-flash-001" } = req.body;
+      const { message, history = [] } = req.body;
+      const model = "anthropic/claude-opus-4-20250514";
       const userId = req.user?.claims?.sub;
 
       if (!message || typeof message !== "string") {

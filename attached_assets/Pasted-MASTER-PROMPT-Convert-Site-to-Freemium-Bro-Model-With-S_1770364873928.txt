@@ -1,0 +1,230 @@
+MASTER PROMPT: Convert Site to Freemium Bro Model With Sidebar Gating
+
+Change the entire site to a true freemium model.
+
+No login required to browse or explore core markets content.
+Users can click “Open Terminal” directly from the home page.
+
+Login is only required to unlock gated tools and daily Bro usage.
+
+Never use the word AI anywhere in the UI.
+Always refer to the system as “the Bro”, “Bro queries”, and “Bro credits”.
+
+PRODUCT TIERS
+Free Public Access (no login required)
+
+Users can fully interact with:
+
+What’s Up?
+
+Markets
+
+These two sections must always work without login.
+
+Logged In Free User
+
+Once logged in, users get:
+
+Access to all sections
+
+1 Bro query per day
+
+Bro query options:
+
+Ask Bro
+
+Deep Analysis
+
+Earnings Breakdown
+
+Pro Tier ($10 per month)
+
+5 Bro queries per day
+
+Includes $5 in Bro credits each month
+
+Credit balance shown in header and account page
+
+Auto top up when credits run low
+
+Auto top up only if enabled in settings
+
+SIDEBAR BEHAVIOUR
+
+Sidebar items:
+
+What’s Up?
+
+Markets
+
+Portfolio
+
+Watchlist
+
+Analysis
+
+Earnings
+
+News
+
+Ask Bro
+
+Rules:
+
+Logged out users:
+
+Can fully use What’s Up? and Markets.
+
+Can open the other six sections.
+
+BUT when they interact with anything inside Portfolio, Watchlist, Analysis, Earnings, News, or Ask Bro, show a login gate modal.
+
+Logged in users:
+
+Can access all sections.
+
+Ask Bro is limited to 1 query per day for free users.
+
+LOGIN GATE MODAL (LOGGED OUT USERS)
+
+Trigger:
+Any interaction inside Portfolio, Watchlist, Analysis, Earnings, News, or Ask Bro.
+
+Blur the background UI.
+
+Modal copy must be exactly:
+
+Title:
+Sign in for access
+
+Body:
+Create an account to use Portfolio, Watchlist, Analysis, Earnings, News, and Ask Bro.
+
+Buttons:
+Primary: Sign in
+Secondary: Not now
+
+Do not show this modal when opening the page.
+Only show it when the user tries to interact with something.
+
+ASK BRO LIMIT MODAL (LOGGED IN FREE USER, DAILY LIMIT HIT)
+
+If the user has already used their daily Bro query and tries again:
+
+Blur the background UI.
+
+Modal copy:
+
+Title:
+Want more Bro help?
+
+Body:
+$10/month gets you 5 Bro questions per day.
+
+Buttons:
+Primary: Upgrade
+Secondary: Not now
+
+LANDING PAGE AND COPY CHANGES
+
+Remove everywhere:
+
+free trial
+
+trial
+
+limited time
+
+Replace messaging with:
+
+Free forever. Upgrade for unlimited Bro access.
+
+Login buttons should say:
+
+Sign in
+
+Upgrade
+
+Never mention trials or paywalls.
+
+BILLING AND CREDITS
+
+Implement Stripe subscriptions for Pro
+
+Implement Bro credit ledger
+
+$5 monthly credits included with Pro
+
+Credit packs available for purchase
+
+Auto top up charges only if enabled by the user
+
+Toggle in account settings
+
+Display remaining Bro credits prominently
+
+TECHNICAL REQUIREMENTS
+
+Track daily Bro usage by user id and reset at UTC midnight
+
+Anonymous users cannot submit Bro queries
+
+Logged out gating happens client side and server side
+
+Rate limit anonymous traffic
+
+Prevent bypassing limits via refresh
+
+Centralised entitlement middleware
+
+Feature flags for tier status
+
+PAGES TO UPDATE
+
+Home
+
+Header
+
+Sidebar
+
+Pricing
+
+Subscription flow
+
+Account settings
+
+Upgrade modals
+
+Ask Bro screens
+
+Anywhere AI wording exists
+
+Replace all AI references with Bro branding.
+
+DELIVERABLES
+
+Implement:
+
+Updated routing logic
+
+Sidebar gating
+
+Modals and blur overlays
+
+Subscription logic
+
+Stripe checkout
+
+Credit system
+
+Usage tracking
+
+Copy changes
+
+Guards and middleware
+
+Upgrade prompts
+
+Do not ask follow up questions unless something is technically ambiguous.
+
+Proceed with implementation.
