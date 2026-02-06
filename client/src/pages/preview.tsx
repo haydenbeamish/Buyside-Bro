@@ -4,7 +4,7 @@ import logoImg from "@assets/image_1770296632105.png";
 import screenshotWhatsUp from "@assets/image_1770367320606.png";
 import screenshotMarkets from "@assets/image_1770353894237.png";
 import screenshotPortfolio from "@assets/image_1770293388261.png";
-import screenshotWatchlist from "@assets/image_1770343802069.png";
+import screenshotWatchlist from "@assets/image_1770368306734.png";
 import screenshotDeepAnalysis from "@assets/image_1770353948671.png";
 import screenshotEarnings from "@assets/image_1770367362870.png";
 import screenshotAskBro from "@assets/image_1770353921106.png";
