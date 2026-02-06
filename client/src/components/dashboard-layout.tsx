@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { ReactNode } from "react";
-import { LayoutGrid, Briefcase, TrendingUp, Calendar, Newspaper, MessageSquare, ChevronRight, Menu, X, Sparkles, CreditCard, LogOut, User, Eye, Shield } from "lucide-react";
+import { LayoutGrid, Briefcase, TrendingUp, Newspaper, MessageSquare, ChevronRight, Menu, X, Sparkles, CreditCard, LogOut, User, Eye, Shield, Brain } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -18,7 +18,7 @@ const navItems = [
   { path: "/portfolio", label: "Portfolio", icon: Briefcase },
   { path: "/watchlist", label: "Watchlist", icon: Eye },
   { path: "/analysis", label: "Analysis", icon: TrendingUp },
-  { path: "/earnings", label: "Earnings", icon: Calendar },
+  { path: "/earnings", label: "AI Analysis", icon: Brain },
   { path: "/news", label: "News", icon: Newspaper },
   { path: "/chat", label: "Ask Bro", icon: MessageSquare },
 ];

@@ -36,7 +36,7 @@ Preferred communication style: Simple, everyday language.
   - `/portfolio` - Portfolio tracker
   - `/watchlist` - Watchlist tracker (like portfolio without cost basis/shares/P&L)
   - `/analysis` - Stock analysis with AI
-  - `/earnings` - Earnings calendar
+  - `/earnings` - AI Analysis (Earnings Preview / Earnings Review modes)
   - `/whats-up` - Market summary + news feed
   - `/news` - Financial news
   - `/chat` - AI chat assistant
