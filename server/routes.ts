@@ -133,6 +133,37 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  const SITE_URL = "https://www.buysidebro.com";
+
+  app.get("/robots.txt", (_req: Request, res: Response) => {
+    res.type("text/plain").send(
+      `User-agent: *\nAllow: /\nAllow: /dashboard\nAllow: /portfolio\nAllow: /watchlist\nAllow: /analysis\nAllow: /earnings\nAllow: /whats-up\nAllow: /chat\nAllow: /preview\nDisallow: /api/\nDisallow: /admin\nDisallow: /dashboard/subscription\n\nSitemap: ${SITE_URL}/sitemap.xml`
+    );
+  });
+
+  app.get("/sitemap.xml", (_req: Request, res: Response) => {
+    const pages = [
+      { loc: "/", priority: "1.0", changefreq: "daily" },
+      { loc: "/dashboard", priority: "0.9", changefreq: "hourly" },
+      { loc: "/watchlist", priority: "0.8", changefreq: "daily" },
+      { loc: "/portfolio", priority: "0.8", changefreq: "daily" },
+      { loc: "/analysis", priority: "0.8", changefreq: "daily" },
+      { loc: "/earnings", priority: "0.7", changefreq: "daily" },
+      { loc: "/whats-up", priority: "0.7", changefreq: "hourly" },
+      { loc: "/chat", priority: "0.6", changefreq: "monthly" },
+      { loc: "/preview", priority: "0.5", changefreq: "weekly" },
+    ];
+    const urls = pages
+      .map(
+        (p) =>
+          `  <url>\n    <loc>${SITE_URL}${p.loc}</loc>\n    <changefreq>${p.changefreq}</changefreq>\n    <priority>${p.priority}</priority>\n  </url>`
+      )
+      .join("\n");
+    res.type("application/xml").send(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`
+    );
+  });
+
   app.use((req: any, res: Response, next: NextFunction) => {
     if (req.path.startsWith("/api/") && 
         !req.path.startsWith("/api/admin/") &&

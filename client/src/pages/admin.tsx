@@ -28,6 +28,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 interface AdminStats {
   totalUsers: number;
@@ -129,6 +130,7 @@ function getStatusBadge(status: string | null) {
 }
 
 export default function AdminPage() {
+  useDocumentTitle("Admin Dashboard");
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<"overview" | "users" | "activity" | "ai-usage">("overview");
   const [expandedUser, setExpandedUser] = useState<string | null>(null);

@@ -34,6 +34,7 @@ import { LoginGateModal } from "@/components/login-gate-modal";
 import { useBroStatus } from "@/hooks/use-bro-status";
 import { BroLimitModal } from "@/components/bro-limit-modal";
 import { useAuth } from "@/hooks/use-auth";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 interface PortfolioStats {
   totalValue: number;
@@ -239,6 +240,7 @@ function ThinkingLoader() {
 }
 
 export default function PortfolioPage() {
+  useDocumentTitle("Portfolio Tracker");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newHolding, setNewHolding] = useState({
     ticker: "",

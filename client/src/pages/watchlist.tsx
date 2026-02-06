@@ -19,6 +19,7 @@ import type { WatchlistItem } from "@shared/schema";
 import { useLoginGate } from "@/hooks/use-login-gate";
 import { LoginGateModal } from "@/components/login-gate-modal";
 import { useAuth } from "@/hooks/use-auth";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 interface EnrichedWatchlistItem extends WatchlistItem {
   price: number | null;
@@ -291,6 +292,7 @@ function SortHeader({ label, sortKey: colKey, currentKey, currentDir, onToggle, 
 }
 
 export default function WatchlistPage() {
+  useDocumentTitle("Watchlist");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("dayChangePercent");
   const [sortDir, setSortDir] = useState<SortDir>("desc");

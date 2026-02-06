@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import { useAuth } from "@/hooks/use-auth";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import logoImg from "@assets/image_1770296632105.png";
 import heroImg from "@assets/image_1770297600939.png";
@@ -63,7 +64,7 @@ function TopNav() {
   const { user, isLoading, isAuthenticated } = useAuth();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm" aria-label="Main navigation">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
@@ -154,8 +155,10 @@ function HeroSection() {
           <div className="lg:w-1/2 flex justify-center order-2 lg:order-1">
             <img
               src={heroImg}
-              alt="Buy Side Bro"
+              alt="Buy Side Bro terminal mascot - your AI-powered financial markets assistant"
               className="w-72 h-72 md:w-96 md:h-96 lg:w-[28rem] lg:h-[28rem] object-contain"
+              width="448"
+              height="448"
               data-testid="img-hero"
             />
           </div>
@@ -266,8 +269,9 @@ function FeatureShowcase() {
               <div className="relative rounded-lg overflow-hidden border border-green-900/40 shadow-[0_0_30px_rgba(0,255,0,0.08)]">
                 <img
                   src={feature.image}
-                  alt={feature.title}
+                  alt={`${feature.title} - ${feature.subtitle}`}
                   className="w-full h-auto object-cover"
+                  loading="lazy"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
               </div>
@@ -370,23 +374,22 @@ function Footer() {
           {/* Product */}
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Product</h4>
-            <div className="space-y-2">
+            <nav aria-label="Product links" className="space-y-2">
               <Link href="/dashboard"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Markets</span></Link>
               <Link href="/portfolio"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Portfolio</span></Link>
-              <Link href="/analysis"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Analysis</span></Link>
-              <Link href="/news"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">News</span></Link>
-            </div>
+              <Link href="/watchlist"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Watchlist</span></Link>
+              <Link href="/analysis"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Company Analysis</span></Link>
+            </nav>
           </div>
 
           {/* Quick Links */}
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Quick Links</h4>
-            <div className="space-y-2">
-              <Link href="/chat"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Ask Bro</span></Link>
-              <Link href="/earnings"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Earnings</span></Link>
-              <Link href="/watchlist"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Watchlist</span></Link>
+            <nav aria-label="Quick links" className="space-y-2">
               <Link href="/whats-up"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">What's Up</span></Link>
-            </div>
+              <Link href="/earnings"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Earnings</span></Link>
+              <Link href="/chat"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Ask Bro</span></Link>
+            </nav>
           </div>
 
           {/* Info */}
@@ -433,14 +436,17 @@ function Footer() {
 
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
+  useDocumentTitle();
 
   return (
     <div className="min-h-screen bg-black scanline">
       <TopNav />
-      <HeroSection />
-      <FeatureShowcase />
-      <PricingBadges />
-      <CTASection />
+      <main>
+        <HeroSection />
+        <FeatureShowcase />
+        <PricingBadges />
+        <CTASection />
+      </main>
       <Footer />
       <TickerTape />
     </div>

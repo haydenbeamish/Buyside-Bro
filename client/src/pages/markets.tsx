@@ -2,6 +2,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 type FlashCells = Record<string, "up" | "down">;
 
@@ -375,6 +376,7 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
 }
 
 export default function MarketsPage() {
+  useDocumentTitle("Live Markets");
   const { data: markets, isLoading } = useQuery<MarketsData>({
     queryKey: ["/api/markets/full"],
     refetchInterval: 30000,

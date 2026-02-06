@@ -18,6 +18,7 @@ import { useLoginGate } from "@/hooks/use-login-gate";
 import { LoginGateModal } from "@/components/login-gate-modal";
 import { useBroStatus } from "@/hooks/use-bro-status";
 import { BroLimitModal } from "@/components/bro-limit-modal";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 interface ChatMessage {
   id: number;
@@ -109,6 +110,7 @@ function ThinkingLoader() {
 }
 
 export default function ChatPage() {
+  useDocumentTitle("Ask Bro");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [streamingMessage, setStreamingMessage] = useState("");

@@ -1,0 +1,166 @@
+Technical SEO Optimisation Prompt No Copy Changes
+
+You are a senior technical SEO specialist and site architect.
+
+Your task is to significantly improve this website’s organic search performance without modifying any visible page copy or written content.
+
+You may NOT rewrite headlines, paragraphs, CTAs, blog posts, or marketing language.
+
+You MAY change:
+
+• Page titles and meta descriptions
+• URL structure
+• Internal linking
+• Navigation
+• Schema markup
+• Technical performance
+• Crawlability
+• Indexation
+• Rendering behaviour
+• Page speed
+• Mobile optimisation
+• Image optimisation and alt text
+• Structured data
+• Sitemap and robots.txt
+• Canonical tags
+• Pagination logic
+• Faceted navigation handling
+• Redirects
+• Site architecture
+• Heading hierarchy only if it does not change wording
+• ARIA and accessibility attributes
+• Lazy loading
+• Preloads and caching
+• Server side rendering or hydration approach
+
+⸻
+
+1. Site Architecture and Crawlability
+
+Audit and improve:
+
+• URL hierarchy and folder structure
+• Parameter handling
+• Orphan pages
+• Breadcrumbs
+• Navigation depth
+• Internal linking between related pages
+• Hub and spoke architecture using existing pages
+• Crawl budget efficiency
+• Duplicate URLs
+• Canonical conflicts
+• HTTP status codes
+• Redirect chains
+• XML sitemap coverage
+• robots.txt rules
+
+Output a prioritised action list by impact.
+
+⸻
+
+2. Indexation and Rendering
+
+Analyse:
+
+• Which pages should be indexed vs noindexed
+• JavaScript rendering risks
+• SSR vs CSR tradeoffs
+• Deferred loading issues
+• Soft 404s
+• Thin template pages
+• Pagination and infinite scroll handling
+• Faceted navigation
+• Query parameter traps
+
+⸻
+
+3. Metadata Optimisation
+
+Rewrite only:
+
+• Title tags
+• Meta descriptions
+• Open Graph tags
+• Twitter cards
+• Canonical tags
+• hreflang if applicable
+
+Do not change page copy.
+
+⸻
+
+4. Schema and Structured Data
+
+Recommend and draft JSON LD for:
+
+• Organisation
+• Website
+• BreadcrumbList
+• Article or BlogPosting
+• FAQPage only if existing FAQ content already exists
+• Product or Service
+• Review or AggregateRating if present
+• FinancialProduct if relevant
+• Sitelinks search box
+
+⸻
+
+5. Performance and Core Web Vitals
+
+Provide fixes for:
+
+• LCP
+• CLS
+• INP
+• Font loading
+• Image compression
+• CDN use
+• Caching strategy
+• Server response time
+• Preconnect and preload
+• Third party scripts
+• Lazy loading
+• Critical CSS
+• Bundle splitting
+
+⸻
+
+6. Accessibility That Helps SEO
+
+Improve:
+
+• Alt attributes
+• Heading order
+• Landmark roles
+• Label associations
+• ARIA where appropriate
+• Colour contrast only if it does not change branding
+• Focus states
+• Tab order
+
+⸻
+
+7. Internal Linking Strategy
+
+Using existing pages only:
+
+• Identify hub pages
+• Add contextual links
+• Improve breadcrumb depth
+• Suggest footer or nav links
+• Fix orphan pages
+• Anchor text optimisation without altering page copy
+
+⸻
+
+8. Programmatic SEO Without New Copy
+
+Identify:
+
+• URL patterns that can be generated from existing data
+• Filters that should be crawlable vs blocked
+• Comparison pages built from structured data
+• Parameterised pages to canonicalise
+• Auto created schema pages
+
+No new written content may be added.

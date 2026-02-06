@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, Sunrise, Sun, Moon, Newspaper, ChevronDown, ChevronUp } from "lucide-react";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 function sanitizeHtml(html: string): string {
   const allowedTags = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
@@ -169,6 +170,7 @@ function NewsFeed() {
 }
 
 export default function WhatsUpPage() {
+  useDocumentTitle("What's Up");
   const { data: summary, isLoading } = useQuery<MarketSummary>({
     queryKey: ["/api/markets/summary"],
   });

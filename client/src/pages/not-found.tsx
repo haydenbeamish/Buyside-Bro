@@ -2,8 +2,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Home, AlertCircle } from "lucide-react";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 export default function NotFound() {
+  useDocumentTitle("Page Not Found");
   return (
     <div className="flex items-center justify-center min-h-[60vh] p-6">
       <Card className="max-w-md w-full">

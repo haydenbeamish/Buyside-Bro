@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3, Coins, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import logoImg from "@assets/image_1770296632105.png";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 interface SubscriptionStatus {
   status: string;
@@ -54,6 +55,7 @@ interface CreditPack {
 }
 
 export default function SubscriptionPage() {
+  useDocumentTitle("Subscription");
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();

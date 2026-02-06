@@ -2,18 +2,104 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <meta name="description" content="Buy Side Bro - Your bro on the buy side. A modern financial markets dashboard and portfolio tracker that's actually fun to use." />
-    <meta name="theme-color" content="#0f172a" />
-    <meta property="og:title" content="Buy Side Bro - Your Bro on the Buy Side" />
-    <meta property="og:description" content="A modern financial markets dashboard and portfolio tracker. Less boring than Bloomberg, more useful than your finance bro friend." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+    <title>Buy Side Bro | Free Financial Markets Dashboard & Stock Analysis Terminal</title>
+    <meta name="description" content="Free financial markets dashboard with live global market data, AI-powered stock analysis, portfolio tracking, watchlist management, and earnings insights. Professional trading tools without the Bloomberg price tag." />
+    <meta name="theme-color" content="#000000" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://www.buysidebro.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Buy Side Bro | Free Financial Markets Dashboard & Stock Analysis" />
+    <meta property="og:description" content="Professional-grade market intelligence: live global data, AI stock analysis, portfolio tracking, watchlist, and earnings insights. Free to explore." />
     <meta property="og:type" content="website" />
-    <title>Buy Side Bro - Your Bro on the Buy Side</title>
+    <meta property="og:url" content="https://www.buysidebro.com/" />
+    <meta property="og:site_name" content="Buy Side Bro" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@buysidebro" />
+    <meta name="twitter:title" content="Buy Side Bro | Free Financial Markets Dashboard" />
+    <meta name="twitter:description" content="Live global markets, AI stock analysis, portfolio tracking. Professional tools without the Bloomberg price." />
+
+    <!-- Favicons -->
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.laserbeamcapital.com" />
+    <link rel="dns-prefetch" href="https://financialmodelingprep.com" />
+
+    <!-- Fonts with display=swap for better LCP -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://www.buysidebro.com/#organization",
+          "name": "Buy Side Bro",
+          "url": "https://www.buysidebro.com",
+          "sameAs": [
+            "https://x.com/buysidebro",
+            "https://discord.gg/buysidebro"
+          ],
+          "description": "Professional-grade financial markets dashboard and stock analysis terminal."
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.buysidebro.com/#website",
+          "url": "https://www.buysidebro.com",
+          "name": "Buy Side Bro",
+          "publisher": { "@id": "https://www.buysidebro.com/#organization" },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://www.buysidebro.com/analysis?ticker={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "WebApplication",
+          "@id": "https://www.buysidebro.com/#application",
+          "name": "Buy Side Bro Terminal",
+          "url": "https://www.buysidebro.com/dashboard",
+          "applicationCategory": "FinanceApplication",
+          "operatingSystem": "Web",
+          "offers": [
+            {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD",
+              "description": "Free tier with full feature access"
+            },
+            {
+              "@type": "Offer",
+              "price": "10.00",
+              "priceCurrency": "USD",
+              "description": "Pro subscription with AI credits - billed monthly"
+            }
+          ],
+          "featureList": [
+            "Live global market data",
+            "AI-powered stock analysis",
+            "Portfolio tracking",
+            "Watchlist management",
+            "Earnings analysis",
+            "AI chat assistant"
+          ]
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

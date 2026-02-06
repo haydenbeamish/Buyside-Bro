@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, BarChart3, Bot, TrendingUp, Shield, Zap, Clock, Briefcase, Eye, Brain, /* Newspaper, */ Sparkles } from "lucide-react";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import logoImg from "@assets/image_1770296632105.png";
 import screenshotWhatsUp from "@assets/image_1770367320606.png";
 import screenshotMarkets from "@assets/image_1770353894237.png";
@@ -70,9 +71,10 @@ const features = [
 ];
 
 export default function PreviewPage() {
+  useDocumentTitle("Terminal Preview");
   return (
     <div className="min-h-screen bg-black scanline">
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm border-b border-green-900/30">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm border-b border-green-900/30" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/">
@@ -118,8 +120,9 @@ export default function PreviewPage() {
                 <div className="relative rounded-lg overflow-hidden border border-green-900/40 shadow-[0_0_30px_rgba(0,255,0,0.08)]">
                   <img
                     src={feature.image}
-                    alt={feature.title}
+                    alt={`${feature.title} - ${feature.subtitle}`}
                     className="w-full h-auto object-cover"
+                    loading="lazy"
                     data-testid={`img-preview-${i}`}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />

@@ -32,6 +32,7 @@ import { useLoginGate } from "@/hooks/use-login-gate";
 import { LoginGateModal } from "@/components/login-gate-modal";
 import { useBroStatus } from "@/hooks/use-bro-status";
 import { BroLimitModal } from "@/components/bro-limit-modal";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 interface StockSearchResult {
   symbol: string;
@@ -554,6 +555,7 @@ function AnalysisResult({ result }: { result: DeepAnalysisResultData }) {
 }
 
 export default function EarningsAnalysisPage() {
+  useDocumentTitle("Earnings Analysis");
   const searchString = useSearch();
   const urlParams = new URLSearchParams(searchString);
   const urlTicker = urlParams.get("ticker");
