@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -135,63 +135,7 @@ function PercentDisplay({ value }: { value: number }) {
   );
 }
 
-function useResizableColumn(minWidth: number = 80, maxWidth: number = 400) {
-  const [width, setWidth] = useState<number | null>(null);
-  const isResizing = useRef(false);
-  const startX = useRef(0);
-  const startWidth = useRef(0);
-  const colRef = useRef<HTMLTableCellElement>(null);
-  const measured = useRef(false);
-
-  const measureContent = useCallback((items: { ticker: string; name?: string | null }[]) => {
-    if (measured.current) return;
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.font = "600 14px 'JetBrains Mono', monospace";
-    let maxTickerTextWidth = 0;
-    items.forEach((item) => {
-      const w = ctx.measureText(item.ticker).width;
-      maxTickerTextWidth = Math.max(maxTickerTextWidth, w);
-    });
-    ctx.font = "12px system-ui, sans-serif";
-    let maxNameTextWidth = 0;
-    items.forEach((item) => {
-      const name = item.name || item.ticker;
-      const w = ctx.measureText(name).width;
-      maxNameTextWidth = Math.max(maxNameTextWidth, w);
-    });
-    const textWidth = Math.max(maxTickerTextWidth, Math.min(maxNameTextWidth, 180));
-    const padding = 24;
-    const handleWidth = 12;
-    const fitWidth = Math.max(minWidth, Math.min(maxWidth, textWidth + padding + handleWidth));
-    setWidth(fitWidth);
-    measured.current = true;
-  }, [minWidth, maxWidth]);
-
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    isResizing.current = true;
-    startX.current = e.clientX;
-    startWidth.current = width || 160;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, [width]);
-
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isResizing.current) return;
-    const diff = e.clientX - startX.current;
-    const newWidth = Math.max(minWidth, Math.min(maxWidth, startWidth.current + diff));
-    setWidth(newWidth);
-  }, [minWidth, maxWidth]);
-
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
-    isResizing.current = false;
-    (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-  }, []);
-
-  return { width, colRef, measureContent, onPointerDown, onPointerMove, onPointerUp };
-}
+const TICKER_COL_WIDTH = 100;
 
 type SortKey = "ticker" | "price" | "dayChangePercent" | "marketCap" | "pe";
 type SortDir = "asc" | "desc";
@@ -222,7 +166,6 @@ export default function WatchlistPage() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const { toast } = useToast();
   const hasSeeded = useRef(false);
-  const tickerCol = useResizableColumn(80, 350);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -249,12 +192,6 @@ export default function WatchlistPage() {
         .catch(() => {});
     }
   }, [items]);
-
-  useEffect(() => {
-    if (items && items.length > 0 && tickerCol.width === null) {
-      tickerCol.measureContent(items);
-    }
-  }, [items, tickerCol.width, tickerCol.measureContent]);
 
   const addMutation = useMutation({
     mutationFn: async (data: { ticker: string; name: string }) => {
@@ -345,18 +282,19 @@ export default function WatchlistPage() {
                 ))}
               </div>
             ) : items && items.length > 0 ? (
-              <table className="w-full text-sm" style={tickerCol.width ? { tableLayout: "fixed" } : undefined} data-testid="watchlist-table">
-                {tickerCol.width && (
-                  <colgroup>
-                    <col style={{ width: `${tickerCol.width}px` }} />
-                  </colgroup>
-                )}
+              <table className="w-full text-sm" style={{ tableLayout: "fixed" }} data-testid="watchlist-table">
+                <colgroup>
+                  <col style={{ width: `${TICKER_COL_WIDTH}px` }} />
+                  <col />
+                  <col />
+                  <col />
+                  <col />
+                  <col style={{ width: "44px" }} />
+                </colgroup>
                 <thead>
                   <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
                     <th
-                      ref={tickerCol.colRef}
-                      className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-10 relative select-none whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors"
-                      style={tickerCol.width ? { width: `${tickerCol.width}px` } : undefined}
+                      className="px-3 py-3 text-left font-medium select-none whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors"
                       onClick={() => toggleSort("ticker")}
                       data-testid="sort-ticker"
                     >
@@ -364,17 +302,6 @@ export default function WatchlistPage() {
                         Ticker
                         {sortKey === "ticker" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
                       </span>
-                      <div
-                        className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-20 group"
-                        onPointerDown={tickerCol.onPointerDown}
-                        onPointerMove={tickerCol.onPointerMove}
-                        onPointerUp={tickerCol.onPointerUp}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ touchAction: "none" }}
-                        data-testid="resize-handle-ticker"
-                      >
-                        <div className="absolute right-0 top-2 bottom-2 w-[2px] bg-green-900/40 group-hover:bg-green-500/60 transition-colors" />
-                      </div>
                     </th>
                     <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors" onClick={() => toggleSort("price")} data-testid="sort-price">
                       <span className="inline-flex items-center justify-end gap-1">
@@ -400,7 +327,7 @@ export default function WatchlistPage() {
                         {sortKey === "pe" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
                       </span>
                     </th>
-                    <th className="px-3 py-3 w-10"></th>
+                    <th className="px-3 py-3"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -410,22 +337,19 @@ export default function WatchlistPage() {
                       className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
                       data-testid={`watchlist-row-${item.ticker}`}
                     >
-                      <td className="px-3 py-2.5 sticky left-0 bg-zinc-900 z-10 overflow-hidden" style={tickerCol.width ? { width: `${tickerCol.width}px` } : undefined}>
-                        <div className="flex flex-col min-w-0">
-                          <span className="font-mono font-semibold text-green-400 truncate">{item.ticker}</span>
-                          <span className="text-xs text-zinc-500 truncate">{item.name || item.ticker}</span>
-                        </div>
+                      <td className="px-3 py-2.5 overflow-hidden">
+                        <span className="font-mono font-semibold text-green-400 truncate block">{item.ticker}</span>
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap overflow-hidden text-ellipsis">
                         {item.price ? `$${item.price.toFixed(2)}` : "-"}
                       </td>
-                      <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-right whitespace-nowrap overflow-hidden text-ellipsis">
                         <PercentDisplay value={item.dayChangePercent || 0} />
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
                         {formatMarketCap(item.marketCap)}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
+                      <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
                         {item.pe ? item.pe.toFixed(1) : "-"}
                       </td>
                       <td className="px-3 py-2.5">
