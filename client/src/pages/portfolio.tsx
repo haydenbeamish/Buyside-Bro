@@ -27,13 +27,6 @@ import {
   CheckCircle,
 } from "lucide-react";
 import type { PortfolioHolding } from "@shared/schema";
-import {
-  PieChart as RechartsPie,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
 import logoImg from "@assets/image_1770292490089.png";
 import ReactMarkdown from "react-markdown";
 
@@ -57,7 +50,6 @@ interface EnrichedHolding extends PortfolioHolding {
   nextEarnings: string | null;
 }
 
-const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 interface StockSearchResult {
   symbol: string;
@@ -339,11 +331,6 @@ export default function PortfolioPage() {
     addMutation.mutate(newHolding);
   };
 
-  const pieData = holdings?.map((h) => ({
-    name: h.ticker,
-    value: Number(h.shares) * Number(h.currentPrice || h.avgCost),
-  })) || [];
-
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -470,8 +457,8 @@ export default function PortfolioPage() {
 
         <h2 className="text-lg font-semibold mb-4">Holdings</h2>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2 bg-zinc-900 border border-green-900/30 rounded-lg">
+        <div className="mb-8">
+          <div className="bg-zinc-900 border border-green-900/30 rounded-lg">
             <div className="overflow-x-auto relative">
               {holdingsLoading ? (
                 <div className="p-4 space-y-2">
@@ -494,7 +481,6 @@ export default function PortfolioPage() {
                       <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Total P&L</th>
                       <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Mkt Cap</th>
                       <th className="px-3 py-3 text-right font-medium whitespace-nowrap">P/E</th>
-                      <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Earnings</th>
                       <th className="px-3 py-3 w-10"></th>
                     </tr>
                   </thead>
@@ -550,9 +536,6 @@ export default function PortfolioPage() {
                           <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
                             {holding.pe ? holding.pe.toFixed(1) : "-"}
                           </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
-                            {formatEarningsDate(holding.nextEarnings)}
-                          </td>
                           <td className="px-3 py-2.5">
                             <Button
                               variant="ghost"
@@ -581,49 +564,6 @@ export default function PortfolioPage() {
                     <Plus className="h-4 w-4 mr-2" />
                     Add Position
                   </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="bg-zinc-900 border border-green-900/30 rounded-lg">
-            <div className="p-4 border-b border-green-900/30">
-              <h2 className="text-lg font-semibold">Allocation</h2>
-            </div>
-            <div className="p-4">
-              {holdingsLoading ? (
-                <Skeleton className="h-48 w-full bg-zinc-800" />
-              ) : pieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <RechartsPie>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={2}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      labelLine={false}
-                    >
-                      {pieData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px' }}
-                      labelStyle={{ color: '#fff' }}
-                      formatter={(value: number) => [
-                        `$${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
-                        "Value",
-                      ]}
-                    />
-                  </RechartsPie>
-                </ResponsiveContainer>
-              ) : (
-                <div className="h-48 flex items-center justify-center text-zinc-500 text-sm">
-                  Add holdings to see allocation
                 </div>
               )}
             </div>
