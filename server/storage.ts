@@ -17,33 +17,34 @@ export interface IStorage {
   
   getCachedData(key: string): Promise<unknown | null>;
   setCachedData(key: string, data: unknown, expiresInMinutes: number): Promise<void>;
+  deleteCachedData(key: string): Promise<void>;
 }
 
 class DatabaseStorage implements IStorage {
-  async getPortfolioHoldings(): Promise<PortfolioHolding[]> {
-    return db.select().from(portfolioHoldings).orderBy(desc(portfolioHoldings.createdAt));
+  async getPortfolioHoldings(userId: string): Promise<PortfolioHolding[]> {
+    return db.select().from(portfolioHoldings).where(eq(portfolioHoldings.userId, userId)).orderBy(desc(portfolioHoldings.createdAt));
   }
 
-  async getPortfolioHolding(id: number): Promise<PortfolioHolding | undefined> {
-    const [holding] = await db.select().from(portfolioHoldings).where(eq(portfolioHoldings.id, id));
+  async getPortfolioHolding(userId: string, id: number): Promise<PortfolioHolding | undefined> {
+    const [holding] = await db.select().from(portfolioHoldings).where(and(eq(portfolioHoldings.id, id), eq(portfolioHoldings.userId, userId)));
     return holding;
   }
 
-  async createPortfolioHolding(holding: InsertPortfolioHolding): Promise<PortfolioHolding> {
-    const [newHolding] = await db.insert(portfolioHoldings).values(holding).returning();
+  async createPortfolioHolding(userId: string, holding: InsertPortfolioHolding): Promise<PortfolioHolding> {
+    const [newHolding] = await db.insert(portfolioHoldings).values({ ...holding, userId }).returning();
     return newHolding;
   }
 
-  async updatePortfolioHolding(id: number, holding: Partial<InsertPortfolioHolding>): Promise<PortfolioHolding | undefined> {
+  async updatePortfolioHolding(userId: string, id: number, holding: Partial<InsertPortfolioHolding>): Promise<PortfolioHolding | undefined> {
     const [updated] = await db.update(portfolioHoldings)
       .set({ ...holding, updatedAt: new Date() })
-      .where(eq(portfolioHoldings.id, id))
+      .where(and(eq(portfolioHoldings.id, id), eq(portfolioHoldings.userId, userId)))
       .returning();
     return updated;
   }
 
-  async deletePortfolioHolding(id: number): Promise<void> {
-    await db.delete(portfolioHoldings).where(eq(portfolioHoldings.id, id));
+  async deletePortfolioHolding(userId: string, id: number): Promise<void> {
+    await db.delete(portfolioHoldings).where(and(eq(portfolioHoldings.id, id), eq(portfolioHoldings.userId, userId)));
   }
 
   async getWatchlist(userId: string): Promise<WatchlistItem[]> {
@@ -85,6 +86,10 @@ class DatabaseStorage implements IStorage {
         target: marketCache.cacheKey,
         set: { data, expiresAt }
       });
+  }
+
+  async deleteCachedData(key: string): Promise<void> {
+    await db.delete(marketCache).where(eq(marketCache.cacheKey, key));
   }
 }
 

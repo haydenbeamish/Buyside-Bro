@@ -8,7 +8,7 @@ export * from "./models/auth";
 
 export const portfolioHoldings = pgTable("portfolio_holdings", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id"),
+  userId: varchar("user_id").notNull().default(""),
   ticker: text("ticker").notNull(),
   shares: decimal("shares", { precision: 18, scale: 8 }).notNull(),
   avgCost: decimal("avg_cost", { precision: 18, scale: 4 }).notNull(),
@@ -17,7 +17,9 @@ export const portfolioHoldings = pgTable("portfolio_holdings", {
   name: text("name"),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("portfolio_holdings_user_id_idx").on(table.userId),
+}));
 
 export const insertPortfolioHoldingSchema = createInsertSchema(portfolioHoldings).omit({
   id: true,
@@ -52,9 +54,12 @@ export type InsertWatchlistItem = z.infer<typeof insertWatchlistSchema>;
 
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().default(""),
   title: text("title").notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("conversations_user_id_idx").on(table.userId),
+}));
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),

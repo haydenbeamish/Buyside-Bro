@@ -22,7 +22,7 @@ import {
 import { db } from "./db";
 import { desc, sql, eq, gte, count, and, isNotNull } from "drizzle-orm";
 
-const ADMIN_EMAIL = "hbeamish1@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "hbeamish1@gmail.com";
 
 function isAdmin(req: any, res: Response, next: NextFunction) {
   const user = req.user as any;
@@ -36,6 +36,9 @@ function isAdmin(req: any, res: Response, next: NextFunction) {
 }
 
 const LASER_BEAM_API = "https://api.laserbeamcapital.com";
+if (!process.env.API_KEY) {
+  console.error("WARNING: API_KEY environment variable is not set! Market data API calls will fail with 401.");
+}
 const LASER_BEAM_HEADERS: HeadersInit = {
   "X-API-Key": process.env.API_KEY || "",
 };
@@ -269,32 +272,50 @@ export async function registerRoutes(
   registerChatRoutes(app);
 
   app.get("/api/markets", async (req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
     try {
-      const cached = await storage.getCachedData("markets");
-      if (cached) {
-        return res.json(cached);
+      const forceRefresh = req.query.refresh === "true";
+      if (!forceRefresh) {
+        const cached = await storage.getCachedData("markets");
+        if (cached) {
+          return res.json(cached);
+        }
       }
 
-      let data: any = {};
+      let data: any = null;
       try {
         const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS });
         if (response.ok) {
           data = await response.json();
+        } else {
+          console.error(`Laser Beam API returned ${response.status}: ${response.statusText}`);
         }
       } catch (e) {
         console.error("Failed to fetch from Laser Beam API:", e);
       }
-      
-      const marketsData = {
-        indices: data.indices || FALLBACK_INDICES,
-        futures: data.futures || FALLBACK_FUTURES,
-        commodities: data.commodities || FALLBACK_COMMODITIES,
-        sectors: data.sectors || FALLBACK_SECTORS,
-        crypto: data.crypto || [],
-      };
 
-      await storage.setCachedData("markets", marketsData, 5);
-      res.json(marketsData);
+      if (data && (data.indices || data.markets)) {
+        const marketsData = {
+          indices: data.indices || [],
+          futures: data.futures || [],
+          commodities: data.commodities || [],
+          sectors: data.sectors || [],
+          crypto: data.crypto || [],
+        };
+        await storage.setCachedData("markets", marketsData, 5);
+        return res.json(marketsData);
+      }
+
+      console.warn("API returned no valid data, serving fallback WITHOUT caching");
+      res.json({
+        indices: FALLBACK_INDICES,
+        futures: FALLBACK_FUTURES,
+        commodities: FALLBACK_COMMODITIES,
+        sectors: FALLBACK_SECTORS,
+        crypto: [],
+        _stale: true,
+      });
     } catch (error) {
       console.error("Markets API error:", error);
       res.json({
@@ -303,26 +324,31 @@ export async function registerRoutes(
         commodities: FALLBACK_COMMODITIES.slice(0, 2),
         sectors: FALLBACK_SECTORS.slice(0, 3),
         crypto: [],
+        _stale: true,
       });
     }
   });
 
   app.get("/api/markets/full", async (req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
     try {
-      const cached = await storage.getCachedData("markets_full");
-      if (cached) {
-        return res.json(cached);
+      const forceRefresh = req.query.refresh === "true";
+      if (!forceRefresh) {
+        const cached = await storage.getCachedData("markets_full");
+        if (cached) {
+          return res.json(cached);
+        }
       }
 
-      // Request deduplication: if a fetch is already in progress, wait for it
-      const cacheKey = "markets_full_fetch";
+      const cacheKey = forceRefresh ? `markets_full_fetch_${Date.now()}` : "markets_full_fetch";
       let fetchPromise = pendingRequests.get(cacheKey);
       
       if (!fetchPromise) {
         fetchPromise = (async () => {
-          const response = await fetch(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS });
+          const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS }, 15000);
           if (!response.ok) {
-            throw new Error(`API error: ${response.status}`);
+            throw new Error(`API error: ${response.status} ${response.statusText}`);
           }
 
           const data = await response.json();
@@ -368,10 +394,15 @@ export async function registerRoutes(
   });
 
   app.get("/api/markets/summary", async (req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
     try {
-      const cached = await storage.getCachedData("market_summary");
-      if (cached) {
-        return res.json(cached);
+      const forceRefresh = req.query.refresh === "true";
+      if (!forceRefresh) {
+        const cached = await storage.getCachedData("market_summary");
+        if (cached) {
+          return res.json(cached);
+        }
       }
 
       const response = await fetch(`${LASER_BEAM_API}/api/markets/summary`, { headers: LASER_BEAM_HEADERS });
@@ -398,9 +429,30 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/admin/clear-market-cache", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = userId ? await storage.getUser(userId) : null;
+      const adminEmails = ["lachlanmacpherson@icloud.com", "lachlan@laserbeamcapital.com"];
+      if (!user || !adminEmails.includes(user.email || "")) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      const cacheKeys = ["markets", "markets_full", "market_summary"];
+      for (const key of cacheKeys) {
+        await storage.deleteCachedData(key);
+      }
+      console.log("Admin cleared market cache");
+      res.json({ success: true, cleared: cacheKeys });
+    } catch (error) {
+      console.error("Clear cache error:", error);
+      res.status(500).json({ error: "Failed to clear cache" });
+    }
+  });
+
   app.get("/api/portfolio", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const holdings = await storage.getPortfolioHoldings();
+      const userId = req.user.claims.sub;
+      const holdings = await storage.getPortfolioHoldings(userId);
       res.json(holdings);
     } catch (error) {
       console.error("Portfolio error:", error);
@@ -504,7 +556,8 @@ export async function registerRoutes(
         console.error("Failed to fetch current price:", e);
       }
 
-      const holding = await storage.createPortfolioHolding({
+      const userId = req.user.claims.sub;
+      const holding = await storage.createPortfolioHolding(userId, {
         ticker: ticker.toUpperCase(),
         shares,
         avgCost,
@@ -521,8 +574,9 @@ export async function registerRoutes(
 
   app.delete("/api/portfolio/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id as string);
-      await storage.deletePortfolioHolding(id);
+      await storage.deletePortfolioHolding(userId, id);
       res.status(204).send();
     } catch (error) {
       console.error("Delete portfolio error:", error);
@@ -533,7 +587,8 @@ export async function registerRoutes(
   // Enriched portfolio data with market data from FMP
   app.get("/api/portfolio/enriched", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const holdings = await storage.getPortfolioHoldings();
+      const userId = req.user.claims.sub;
+      const holdings = await storage.getPortfolioHoldings(userId);
       if (holdings.length === 0) {
         return res.json([]);
       }
@@ -615,7 +670,8 @@ export async function registerRoutes(
 
   app.get("/api/portfolio/stats", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const holdings = await storage.getPortfolioHoldings();
+      const userId = req.user.claims.sub;
+      const holdings = await storage.getPortfolioHoldings(userId);
       
       let totalValue = 0;
       let totalCost = 0;
@@ -632,8 +688,9 @@ export async function registerRoutes(
       const totalGain = totalValue - totalCost;
       const totalGainPercent = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
       
-      const dayChange = totalValue * 0.005 * (Math.random() > 0.5 ? 1 : -1);
-      const dayChangePercent = totalValue > 0 ? (dayChange / totalValue) * 100 : 0;
+      // dayChange requires live quote data; return 0 instead of fake random values
+      const dayChange = 0;
+      const dayChangePercent = 0;
 
       res.json({
         totalValue,
@@ -673,7 +730,7 @@ export async function registerRoutes(
         }
       }
 
-      const holdings = await storage.getPortfolioHoldings();
+      const holdings = await storage.getPortfolioHoldings(userId || "");
       if (holdings.length === 0) {
         return res.json({ analysis: "Add some holdings to get Bro-powered portfolio analysis." });
       }
@@ -739,9 +796,9 @@ export async function registerRoutes(
         }
       }
 
-      const holdings = await storage.getPortfolioHoldings();
+      const holdings = await storage.getPortfolioHoldings(userId || "");
       if (holdings.length === 0) {
-        return res.json({ 
+        return res.json({
           review: "## No Holdings Yet\n\nAdd some positions to your portfolio and I'll give you my professional take on your setup, bro." 
         });
       }
@@ -758,8 +815,8 @@ export async function registerRoutes(
         const avgCost = Number(holding.avgCost);
         const value = shares * currentPrice;
         const pnl = (currentPrice - avgCost) * shares;
-        const dayPct = (Math.random() - 0.5) * 4; // Simulated daily change
-        const mtdPct = (Math.random() - 0.5) * 10; // Simulated MTD
+        const dayPct = 0; // Requires live quote data
+        const mtdPct = 0; // Requires live quote data
         
         totalValue += value;
         totalCost += shares * avgCost;
@@ -786,8 +843,8 @@ export async function registerRoutes(
         pos.weight_pct = ((pos.value / totalValue) * 100).toFixed(2);
       }
 
-      const dailyPnl = totalValue * (Math.random() - 0.5) * 0.02;
-      const dailyPnlPct = (dailyPnl / totalValue) * 100;
+      const dailyPnl = 0;
+      const dailyPnlPct = 0;
 
       // Build the comprehensive prompt
       const currentDate = new Date().toLocaleDateString('en-AU', { 

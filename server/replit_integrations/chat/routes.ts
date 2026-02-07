@@ -66,9 +66,10 @@ async function proxySSEStream(
 }
 
 export function registerChatRoutes(app: Express): void {
-  app.get("/api/conversations", async (req: Request, res: Response) => {
+  app.get("/api/conversations", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const conversations = await chatStorage.getAllConversations();
+      const userId = req.user.claims.sub;
+      const conversations = await chatStorage.getAllConversations(userId);
       res.json(conversations);
     } catch (error) {
       console.error("Error fetching conversations:", error);
@@ -76,10 +77,11 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/conversations/:id", async (req: Request, res: Response) => {
+  app.get("/api/conversations/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id as string);
-      const conversation = await chatStorage.getConversation(id);
+      const conversation = await chatStorage.getConversation(userId, id);
       if (!conversation) {
         return res.status(404).json({ error: "Conversation not found" });
       }
@@ -91,10 +93,11 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/conversations", async (req: Request, res: Response) => {
+  app.post("/api/conversations", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = req.user.claims.sub;
       const { title } = req.body;
-      const conversation = await chatStorage.createConversation(title || "New Chat");
+      const conversation = await chatStorage.createConversation(userId, title || "New Chat");
       res.status(201).json(conversation);
     } catch (error) {
       console.error("Error creating conversation:", error);
@@ -102,10 +105,11 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  app.delete("/api/conversations/:id", async (req: Request, res: Response) => {
+  app.delete("/api/conversations/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id as string);
-      await chatStorage.deleteConversation(id);
+      await chatStorage.deleteConversation(userId, id);
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting conversation:", error);
@@ -122,6 +126,14 @@ export function registerChatRoutes(app: Express): void {
 
       if (!content || typeof content !== "string") {
         return res.status(400).json({ error: "Message content is required" });
+      }
+
+      // Verify conversation belongs to this user
+      if (userId) {
+        const conv = await chatStorage.getConversation(userId, conversationId);
+        if (!conv) {
+          return res.status(404).json({ error: "Conversation not found" });
+        }
       }
 
       if (userId) {
