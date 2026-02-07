@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, serial, integer, decimal, timestamp, jsonb, boolean, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, serial, integer, decimal, timestamp, jsonb, boolean, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -31,14 +31,19 @@ export type InsertPortfolioHolding = z.infer<typeof insertPortfolioHoldingSchema
 
 export const watchlist = pgTable("watchlist", {
   id: serial("id").primaryKey(),
-  ticker: text("ticker").notNull().unique(),
+  userId: varchar("user_id").notNull(),
+  ticker: text("ticker").notNull(),
   name: text("name"),
   notes: text("notes"),
   addedAt: timestamp("added_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => ({
+  userTickerUnique: uniqueIndex("watchlist_user_ticker_idx").on(table.userId, table.ticker),
+  userIdIdx: index("watchlist_user_id_idx").on(table.userId),
+}));
 
 export const insertWatchlistSchema = createInsertSchema(watchlist).omit({
   id: true,
+  userId: true,
   addedAt: true,
 });
 

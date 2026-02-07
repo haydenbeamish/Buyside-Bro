@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { portfolioHoldings, watchlist, marketCache } from "@shared/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import type { PortfolioHolding, InsertPortfolioHolding, WatchlistItem, InsertWatchlistItem } from "@shared/schema";
 
 export interface IStorage {
@@ -10,10 +10,10 @@ export interface IStorage {
   updatePortfolioHolding(id: number, holding: Partial<InsertPortfolioHolding>): Promise<PortfolioHolding | undefined>;
   deletePortfolioHolding(id: number): Promise<void>;
   
-  getWatchlist(): Promise<WatchlistItem[]>;
-  addToWatchlist(item: InsertWatchlistItem): Promise<WatchlistItem>;
-  removeFromWatchlist(id: number): Promise<void>;
-  updateWatchlistNotes(id: number, notes: string): Promise<WatchlistItem | undefined>;
+  getWatchlist(userId: string): Promise<WatchlistItem[]>;
+  addToWatchlist(userId: string, item: InsertWatchlistItem): Promise<WatchlistItem>;
+  removeFromWatchlist(userId: string, id: number): Promise<void>;
+  updateWatchlistNotes(userId: string, id: number, notes: string): Promise<WatchlistItem | undefined>;
   
   getCachedData(key: string): Promise<unknown | null>;
   setCachedData(key: string, data: unknown, expiresInMinutes: number): Promise<void>;
@@ -46,23 +46,23 @@ class DatabaseStorage implements IStorage {
     await db.delete(portfolioHoldings).where(eq(portfolioHoldings.id, id));
   }
 
-  async getWatchlist(): Promise<WatchlistItem[]> {
-    return db.select().from(watchlist).orderBy(desc(watchlist.addedAt));
+  async getWatchlist(userId: string): Promise<WatchlistItem[]> {
+    return db.select().from(watchlist).where(eq(watchlist.userId, userId)).orderBy(desc(watchlist.addedAt));
   }
 
-  async addToWatchlist(item: InsertWatchlistItem): Promise<WatchlistItem> {
-    const [newItem] = await db.insert(watchlist).values(item).returning();
+  async addToWatchlist(userId: string, item: InsertWatchlistItem): Promise<WatchlistItem> {
+    const [newItem] = await db.insert(watchlist).values({ ...item, userId }).returning();
     return newItem;
   }
 
-  async removeFromWatchlist(id: number): Promise<void> {
-    await db.delete(watchlist).where(eq(watchlist.id, id));
+  async removeFromWatchlist(userId: string, id: number): Promise<void> {
+    await db.delete(watchlist).where(and(eq(watchlist.id, id), eq(watchlist.userId, userId)));
   }
 
-  async updateWatchlistNotes(id: number, notes: string): Promise<WatchlistItem | undefined> {
+  async updateWatchlistNotes(userId: string, id: number, notes: string): Promise<WatchlistItem | undefined> {
     const [updated] = await db.update(watchlist)
       .set({ notes })
-      .where(eq(watchlist.id, id))
+      .where(and(eq(watchlist.id, id), eq(watchlist.userId, userId)))
       .returning();
     return updated;
   }

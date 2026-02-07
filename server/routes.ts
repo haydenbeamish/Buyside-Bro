@@ -290,7 +290,7 @@ export async function registerRoutes(
         crypto: data.crypto || [],
       };
 
-      await storage.setCachedData("markets", marketsData, 1440);
+      await storage.setCachedData("markets", marketsData, 5);
       res.json(marketsData);
     } catch (error) {
       console.error("Markets API error:", error);
@@ -343,7 +343,7 @@ export async function registerRoutes(
             lastUpdated: new Date().toLocaleTimeString(),
           };
 
-          await storage.setCachedData("markets_full", marketsFullData, 1440);
+          await storage.setCachedData("markets_full", marketsFullData, 5);
           return marketsFullData;
         })();
         
@@ -383,7 +383,7 @@ export async function registerRoutes(
         cached: data.cached || false,
       };
 
-      await storage.setCachedData("market_summary", summaryData, 1440);
+      await storage.setCachedData("market_summary", summaryData, 5);
       res.json(summaryData);
     } catch (error) {
       console.error("Market summary error:", error);
@@ -1967,7 +1967,8 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   // Watchlist routes
   app.get("/api/watchlist", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const items = await storage.getWatchlist();
+      const userId = req.user.claims.sub;
+      const items = await storage.getWatchlist(userId);
       res.json(items);
     } catch (error) {
       console.error("Watchlist error:", error);
@@ -1977,11 +1978,12 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.post("/api/watchlist", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = req.user.claims.sub;
       const validation = insertWatchlistSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", details: validation.error.errors });
       }
-      const item = await storage.addToWatchlist({
+      const item = await storage.addToWatchlist(userId, {
         ticker: validation.data.ticker.toUpperCase(),
         name: validation.data.name || null,
       });
@@ -1997,8 +1999,9 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.delete("/api/watchlist/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id as string);
-      await storage.removeFromWatchlist(id);
+      await storage.removeFromWatchlist(userId, id);
       res.status(204).send();
     } catch (error) {
       console.error("Remove from watchlist error:", error);
@@ -2008,12 +2011,13 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.patch("/api/watchlist/:id/notes", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const userId = req.user.claims.sub;
       const id = parseInt(req.params.id as string);
       const { notes } = req.body;
       if (typeof notes !== "string") {
         return res.status(400).json({ error: "Notes must be a string" });
       }
-      const updated = await storage.updateWatchlistNotes(id, notes);
+      const updated = await storage.updateWatchlistNotes(userId, id, notes);
       if (!updated) {
         return res.status(404).json({ error: "Watchlist item not found" });
       }
@@ -2026,7 +2030,8 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.get("/api/watchlist/enriched", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const items = await storage.getWatchlist();
+      const userId = req.user.claims.sub;
+      const items = await storage.getWatchlist(userId);
       if (items.length === 0) {
         return res.json([]);
       }
