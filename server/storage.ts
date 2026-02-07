@@ -4,11 +4,11 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import type { PortfolioHolding, InsertPortfolioHolding, WatchlistItem, InsertWatchlistItem } from "@shared/schema";
 
 export interface IStorage {
-  getPortfolioHoldings(): Promise<PortfolioHolding[]>;
-  getPortfolioHolding(id: number): Promise<PortfolioHolding | undefined>;
-  createPortfolioHolding(holding: InsertPortfolioHolding): Promise<PortfolioHolding>;
-  updatePortfolioHolding(id: number, holding: Partial<InsertPortfolioHolding>): Promise<PortfolioHolding | undefined>;
-  deletePortfolioHolding(id: number): Promise<void>;
+  getPortfolioHoldings(userId: string): Promise<PortfolioHolding[]>;
+  getPortfolioHolding(userId: string, id: number): Promise<PortfolioHolding | undefined>;
+  createPortfolioHolding(userId: string, holding: InsertPortfolioHolding): Promise<PortfolioHolding>;
+  updatePortfolioHolding(userId: string, id: number, holding: Partial<InsertPortfolioHolding>): Promise<PortfolioHolding | undefined>;
+  deletePortfolioHolding(userId: string, id: number): Promise<void>;
   
   getWatchlist(userId: string): Promise<WatchlistItem[]>;
   addToWatchlist(userId: string, item: InsertWatchlistItem): Promise<WatchlistItem>;
