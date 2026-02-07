@@ -54,7 +54,8 @@
       "Bash(ls:*)",
       "Bash(npx vite build:*)",
       "Bash(git status:*)",
-      "Bash(yes:*)"
+      "Bash(yes:*)",
+      "Bash(psql:*)"
     ]
   }
 }
