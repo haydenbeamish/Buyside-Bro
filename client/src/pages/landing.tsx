@@ -44,7 +44,7 @@ function TickerTape() {
   const duplicatedItems = [...tickerItems, ...tickerItems];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-black/90 border-t border-green-900/30 py-2 z-50 overflow-hidden">
+    <div className="fixed bottom-0 left-0 right-0 bg-black/90 border-t border-zinc-800 py-2 z-50 overflow-hidden">
       <div className="ticker-scroll flex whitespace-nowrap">
         {duplicatedItems.map((item, i) => (
           <span key={i} className="inline-flex items-center mx-6 ticker-font text-sm">
@@ -79,9 +79,9 @@ function TopNav() {
             {isAuthenticated && user ? (
               <div className="flex items-center gap-4">
                 <Link href="/dashboard">
-                  <Avatar className="w-8 h-8 cursor-pointer border border-green-500/50">
+                  <Avatar className="w-8 h-8 cursor-pointer border border-amber-500/50">
                     <AvatarImage src={user.profileImageUrl || undefined} />
-                    <AvatarFallback className="bg-green-900/30 text-green-400 text-xs">
+                    <AvatarFallback className="bg-amber-900/30 text-amber-400 text-xs">
                       {user.firstName?.[0] || user.email?.[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
@@ -92,7 +92,7 @@ function TopNav() {
               </div>
             ) : (
               <a href="/api/login">
-                <button className="border border-green-500 text-green-500 hover:bg-green-500/10 px-5 py-2 rounded text-sm uppercase tracking-wider font-medium transition-all" data-testid="button-member-login">
+                <button className="border border-amber-500 text-amber-500 hover:bg-amber-500/10 px-5 py-2 rounded text-sm uppercase tracking-wider font-medium transition-all" data-testid="button-member-login">
                   Login
                 </button>
               </a>
@@ -101,7 +101,7 @@ function TopNav() {
 
           {/* Mobile Menu Button */}
           <button 
-            className="md:hidden p-2 text-zinc-400 hover:text-green-400 transition-colors"
+            className="md:hidden p-2 text-zinc-400 hover:text-amber-400 transition-colors"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             data-testid="button-mobile-nav"
           >
@@ -111,12 +111,12 @@ function TopNav() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-green-900/30 py-4 space-y-4">
+          <div className="md:hidden border-t border-zinc-800 py-4 space-y-4">
             {isAuthenticated && user ? (
               <div className="flex items-center gap-3 py-2">
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={user.profileImageUrl || undefined} />
-                  <AvatarFallback className="bg-green-900/30 text-green-400 text-xs">
+                  <AvatarFallback className="bg-amber-900/30 text-amber-400 text-xs">
                     {user.firstName?.[0] || user.email?.[0]?.toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
@@ -127,7 +127,7 @@ function TopNav() {
               </div>
             ) : (
               <a href="/api/login" onClick={() => setMobileMenuOpen(false)}>
-                <button className="border border-green-500 text-green-500 w-full px-5 py-2 rounded text-sm uppercase tracking-wider font-medium mt-2" data-testid="button-member-login-mobile">
+                <button className="border border-amber-500 text-amber-500 w-full px-5 py-2 rounded text-sm uppercase tracking-wider font-medium mt-2" data-testid="button-member-login-mobile">
                   Login
                 </button>
               </a>
@@ -167,21 +167,21 @@ function HeroSection() {
             <h1 className="display-font text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 leading-tight text-white">
               Markets. Stocks.<br />Portfolios. Sorted.
             </h1>
-            <p className="text-green-400 text-xl md:text-2xl mb-8 display-font italic">
+            <p className="text-amber-400 text-xl md:text-2xl mb-8 display-font italic">
               The Buy Side Terminal. Rebuilt.
             </p>
 
             <div className="space-y-3 mb-8">
               {valueProps.map((prop, i) => (
                 <div key={i} className="flex items-center gap-3 justify-center lg:justify-start">
-                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                  <CheckCircle2 className="w-5 h-5 text-amber-500 flex-shrink-0" />
                   <span className="text-zinc-300 text-sm md:text-base">{prop}</span>
                 </div>
               ))}
             </div>
 
             <Link href={isAuthenticated ? "/whats-up" : "/dashboard"}>
-              <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-6 sm:px-10 py-3 sm:py-4 rounded text-base sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)]" data-testid="button-launch-terminal">
+              <button className="bg-amber-600 hover:bg-amber-400 text-black font-bold px-6 sm:px-10 py-3 sm:py-4 rounded text-base sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:shadow-[0_0_30px_rgba(255,215,0,0.5)]" data-testid="button-launch-terminal">
                 Launch Terminal
               </button>
             </Link>
@@ -254,7 +254,7 @@ function FeatureShowcase() {
         <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto mb-2">
           Professional-grade market intelligence. No Bloomberg terminal required.
         </p>
-        <p className="text-green-400 text-sm md:text-base display-font">
+        <p className="text-amber-400 text-sm md:text-base display-font">
           7 powerful tools. Free to explore. No credit card.
         </p>
       </div>
@@ -266,7 +266,7 @@ function FeatureShowcase() {
             className={`flex flex-col ${i % 2 === 1 ? "lg:flex-row-reverse" : "lg:flex-row"} items-center gap-8 lg:gap-12`}
           >
             <div className="lg:w-3/5 w-full">
-              <div className="relative rounded-lg overflow-hidden border border-green-900/40 shadow-[0_0_30px_rgba(0,255,0,0.08)]">
+              <div className="relative rounded-lg overflow-hidden border border-zinc-800 shadow-[0_0_30px_rgba(255,215,0,0.08)]">
                 <img
                   src={feature.image}
                   alt={`${feature.title} - ${feature.subtitle}`}
@@ -278,8 +278,8 @@ function FeatureShowcase() {
             </div>
 
             <div className="lg:w-2/5 w-full text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-green-900/20 border border-green-900/40 mb-4">
-                <feature.icon className="w-4 h-4 text-green-500" />
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-amber-900/20 border border-zinc-800 mb-4">
+                <feature.icon className="w-4 h-4 text-amber-500" />
                 <span className="display-font text-xs neon-green-subtle tracking-widest">{feature.title}</span>
               </div>
               <h3 className="text-xl md:text-2xl font-semibold text-white mb-3">{feature.subtitle}</h3>
@@ -294,26 +294,26 @@ function FeatureShowcase() {
 
 function PricingBadges() {
   return (
-    <section className="py-16 px-4 border-t border-green-900/30 bg-green-950/10">
+    <section className="py-16 px-4 border-t border-zinc-800 bg-zinc-950/30">
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           <div className="flex flex-col items-center gap-3">
-            <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
-              <Clock className="w-6 h-6 text-green-500" />
+            <div className="p-3 rounded-lg bg-amber-900/20 border border-zinc-800">
+              <Clock className="w-6 h-6 text-amber-500" />
             </div>
             <h4 className="display-font text-sm neon-green-subtle tracking-wider">FREE FOREVER</h4>
             <p className="text-zinc-400 text-sm">Full access to every feature. No restrictions. Upgrade when you're ready.</p>
           </div>
           <div className="flex flex-col items-center gap-3">
-            <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
-              <Shield className="w-6 h-6 text-green-500" />
+            <div className="p-3 rounded-lg bg-amber-900/20 border border-zinc-800">
+              <Shield className="w-6 h-6 text-amber-500" />
             </div>
             <h4 className="display-font text-sm neon-green-subtle tracking-wider">INSTANT ACCESS</h4>
             <p className="text-zinc-400 text-sm">Start exploring immediately. Sign in and go.</p>
           </div>
           <div className="flex flex-col items-center gap-3">
-            <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
-              <Zap className="w-6 h-6 text-green-500" />
+            <div className="p-3 rounded-lg bg-amber-900/20 border border-zinc-800">
+              <Zap className="w-6 h-6 text-amber-500" />
             </div>
             <h4 className="display-font text-sm neon-green-subtle tracking-wider">$10/MONTH AFTER</h4>
             <p className="text-zinc-400 text-sm">Includes $5 of Bro credits. Buy more as you need them.</p>
@@ -326,7 +326,7 @@ function PricingBadges() {
 
 function CTASection() {
   return (
-    <section className="py-20 px-4 border-t border-green-900/30">
+    <section className="py-20 px-4 border-t border-zinc-800">
       <div className="max-w-3xl mx-auto text-center">
         <h2 className="display-font text-2xl md:text-4xl text-white mb-3 uppercase tracking-wider">
           Ready to see it in action?
@@ -339,7 +339,7 @@ function CTASection() {
         </p>
         <Link href="/dashboard">
           <button
-            className="bg-green-500 hover:bg-green-400 text-black font-bold px-6 sm:px-10 py-3 sm:py-4 rounded text-base sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3"
+            className="bg-amber-600 hover:bg-amber-400 text-black font-bold px-6 sm:px-10 py-3 sm:py-4 rounded text-base sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:shadow-[0_0_30px_rgba(255,215,0,0.5)] inline-flex items-center gap-3"
             data-testid="button-cta"
           >
             Open Terminal <ArrowRight className="w-5 h-5" />
@@ -355,7 +355,7 @@ function CTASection() {
 
 function Footer() {
   return (
-    <footer className="py-12 px-4 border-t border-green-900/30 mb-12">
+    <footer className="py-12 px-4 border-t border-zinc-800 mb-12">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
@@ -375,10 +375,10 @@ function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Product</h4>
             <nav aria-label="Product links" className="space-y-2">
-              <Link href="/dashboard"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Markets</span></Link>
-              <Link href="/portfolio"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Portfolio</span></Link>
-              <Link href="/watchlist"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Watchlist</span></Link>
-              <Link href="/analysis"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Company Analysis</span></Link>
+              <Link href="/dashboard"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Markets</span></Link>
+              <Link href="/portfolio"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Portfolio</span></Link>
+              <Link href="/watchlist"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Watchlist</span></Link>
+              <Link href="/analysis"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Company Analysis</span></Link>
             </nav>
           </div>
 
@@ -386,9 +386,9 @@ function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Quick Links</h4>
             <nav aria-label="Quick links" className="space-y-2">
-              <Link href="/whats-up"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">What's Up</span></Link>
-              <Link href="/earnings"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Earnings</span></Link>
-              <Link href="/chat"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Ask Bro</span></Link>
+              <Link href="/whats-up"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">What's Up</span></Link>
+              <Link href="/earnings"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Earnings</span></Link>
+              <Link href="/chat"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Ask Bro</span></Link>
             </nav>
           </div>
 
@@ -396,22 +396,22 @@ function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Info</h4>
             <div className="space-y-2">
-              <Link href="/dashboard/subscription"><span className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Pricing</span></Link>
-              <a href="mailto:support@buysidebro.com" className="block text-zinc-400 hover:text-green-400 transition-colors text-sm">Contact</a>
+              <Link href="/dashboard/subscription"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Pricing</span></Link>
+              <a href="mailto:support@buysidebro.com" className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Contact</a>
             </div>
           </div>
         </div>
 
         {/* Bottom */}
-        <div className="pt-8 border-t border-green-900/30 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="pt-8 border-t border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-zinc-500 text-sm">
             © 2026 Buy Side Bro. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
-            <a href="https://x.com/buysidebro" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-green-400 transition-colors" data-testid="link-twitter">
+            <a href="https://x.com/buysidebro" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-amber-400 transition-colors" data-testid="link-twitter">
               <Twitter className="w-5 h-5" />
             </a>
-            <a href="https://discord.gg/buysidebro" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-green-400 transition-colors" data-testid="link-discord">
+            <a href="https://discord.gg/buysidebro" target="_blank" rel="noopener noreferrer" className="text-zinc-500 hover:text-amber-400 transition-colors" data-testid="link-discord">
               <SiDiscord className="w-5 h-5" />
             </a>
           </div>

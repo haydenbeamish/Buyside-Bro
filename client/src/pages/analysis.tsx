@@ -163,7 +163,7 @@ function FilingsSection({ filings, isLoading }: { filings?: SECFiling[]; isLoadi
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
       <h3 className="font-semibold text-white flex items-center gap-2 mb-4">
-        <FileText className="h-4 w-4 text-green-500" />
+        <FileText className="h-4 w-4 text-amber-500" />
         SEC Filings
       </h3>
       <div className="max-h-[420px] overflow-y-auto space-y-1 pr-1">
@@ -353,7 +353,7 @@ function MetricsGrid({
   return (
     <div className="space-y-3">
       <h3 className="font-semibold text-white flex items-center gap-2">
-        <BarChart3 className="h-4 w-4 text-green-500" />
+        <BarChart3 className="h-4 w-4 text-amber-500" />
         Key Metrics
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
@@ -486,8 +486,8 @@ function MarkdownSection({ content }: { content: string }) {
         return (
           <div key={idx} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-5">
             {title && (
-              <h3 className="text-lg font-semibold text-green-400 mb-3 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-green-500" />
+              <h3 className="text-lg font-semibold text-amber-400 mb-3 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-amber-500" />
                 {title}
               </h3>
             )}
@@ -496,7 +496,7 @@ function MarkdownSection({ content }: { content: string }) {
                 if (line.startsWith('- ') || line.startsWith('* ')) {
                   return (
                     <div key={i} className="flex items-start gap-2 mb-1">
-                      <span className="text-green-500 mt-1">•</span>
+                      <span className="text-amber-500 mt-1">•</span>
                       <span>{line.substring(2)}</span>
                     </div>
                   );
@@ -554,33 +554,33 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
   const currentStage = stageIndex === -1 ? loadingStages.length - 1 : stageIndex;
   
   return (
-    <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-green-950/20 border border-green-500/30 rounded-lg p-8 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,0,0.05),transparent_70%)]" />
-      
+    <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-amber-950/20 border border-amber-500/30 rounded-lg p-8 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,215,0,0.05),transparent_70%)]" />
+
       <div className="relative">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="h-14 w-14 rounded-full bg-green-500/10 flex items-center justify-center">
-                <Brain className="h-7 w-7 text-green-500 animate-pulse" />
+              <div className="h-14 w-14 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <Brain className="h-7 w-7 text-amber-500 animate-pulse" />
               </div>
-              <div className="absolute inset-0 rounded-full border-2 border-green-500/30 animate-ping" />
+              <div className="absolute inset-0 rounded-full border-2 border-amber-500/30 animate-ping" />
             </div>
             <div>
               <h3 className="font-bold text-xl text-white">Deep Analysis in Progress</h3>
               <p className="text-zinc-400 text-sm mt-1">
-                Analyzing <span className="font-mono text-green-400">{ticker}</span>
+                Analyzing <span className="font-mono text-amber-400">{ticker}</span>
               </p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-2xl sm:text-3xl font-bold font-mono text-green-400">{displayProgress}%</p>
+            <p className="text-2xl sm:text-3xl font-bold font-mono text-amber-400">{displayProgress}%</p>
           </div>
         </div>
         
         <div className="h-3 bg-zinc-800 rounded-full overflow-hidden mb-6">
           <div 
-            className="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full transition-all duration-150"
+            className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all duration-150"
             style={{ width: `${displayProgress}%` }}
           />
         </div>
@@ -593,21 +593,21 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
               <div
                 key={stage.label}
                 className={`text-center p-2 sm:p-3 rounded-lg transition-all ${
-                  isActive ? "bg-green-500/20 border border-green-500/50" :
+                  isActive ? "bg-amber-500/20 border border-amber-500/50" :
                   isComplete ? "bg-zinc-800" : "bg-zinc-900/50"
                 }`}
               >
                 <stage.icon className={`h-5 w-5 mx-auto mb-2 ${
-                  isActive ? "text-green-400 animate-pulse" :
-                  isComplete ? "text-green-500" : "text-zinc-600"
+                  isActive ? "text-amber-400 animate-pulse" :
+                  isComplete ? "text-amber-500" : "text-zinc-600"
                 }`} />
                 <p className={`text-xs ${
-                  isActive ? "text-green-400" :
+                  isActive ? "text-amber-400" :
                   isComplete ? "text-zinc-400" : "text-zinc-600"
                 }`}>
                   {stage.label}
                 </p>
-                {isComplete && <CheckCircle2 className="h-3 w-3 text-green-500 mx-auto mt-1" />}
+                {isComplete && <CheckCircle2 className="h-3 w-3 text-amber-500 mx-auto mt-1" />}
               </div>
             );
           })}
@@ -630,13 +630,13 @@ function DeepAnalysisResult({ result }: { result: DeepAnalysisResult }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-green-950/10 border border-green-500/20 rounded-lg p-6">
+      <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-amber-950/10 border border-amber-500/20 rounded-lg p-6">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-4">
-              <CheckCircle2 className="h-6 w-6 text-green-500" />
+              <CheckCircle2 className="h-6 w-6 text-amber-500" />
               <h3 className="font-bold text-xl text-white">Analysis Complete</h3>
-              <Badge variant="outline" className="border-green-500/50 text-green-400 uppercase text-xs">
+              <Badge variant="outline" className="border-amber-500/50 text-amber-400 uppercase text-xs">
                 {result.mode || "Deep Dive"}
               </Badge>
             </div>
@@ -788,7 +788,7 @@ function StockSearchInput({
           aria-activedescendant={activeIndex >= 0 ? `analysis-option-${activeIndex}` : undefined}
         />
         {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 animate-spin" />
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500 animate-spin" />
         )}
       </div>
       {isOpen && results.length > 0 && (
@@ -799,14 +799,14 @@ function StockSearchInput({
               id={`analysis-option-${idx}`}
               type="button"
               onClick={() => handleSelect(stock)}
-              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
+              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
               data-testid={`stock-result-${stock.symbol}`}
               role="option"
               aria-selected={idx === activeIndex}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-semibold text-green-400">{stock.symbol}</span>
+                  <span className="font-mono font-semibold text-amber-400">{stock.symbol}</span>
                   <span className="text-xs text-zinc-500 bg-zinc-700 px-1.5 py-0.5 rounded">{stock.exchange}</span>
                 </div>
                 <p className="text-sm text-zinc-400 truncate">{stock.name}</p>
@@ -838,21 +838,21 @@ function AILoadingAnimation({ ticker }: { ticker: string }) {
   }, [loadingMessages.length]);
 
   return (
-    <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-green-950/20 border border-green-500/30 rounded-lg p-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,0,0.05),transparent_70%)]" />
-      
+    <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-amber-950/20 border border-amber-500/30 rounded-lg p-6 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,215,0,0.05),transparent_70%)]" />
+
       <div className="relative flex items-start gap-4">
         <div className="relative">
-          <div className="h-12 w-12 rounded-full bg-green-500/10 flex items-center justify-center">
-            <Brain className="h-6 w-6 text-green-500 animate-pulse" />
+          <div className="h-12 w-12 rounded-full bg-amber-500/10 flex items-center justify-center">
+            <Brain className="h-6 w-6 text-amber-500 animate-pulse" />
           </div>
-          <div className="absolute inset-0 rounded-full border-2 border-green-500/30 animate-ping" />
+          <div className="absolute inset-0 rounded-full border-2 border-amber-500/30 animate-ping" />
         </div>
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-3">
             <h3 className="font-semibold text-white">Bro's Brain is Working</h3>
-            <Badge variant="outline" className="border-green-500/50 text-green-400 animate-pulse">
+            <Badge variant="outline" className="border-amber-500/50 text-amber-400 animate-pulse">
               analyzing {ticker}
             </Badge>
           </div>
@@ -860,11 +860,11 @@ function AILoadingAnimation({ ticker }: { ticker: string }) {
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="flex gap-1">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
-              <span className="text-sm text-green-400 font-mono animate-pulse">
+              <span className="text-sm text-amber-400 font-mono animate-pulse">
                 {loadingMessages[messageIndex]}
               </span>
             </div>
@@ -892,7 +892,7 @@ function AILoadingAnimation({ ticker }: { ticker: string }) {
             
             <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-green-500 via-green-400 to-green-500 rounded-full"
+                className="h-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-full"
                 style={{
                   width: '60%',
                   animation: 'loading-bar 2s ease-in-out infinite',
@@ -1275,13 +1275,13 @@ export default function AnalysisPage() {
               <DeepAnalysisResult result={deepResult} />
             ) : (
               <div className="bg-zinc-900 border border-zinc-800 border-dashed rounded-lg py-12 text-center">
-                <Brain className="h-10 w-10 text-green-500/60 mx-auto mb-4" />
+                <Brain className="h-10 w-10 text-amber-500/60 mx-auto mb-4" />
                 <h3 className="font-semibold text-white mb-2">Deep Analysis</h3>
                 <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
                   Get a comprehensive AI-powered fundamental analysis with buy/hold/sell recommendation for {activeTicker}.
                 </p>
                 <Button
-                  className="bg-green-600 text-black font-bold uppercase tracking-wider"
+                  className="bg-amber-600 text-black font-bold uppercase tracking-wider"
                   onClick={() => {
                     if (!gate()) return;
                     if (isAtLimit) {

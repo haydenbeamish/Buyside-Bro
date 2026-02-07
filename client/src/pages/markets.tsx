@@ -66,7 +66,7 @@ function TickerTape({ items, flashCells }: { items: MarketItem[]; flashCells: Fl
   const duplicatedItems = [...items, ...items];
 
   return (
-    <div className="bg-black border-b border-green-900/30 overflow-hidden">
+    <div className="bg-black border-b border-zinc-800 overflow-hidden">
       <div 
         ref={scrollRef}
         className="flex whitespace-nowrap py-2 overflow-x-hidden"
@@ -75,7 +75,7 @@ function TickerTape({ items, flashCells }: { items: MarketItem[]; flashCells: Fl
         {duplicatedItems.map((item, idx) => (
           <div 
             key={`${item.name}-${idx}`}
-            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 border-r border-green-900/30"
+            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 border-r border-zinc-800"
           >
             <span className="text-zinc-400 text-xs sm:text-sm ticker-font">{item.name}</span>
             <span className="text-zinc-200 text-xs sm:text-sm ticker-font">
@@ -123,8 +123,8 @@ function GroupedSection({ title, items, flashCells, note }: { title: string; ite
   if (items.length === 0) return null;
   return (
     <div className="mb-6">
-      <div className="border-l-2 border-green-500 pl-3 mb-3">
-        <h3 className="text-green-500 font-semibold text-sm uppercase tracking-wide">{title}</h3>
+      <div className="border-l-2 border-amber-500 pl-3 mb-3">
+        <h3 className="text-amber-500 font-semibold text-sm uppercase tracking-wide">{title}</h3>
         {note && <p className="text-zinc-500 text-xs mt-0.5">{note}</p>}
       </div>
       {/* Mobile view */}
@@ -253,7 +253,7 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
 
   const SortIndicator = ({ field }: { field: string }) => {
     if (sortField !== field) return null;
-    return sortDir === 'desc' ? <span className="text-green-500">▼</span> : <span className="text-green-500">▲</span>;
+    return sortDir === 'desc' ? <span className="text-amber-500">▼</span> : <span className="text-amber-500">▲</span>;
   };
 
   return (
@@ -309,7 +309,7 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
                 return (
                   <th
                     key={field}
-                    className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:rounded"
+                    className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:rounded"
                     tabIndex={0}
                     role="button"
                     onClick={() => handleSort(field)}

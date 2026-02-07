@@ -4,42 +4,42 @@
 @tailwind components;
 @tailwind utilities;
 
-/* BUY SIDE BRO - NEON GREEN TERMINAL THEME */
+/* BUY SIDE BRO - BLOOMBERG GOLD TERMINAL THEME */
 :root {
-  --neon-green: 120 100% 50%;
+  --neon-green: 48 100% 50%;
   --neon-orange: 33 100% 50%;
-  --neon-green-glow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+  --neon-green-glow: 0 0 10px #FFD700, 0 0 20px #FFD700;
   --neon-orange-glow: 0 0 10px #ff8c00, 0 0 20px #ff8c00;
-  
-  --button-outline: rgba(0,255,0, .15);
-  --badge-outline: rgba(0,255,0, .08);
+
+  --button-outline: rgba(255,215,0, .15);
+  --badge-outline: rgba(255,215,0, .08);
   --opaque-button-border-intensity: -8;
-  --elevate-1: rgba(0,255,0, .08);
-  --elevate-2: rgba(0,255,0, .15);
+  --elevate-1: rgba(255,215,0, .08);
+  --elevate-2: rgba(255,215,0, .15);
   --background: 0 0% 2%;
   --foreground: 0 0% 95%;
-  --border: 120 50% 20%;
-  --card: 120 20% 5%;
+  --border: 0 0% 20%;
+  --card: 0 0% 5%;
   --card-foreground: 0 0% 95%;
-  --card-border: 120 50% 20%;
-  --sidebar: 120 20% 4%;
+  --card-border: 0 0% 20%;
+  --sidebar: 0 0% 4%;
   --sidebar-foreground: 0 0% 90%;
-  --sidebar-border: 120 50% 15%;
-  --sidebar-primary: 120 100% 45%;
+  --sidebar-border: 0 0% 15%;
+  --sidebar-primary: 48 100% 50%;
   --sidebar-primary-foreground: 0 0% 0%;
-  --sidebar-accent: 120 50% 12%;
-  --sidebar-accent-foreground: 120 100% 50%;
-  --sidebar-ring: 120 100% 50%;
-  --popover: 120 20% 5%;
+  --sidebar-accent: 48 50% 12%;
+  --sidebar-accent-foreground: 48 100% 50%;
+  --sidebar-ring: 48 100% 50%;
+  --popover: 0 0% 5%;
   --popover-foreground: 0 0% 95%;
-  --popover-border: 120 50% 20%;
-  --primary: 120 100% 45%;
+  --popover-border: 0 0% 20%;
+  --primary: 48 100% 50%;
   --primary-foreground: 0 0% 0%;
-  --secondary: 120 20% 12%;
+  --secondary: 0 0% 12%;
   --secondary-foreground: 0 0% 95%;
-  --muted: 120 10% 12%;
+  --muted: 0 0% 12%;
   --muted-foreground: 0 0% 60%;
-  --accent: 120 100% 45%;
+  --accent: 48 100% 50%;
   --accent-foreground: 0 0% 0%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
@@ -47,9 +47,9 @@
   --success-foreground: 0 0% 0%;
   --warning: 33 100% 50%;
   --warning-foreground: 0 0% 0%;
-  --input: 120 20% 12%;
-  --ring: 120 100% 50%;
-  --chart-1: 120 100% 45%;
+  --input: 0 0% 12%;
+  --ring: 48 100% 50%;
+  --chart-1: 48 100% 50%;
   --chart-2: 33 100% 50%;
   --chart-3: 0 84% 60%;
   --chart-4: 200 100% 50%;
@@ -77,11 +77,11 @@
 
 /* Dark mode is the default and only mode */
 .dark {
-  --button-outline: rgba(0,255,0, .15);
-  --badge-outline: rgba(0,255,0, .08);
+  --button-outline: rgba(255,215,0, .15);
+  --badge-outline: rgba(255,215,0, .08);
   --opaque-button-border-intensity: 9;
-  --elevate-1: rgba(0,255,0, .08);
-  --elevate-2: rgba(0,255,0, .15);
+  --elevate-1: rgba(255,215,0, .08);
+  --elevate-2: rgba(255,215,0, .15);
 }
 
 @layer base {
@@ -95,7 +95,7 @@
 
   body {
     @apply font-sans antialiased text-foreground;
-    background: radial-gradient(ellipse at center, #051205 0%, #000000 70%);
+    background: #000000;
     min-height: 100vh;
   }
 }
@@ -170,10 +170,10 @@
     inset: -1px;
   }
 
-  /* Neon text effects */
+  /* Neon text effects - Bloomberg Gold */
   .neon-green {
-    color: #00ff00;
-    text-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 40px #00ff00;
+    color: #FFD700;
+    text-shadow: 0 0 5px #FFD700, 0 0 10px #FFD700, 0 0 20px #FFD700, 0 0 40px #FFD700;
   }
 
   .neon-orange {
@@ -182,8 +182,8 @@
   }
 
   .neon-green-subtle {
-    color: #00ff00;
-    text-shadow: 0 0 3px #00ff00, 0 0 6px #00ff00;
+    color: #FFD700;
+    text-shadow: 0 0 3px #FFD700, 0 0 6px #FFD700;
   }
 
   .neon-orange-subtle {
@@ -192,8 +192,8 @@
   }
 
   .neon-border {
-    border-color: #00ff00;
-    box-shadow: 0 0 5px #00ff00, inset 0 0 5px rgba(0, 255, 0, 0.1);
+    border-color: #FFD700;
+    box-shadow: 0 0 5px #FFD700, inset 0 0 5px rgba(255, 215, 0, 0.1);
   }
 
   .neon-border-orange {
@@ -203,18 +203,18 @@
 
   .neon-button {
     background: transparent;
-    color: #00ff00;
+    color: #FFD700;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border: 2px solid #00ff00;
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3), inset 0 0 10px rgba(0, 255, 0, 0.05);
+    border: 2px solid #FFD700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3), inset 0 0 10px rgba(255, 215, 0, 0.05);
     transition: all 0.3s ease;
   }
 
   .neon-button:hover {
-    background: rgba(0, 255, 0, 0.1);
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5), 0 0 30px rgba(0, 255, 0, 0.3), inset 0 0 15px rgba(0, 255, 0, 0.1);
+    background: rgba(255, 215, 0, 0.1);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.5), 0 0 30px rgba(255, 215, 0, 0.3), inset 0 0 15px rgba(255, 215, 0, 0.1);
     transform: translateY(-1px);
   }
 
@@ -224,7 +224,6 @@
 
   .price-down {
     color: #ff4444;
-    text-shadow: 0 0 3px #ff4444;
   }
 
   .ticker-font {
@@ -245,9 +244,9 @@
   }
 
   .terminal-card {
-    background: rgba(0, 20, 0, 0.4);
-    border: 1px solid rgba(0, 255, 0, 0.2);
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.05), inset 0 0 20px rgba(0, 255, 0, 0.02);
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.05), inset 0 0 20px rgba(255, 215, 0, 0.02);
   }
 
   .scanline {
@@ -266,8 +265,8 @@
       0deg,
       transparent,
       transparent 2px,
-      rgba(0, 255, 0, 0.03) 2px,
-      rgba(0, 255, 0, 0.03) 4px
+      rgba(255, 215, 0, 0.03) 2px,
+      rgba(255, 215, 0, 0.03) 4px
     );
     pointer-events: none;
     z-index: 1;

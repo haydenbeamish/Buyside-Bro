@@ -100,7 +100,7 @@ function NewsFeedItemCard({ item, defaultExpanded }: { item: NewsFeedItem; defau
       {expanded && (
         <div className="mt-3 ml-7 sm:ml-8">
           <div 
-            className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap [&_b]:text-green-500 [&_b]:font-semibold"
+            className="text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap [&_b]:text-amber-500 [&_b]:font-semibold"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.content) }}
             data-testid={`newsfeed-content-${item.id}`}
           />
@@ -120,11 +120,11 @@ function NewsFeed() {
 
   if (isLoading) {
     return (
-      <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
         <h3 className="text-zinc-300 font-semibold text-sm sm:text-base mb-4">NEWS FEED</h3>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="border-l-2 border-green-500/30 pl-3">
+            <div key={i} className="border-l-2 border-amber-500/30 pl-3">
               <Skeleton className="h-4 w-3/4 bg-zinc-800 mb-2" />
               <Skeleton className="h-3 w-1/4 bg-zinc-800" />
             </div>
@@ -136,7 +136,7 @@ function NewsFeed() {
 
   if (items.length === 0) {
     return (
-      <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
         <h3 className="text-zinc-300 font-semibold text-sm sm:text-base mb-4">NEWS FEED</h3>
         <p className="text-zinc-500 text-sm">No market updates yet. Check back after market open.</p>
       </div>
@@ -144,11 +144,11 @@ function NewsFeed() {
   }
 
   return (
-    <div className="bg-zinc-900 border border-green-900/30 rounded-lg" data-testid="newsfeed-container">
-      <div className="px-3 sm:px-4 py-3 border-b border-green-900/30">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg" data-testid="newsfeed-container">
+      <div className="px-3 sm:px-4 py-3 border-b border-zinc-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-green-900/30 border border-green-500/30 flex items-center justify-center">
-            <Newspaper className="w-5 h-5 text-green-500" />
+          <div className="w-10 h-10 rounded-full bg-amber-900/30 border border-amber-500/30 flex items-center justify-center">
+            <Newspaper className="w-5 h-5 text-amber-500" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white">News Feed</h3>
@@ -182,10 +182,10 @@ export default function WhatsUpPage() {
       </h1>
 
       <div className="space-y-6">
-        <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4 sm:p-6">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-green-900/30 border border-green-500/30 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-green-500" />
+            <div className="w-10 h-10 rounded-full bg-amber-900/30 border border-amber-500/30 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-amber-500" />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-white">Market Summary</h2>
@@ -203,7 +203,7 @@ export default function WhatsUpPage() {
           ) : summary ? (
             <div className="text-zinc-300 text-sm leading-relaxed" data-testid="text-market-summary">
               <div 
-                className="whitespace-pre-wrap [&_b]:text-green-500 [&_b]:font-semibold"
+                className="whitespace-pre-wrap [&_b]:text-amber-500 [&_b]:font-semibold"
                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(summary.summary) }}
               />
               <p className="text-zinc-600 text-xs mt-4 pt-4 border-t border-zinc-800">

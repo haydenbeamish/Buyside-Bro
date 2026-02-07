@@ -147,7 +147,7 @@ function StockTickerInput({
           aria-activedescendant={activeIndex >= 0 ? `portfolio-option-${activeIndex}` : undefined}
         />
         {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 animate-spin" />
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500 animate-spin" />
         )}
       </div>
       {isOpen && results.length > 0 && (
@@ -158,14 +158,14 @@ function StockTickerInput({
               id={`portfolio-option-${idx}`}
               type="button"
               onClick={() => handleSelect(stock)}
-              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
+              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
               data-testid={`stock-result-${stock.symbol}`}
               role="option"
               aria-selected={idx === activeIndex}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-semibold text-green-400">{stock.symbol}</span>
+                  <span className="font-mono font-semibold text-amber-400">{stock.symbol}</span>
                   <span className="text-xs text-zinc-500 bg-zinc-700 px-1.5 py-0.5 rounded">{stock.exchange}</span>
                 </div>
                 <p className="text-sm text-zinc-400 truncate">{stock.name}</p>
@@ -225,11 +225,11 @@ function ThinkingLoader() {
         <img 
           src={logoImg} 
           alt="Loading" 
-          className="w-20 h-20 object-contain animate-pulse drop-shadow-[0_0_20px_rgba(0,255,0,0.5)]" 
+          className="w-20 h-20 object-contain animate-pulse drop-shadow-[0_0_20px_rgba(255,215,0,0.5)]" 
         />
-        <Loader2 className="absolute -bottom-2 -right-2 w-6 h-6 text-green-500 animate-spin" />
+        <Loader2 className="absolute -bottom-2 -right-2 w-6 h-6 text-amber-500 animate-spin" />
       </div>
-      <p className="text-lg text-green-400 font-medium mb-2">Bro is thinking...</p>
+      <p className="text-lg text-amber-400 font-medium mb-2">Bro is thinking...</p>
       <p className="text-sm text-zinc-400 animate-pulse">{statuses[statusIndex]}</p>
       
       <div className="flex items-center gap-4 sm:gap-8 mt-8">
@@ -240,16 +240,16 @@ function ThinkingLoader() {
           { icon: CheckCircle, label: "Actions" },
         ].map((item, idx) => (
           <div key={item.label} className="flex flex-col items-center gap-2">
-            <div className={`p-3 rounded-full bg-zinc-800 border border-green-900/50 ${idx <= statusIndex % 4 ? 'border-green-500/50' : ''}`}>
-              <item.icon className={`w-5 h-5 ${idx <= statusIndex % 4 ? 'text-green-500' : 'text-zinc-600'}`} />
+            <div className={`p-3 rounded-full bg-zinc-800 border border-zinc-800 ${idx <= statusIndex % 4 ? 'border-amber-500/50' : ''}`}>
+              <item.icon className={`w-5 h-5 ${idx <= statusIndex % 4 ? 'text-amber-500' : 'text-zinc-600'}`} />
             </div>
-            <span className={`text-xs ${idx <= statusIndex % 4 ? 'text-green-400' : 'text-zinc-600'}`}>{item.label}</span>
+            <span className={`text-xs ${idx <= statusIndex % 4 ? 'text-amber-400' : 'text-zinc-600'}`}>{item.label}</span>
           </div>
         ))}
       </div>
       
       <div className="w-64 h-1 bg-zinc-800 rounded-full mt-8 overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full animate-[loading_2s_ease-in-out_infinite]" 
+        <div className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full animate-[loading_2s_ease-in-out_infinite]" 
              style={{ width: '60%' }} />
       </div>
     </div>
@@ -404,12 +404,12 @@ export default function PortfolioPage() {
           <div className="flex items-center gap-3">
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="border-green-900/50 bg-zinc-900 hover:bg-zinc-800 hover:border-green-500/50" data-testid="button-add-position">
+                <Button variant="outline" className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 hover:border-amber-500/50" data-testid="button-add-position">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Position
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-zinc-900 border-green-900/30 text-white">
+              <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
                 <DialogHeader>
                   <DialogTitle>Add New Position</DialogTitle>
                 </DialogHeader>
@@ -421,7 +421,7 @@ export default function PortfolioPage() {
                       onSelect={(symbol) => setNewHolding({ ...newHolding, ticker: symbol })}
                     />
                     {newHolding.ticker && (
-                      <p className="text-xs text-green-400 font-mono">Selected: {newHolding.ticker}</p>
+                      <p className="text-xs text-amber-400 font-mono">Selected: {newHolding.ticker}</p>
                     )}
                   </div>
                   <div className="space-y-2">
@@ -452,7 +452,7 @@ export default function PortfolioPage() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-green-600 hover:bg-green-500 text-black font-semibold"
+                    className="w-full bg-amber-600 hover:bg-amber-500 text-black font-semibold"
                     disabled={addMutation.isPending}
                     data-testid="button-submit-position"
                   >
@@ -465,7 +465,7 @@ export default function PortfolioPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 mb-6 sm:mb-8">
-          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-3 sm:p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 sm:p-4">
             <p className="text-zinc-500 text-[11px] sm:text-xs uppercase tracking-wide mb-1">Total Value</p>
             {statsLoading ? (
               <Skeleton className="h-8 w-28 bg-zinc-800" />
@@ -475,7 +475,7 @@ export default function PortfolioPage() {
               </p>
             )}
           </div>
-          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-3 sm:p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 sm:p-4">
             <p className="text-zinc-500 text-[11px] sm:text-xs uppercase tracking-wide mb-1">Total Gain</p>
             {statsLoading ? (
               <Skeleton className="h-8 w-28 bg-zinc-800" />
@@ -488,7 +488,7 @@ export default function PortfolioPage() {
               </div>
             )}
           </div>
-          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-3 sm:p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 sm:p-4">
             <p className="text-zinc-500 text-[11px] sm:text-xs uppercase tracking-wide mb-1">Day Change</p>
             {statsLoading ? (
               <Skeleton className="h-8 w-28 bg-zinc-800" />
@@ -508,7 +508,7 @@ export default function PortfolioPage() {
               </div>
             )}
           </div>
-          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-3 sm:p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 sm:p-4">
             <p className="text-zinc-500 text-[11px] sm:text-xs uppercase tracking-wide mb-1">Positions</p>
             {holdingsLoading ? (
               <Skeleton className="h-8 w-12 bg-zinc-800" />
@@ -521,7 +521,7 @@ export default function PortfolioPage() {
         <h2 className="text-lg font-semibold mb-4">Holdings</h2>
 
         <div className="mb-8">
-          <div className="bg-zinc-900 border border-green-900/30 rounded-lg">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
             <div className="overflow-x-auto relative scroll-fade-right">
               {holdingsLoading ? (
                 <div className="p-4 space-y-2">
@@ -543,7 +543,7 @@ export default function PortfolioPage() {
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-semibold text-green-400 text-sm">{holding.ticker}</span>
+                              <span className="font-mono font-semibold text-amber-400 text-sm">{holding.ticker}</span>
                               <span className="text-xs text-zinc-500 truncate">{holding.name || holding.ticker}</span>
                             </div>
                             <div className="flex items-center gap-3 mt-1">
@@ -573,7 +573,7 @@ export default function PortfolioPage() {
                   {/* Desktop table */}
                   <table className="hidden sm:table w-full text-sm" data-testid="holdings-table">
                     <thead>
-                      <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
+                      <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase">
                         <th className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-10 min-w-[100px]">Ticker</th>
                         <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Price</th>
                         <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Cost</th>
@@ -597,12 +597,12 @@ export default function PortfolioPage() {
                         return (
                           <tr
                             key={holding.id}
-                            className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
+                            className="border-b border-zinc-800/50 hover:bg-amber-900/10 transition-colors"
                             data-testid={`holding-row-${holding.ticker}`}
                           >
                             <td className="px-3 py-2.5 sticky left-0 bg-zinc-900 z-10">
                               <div className="flex flex-col">
-                                <span className="font-mono font-semibold text-green-400">{holding.ticker}</span>
+                                <span className="font-mono font-semibold text-amber-400">{holding.ticker}</span>
                                 <span className="text-xs text-zinc-500 truncate max-w-[120px]">{holding.name || holding.ticker}</span>
                               </div>
                             </td>
@@ -663,7 +663,7 @@ export default function PortfolioPage() {
                   <Button 
                     onClick={() => setIsAddOpen(true)}
                     variant="outline"
-                    className="border-green-900/50 bg-zinc-800 hover:bg-zinc-700 hover:border-green-500/50"
+                    className="border-zinc-800 bg-zinc-800 hover:bg-zinc-700 hover:border-amber-500/50"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Position
@@ -675,10 +675,10 @@ export default function PortfolioPage() {
         </div>
 
         {/* Bro's Analysis Section */}
-        <div ref={broSectionRef} className="bg-zinc-900 border border-green-500/30 rounded-lg shadow-[0_0_20px_rgba(0,255,0,0.1)]">
-          <div className="flex items-center justify-between p-4 border-b border-green-900/30">
+        <div ref={broSectionRef} className="bg-zinc-900 border border-amber-500/30 rounded-lg shadow-[0_0_20px_rgba(255,215,0,0.1)]">
+          <div className="flex items-center justify-between p-4 border-b border-zinc-800">
             <div className="flex items-center gap-3">
-              <img src={logoImg} alt="Buy Side Bro" className="w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(0,255,0,0.5)]" />
+              <img src={logoImg} alt="Buy Side Bro" className="w-10 h-10 object-contain drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]" />
               <div>
                 <h2 className="text-lg font-semibold text-white display-font">Your Bro's Opinion</h2>
                 <p className="text-xs text-zinc-500">Professional Portfolio Review</p>
@@ -687,12 +687,12 @@ export default function PortfolioPage() {
             {!reviewMutation.isPending && !reviewMutation.data && (
               <button 
                 onClick={handleGetBroOpinion}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-green-500/50 bg-green-900/20 hover:bg-green-900/40 hover:border-green-500 transition-all group"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-500/50 bg-amber-900/20 hover:bg-amber-900/40 hover:border-amber-500 transition-all group"
                 disabled={reviewMutation.isPending || !holdings || holdings.length === 0}
                 data-testid="button-get-bro-opinion"
               >
-                <Sparkles className="w-4 h-4 text-green-400 group-hover:drop-shadow-[0_0_8px_rgba(0,255,0,0.6)] transition-all" />
-                <span className="text-green-400 text-sm font-medium">Get Bro's Opinion</span>
+                <Sparkles className="w-4 h-4 text-amber-400 group-hover:drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] transition-all" />
+                <span className="text-amber-400 text-sm font-medium">Get Bro's Opinion</span>
               </button>
             )}
           </div>
@@ -701,11 +701,11 @@ export default function PortfolioPage() {
             {reviewMutation.isPending ? (
               <ThinkingLoader />
             ) : reviewMutation.data?.review ? (
-              <div className="prose prose-invert prose-green max-w-none">
+              <div className="prose prose-invert prose-amber max-w-none">
                 <ReactMarkdown
                   components={{
-                    h1: ({children}) => <h1 className="text-2xl font-bold text-green-400 mb-4 display-font">{children}</h1>,
-                    h2: ({children}) => <h2 className="text-xl font-semibold text-green-400 mt-6 mb-3 display-font">{children}</h2>,
+                    h1: ({children}) => <h1 className="text-2xl font-bold text-amber-400 mb-4 display-font">{children}</h1>,
+                    h2: ({children}) => <h2 className="text-xl font-semibold text-amber-400 mt-6 mb-3 display-font">{children}</h2>,
                     h3: ({children}) => <h3 className="text-lg font-semibold text-white mt-4 mb-2">{children}</h3>,
                     p: ({children}) => <p className="text-zinc-300 mb-3 leading-relaxed">{children}</p>,
                     ul: ({children}) => <ul className="list-disc list-inside text-zinc-300 mb-4 space-y-1">{children}</ul>,
@@ -714,27 +714,27 @@ export default function PortfolioPage() {
                     strong: ({children}) => <strong className="text-white font-semibold">{children}</strong>,
                     table: ({children}) => (
                       <div className="overflow-x-auto my-4">
-                        <table className="w-full text-sm border border-green-900/30 rounded-lg overflow-hidden">{children}</table>
+                        <table className="w-full text-sm border border-zinc-800 rounded-lg overflow-hidden">{children}</table>
                       </div>
                     ),
-                    thead: ({children}) => <thead className="bg-green-900/20">{children}</thead>,
-                    th: ({children}) => <th className="px-3 py-2 text-left text-green-400 font-semibold border-b border-green-900/30">{children}</th>,
+                    thead: ({children}) => <thead className="bg-amber-900/20">{children}</thead>,
+                    th: ({children}) => <th className="px-3 py-2 text-left text-amber-400 font-semibold border-b border-zinc-800">{children}</th>,
                     td: ({children}) => <td className="px-3 py-2 text-zinc-300 border-b border-zinc-800/50">{children}</td>,
-                    code: ({children}) => <code className="bg-zinc-800 px-1.5 py-0.5 rounded text-green-400 text-sm">{children}</code>,
-                    blockquote: ({children}) => <blockquote className="border-l-4 border-green-500 pl-4 italic text-zinc-400 my-4">{children}</blockquote>,
+                    code: ({children}) => <code className="bg-zinc-800 px-1.5 py-0.5 rounded text-amber-400 text-sm">{children}</code>,
+                    blockquote: ({children}) => <blockquote className="border-l-4 border-amber-500 pl-4 italic text-zinc-400 my-4">{children}</blockquote>,
                   }}
                 >
                   {reviewMutation.data.review}
                 </ReactMarkdown>
                 
-                <div className="mt-6 pt-4 border-t border-green-900/30 flex justify-end">
-                  <button 
+                <div className="mt-6 pt-4 border-t border-zinc-800 flex justify-end">
+                  <button
                     onClick={handleGetBroOpinion}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-green-500/50 bg-green-900/20 hover:bg-green-900/40 hover:border-green-500 transition-all text-sm"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-500/50 bg-amber-900/20 hover:bg-amber-900/40 hover:border-amber-500 transition-all text-sm"
                     data-testid="button-refresh-opinion"
                   >
-                    <Sparkles className="w-4 h-4 text-green-400" />
-                    <span className="text-green-400 font-medium">Refresh Analysis</span>
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span className="text-amber-400 font-medium">Refresh Analysis</span>
                   </button>
                 </div>
               </div>
@@ -755,13 +755,13 @@ export default function PortfolioPage() {
                   }
                 </p>
                 {holdings && holdings.length > 0 && (
-                  <button 
+                  <button
                     onClick={handleGetBroOpinion}
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-green-500/50 bg-green-900/20 hover:bg-green-900/40 hover:border-green-500 transition-all group"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-amber-500/50 bg-amber-900/20 hover:bg-amber-900/40 hover:border-amber-500 transition-all group"
                     data-testid="button-get-bro-opinion-center"
                   >
-                    <Sparkles className="w-5 h-5 text-green-400 group-hover:drop-shadow-[0_0_8px_rgba(0,255,0,0.6)] transition-all" />
-                    <span className="text-green-400 font-medium">Get Bro's Opinion</span>
+                    <Sparkles className="w-5 h-5 text-amber-400 group-hover:drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] transition-all" />
+                    <span className="text-amber-400 font-medium">Get Bro's Opinion</span>
                   </button>
                 )}
               </div>

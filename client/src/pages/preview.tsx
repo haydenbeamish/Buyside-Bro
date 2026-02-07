@@ -74,7 +74,7 @@ export default function PreviewPage() {
   useDocumentTitle("Terminal Preview");
   return (
     <div className="min-h-screen bg-black scanline">
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm border-b border-green-900/30" aria-label="Main navigation">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-sm border-b border-zinc-800" aria-label="Main navigation">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/">
@@ -86,7 +86,7 @@ export default function PreviewPage() {
               </div>
             </Link>
             <Link href="/dashboard">
-              <button className="border border-green-500 text-green-500 hover:bg-green-500/10 px-5 py-2 rounded text-sm uppercase tracking-wider font-medium transition-all" data-testid="button-preview-signin">
+              <button className="border border-amber-500 text-amber-500 hover:bg-amber-500/10 px-5 py-2 rounded text-sm uppercase tracking-wider font-medium transition-all" data-testid="button-preview-signin">
                 Open Terminal
               </button>
             </Link>
@@ -102,7 +102,7 @@ export default function PreviewPage() {
           <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto mb-2">
             Professional-grade market intelligence. No Bloomberg terminal required.
           </p>
-          <p className="text-green-400 text-sm md:text-base display-font">
+          <p className="text-amber-400 text-sm md:text-base display-font">
             7 powerful tools. Free to explore. No credit card.
           </p>
         </div>
@@ -117,7 +117,7 @@ export default function PreviewPage() {
               data-testid={`card-preview-feature-${i}`}
             >
               <div className="lg:w-3/5 w-full">
-                <div className="relative rounded-lg overflow-hidden border border-green-900/40 shadow-[0_0_30px_rgba(0,255,0,0.08)]">
+                <div className="relative rounded-lg overflow-hidden border border-zinc-800 shadow-[0_0_30px_rgba(255,215,0,0.08)]">
                   <img
                     src={feature.image}
                     alt={`${feature.title} - ${feature.subtitle}`}
@@ -130,8 +130,8 @@ export default function PreviewPage() {
               </div>
 
               <div className="lg:w-2/5 w-full text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-green-900/20 border border-green-900/40 mb-4">
-                  <feature.icon className="w-4 h-4 text-green-500" />
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-amber-900/20 border border-zinc-800 mb-4">
+                  <feature.icon className="w-4 h-4 text-amber-500" />
                   <span className="display-font text-xs neon-green-subtle tracking-widest">{feature.title}</span>
                 </div>
                 <h3 className="text-xl md:text-2xl font-semibold text-white mb-3">{feature.subtitle}</h3>
@@ -142,26 +142,26 @@ export default function PreviewPage() {
         </div>
       </section>
 
-      <section className="py-16 px-4 border-t border-green-900/30 bg-green-950/10">
+      <section className="py-16 px-4 border-t border-zinc-800 bg-zinc-950/30">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="flex flex-col items-center gap-3">
-              <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
-                <Clock className="w-6 h-6 text-green-500" />
+              <div className="p-3 rounded-lg bg-amber-900/20 border border-zinc-800">
+                <Clock className="w-6 h-6 text-amber-500" />
               </div>
               <h4 className="display-font text-sm neon-green-subtle tracking-wider">FREE FOREVER</h4>
               <p className="text-zinc-400 text-sm">Full access to every feature. No restrictions. Upgrade when you're ready.</p>
             </div>
             <div className="flex flex-col items-center gap-3">
-              <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
-                <Shield className="w-6 h-6 text-green-500" />
+              <div className="p-3 rounded-lg bg-amber-900/20 border border-zinc-800">
+                <Shield className="w-6 h-6 text-amber-500" />
               </div>
               <h4 className="display-font text-sm neon-green-subtle tracking-wider">INSTANT ACCESS</h4>
               <p className="text-zinc-400 text-sm">Start exploring immediately. Sign in and go.</p>
             </div>
             <div className="flex flex-col items-center gap-3">
-              <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/30">
-                <Zap className="w-6 h-6 text-green-500" />
+              <div className="p-3 rounded-lg bg-amber-900/20 border border-zinc-800">
+                <Zap className="w-6 h-6 text-amber-500" />
               </div>
               <h4 className="display-font text-sm neon-green-subtle tracking-wider">$10/MONTH AFTER</h4>
               <p className="text-zinc-400 text-sm">Includes $5 of Bro credits. Buy more as you need them.</p>
@@ -170,7 +170,7 @@ export default function PreviewPage() {
         </div>
       </section>
 
-      <section className="py-20 px-4 border-t border-green-900/30" data-testid="section-preview-cta">
+      <section className="py-20 px-4 border-t border-zinc-800" data-testid="section-preview-cta">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="display-font text-2xl md:text-4xl text-white mb-3 uppercase tracking-wider">
             Ready to see it in action?
@@ -183,7 +183,7 @@ export default function PreviewPage() {
           </p>
           <Link href="/dashboard">
             <button
-              className="bg-green-500 hover:bg-green-400 text-black font-bold px-6 sm:px-10 py-3 sm:py-4 rounded text-base sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3"
+              className="bg-amber-500 hover:bg-amber-400 text-black font-bold px-6 sm:px-10 py-3 sm:py-4 rounded text-base sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:shadow-[0_0_30px_rgba(255,215,0,0.5)] inline-flex items-center gap-3"
               data-testid="button-start-trial"
             >
               Open Terminal <ArrowRight className="w-5 h-5" />
@@ -195,7 +195,7 @@ export default function PreviewPage() {
         </div>
       </section>
 
-      <footer className="py-8 px-4 border-t border-green-900/30">
+      <footer className="py-8 px-4 border-t border-zinc-800">
         <div className="max-w-6xl mx-auto text-center">
           <p className="text-zinc-600 text-xs leading-relaxed max-w-3xl mx-auto mb-4">
             <strong className="text-zinc-500">Disclaimer:</strong> Buy Side Bro is for informational purposes only and does not constitute financial advice.

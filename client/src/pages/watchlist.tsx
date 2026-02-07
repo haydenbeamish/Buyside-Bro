@@ -107,7 +107,7 @@ function WatchlistStockSearch({
           aria-activedescendant={activeIndex >= 0 ? `watchlist-option-${activeIndex}` : undefined}
         />
         {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 animate-spin" />
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500 animate-spin" />
         )}
       </div>
       {isOpen && results.length > 0 && (
@@ -123,14 +123,14 @@ function WatchlistStockSearch({
                 setIsOpen(false);
                 setActiveIndex(-1);
               }}
-              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
+              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
               data-testid={`watchlist-result-${stock.symbol}`}
               role="option"
               aria-selected={idx === activeIndex}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-semibold text-green-400">{stock.symbol}</span>
+                  <span className="font-mono font-semibold text-amber-400">{stock.symbol}</span>
                   <span className="text-xs text-zinc-500 bg-zinc-700 px-1.5 py-0.5 rounded">{stock.exchange}</span>
                 </div>
                 <p className="text-sm text-zinc-400 truncate">{stock.name}</p>
@@ -218,7 +218,7 @@ function InlineNoteEditor({ itemId, initialNote }: { itemId: number; initialNote
         onChange={(e) => setValue(e.target.value)}
         onBlur={save}
         onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
-        className="w-full bg-zinc-800 border border-zinc-600 rounded px-1.5 py-0.5 text-xs text-zinc-300 outline-none focus:border-green-500"
+        className="w-full bg-zinc-800 border border-zinc-600 rounded px-1.5 py-0.5 text-xs text-zinc-300 outline-none focus:border-amber-500"
         maxLength={200}
       />
     );
@@ -295,7 +295,7 @@ function SortHeader({ label, sortKey: colKey, currentKey, currentDir, onToggle, 
 }) {
   return (
     <th
-      className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:rounded"
+      className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-amber-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:rounded"
       tabIndex={0}
       role="button"
       onClick={() => onToggle(colKey)}
@@ -304,7 +304,7 @@ function SortHeader({ label, sortKey: colKey, currentKey, currentDir, onToggle, 
     >
       <span className="inline-flex items-center justify-end gap-1">
         {label}
-        {currentKey === colKey && (currentDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
+        {currentKey === colKey && (currentDir === "asc" ? <ArrowUp className="h-3 w-3 text-amber-400" /> : <ArrowDown className="h-3 w-3 text-amber-400" />)}
       </span>
     </th>
   );
@@ -428,7 +428,7 @@ export default function WatchlistPage() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-4 sm:mb-6 flex-wrap gap-3">
           <div className="flex items-center gap-2 sm:gap-3">
-            <Eye className="h-6 w-6 sm:h-8 sm:w-8 text-green-400" />
+            <Eye className="h-6 w-6 sm:h-8 sm:w-8 text-amber-400" />
             <h1 className="text-xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle" data-testid="text-watchlist-title">
               WATCHLIST
             </h1>
@@ -447,12 +447,12 @@ export default function WatchlistPage() {
             {isAuthenticated && (
               <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="border-green-900/50 bg-zinc-900" data-testid="button-add-watchlist">
+                  <Button variant="outline" className="border-zinc-800 bg-zinc-900" data-testid="button-add-watchlist">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Stock
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-zinc-900 border-green-900/30 text-white">
+                <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
                   <DialogHeader>
                     <DialogTitle>Add to Watchlist</DialogTitle>
                   </DialogHeader>
@@ -477,7 +477,7 @@ export default function WatchlistPage() {
           {items ? `${items.length} stocks` : "Loading..."} {isAuthenticated ? "on your watchlist" : "— sign in to customize"}
         </div>
 
-        <div className="bg-zinc-900 border border-green-900/30 rounded-lg">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
           <div className="overflow-x-auto relative scroll-fade-right">
             {isLoading ? (
               <div className="p-4 space-y-2">
@@ -496,7 +496,7 @@ export default function WatchlistPage() {
                       data-testid={`watchlist-row-${item.ticker}`}
                     >
                       <Link href={`/analysis?ticker=${item.ticker}`} className="min-w-0 flex-1 hover:underline">
-                        <span className="font-mono font-semibold text-green-400 text-sm">{item.ticker}</span>
+                        <span className="font-mono font-semibold text-amber-400 text-sm">{item.ticker}</span>
                         {item.name && item.name !== item.ticker && (
                           <span className="text-xs text-zinc-500 truncate block leading-tight">{item.name}</span>
                         )}
@@ -537,9 +537,9 @@ export default function WatchlistPage() {
                     {isAuthenticated && <col style={{ width: "44px" }} />}
                   </colgroup>
                   <thead>
-                    <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
+                    <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase">
                       <th
-                        className="px-3 py-3 text-left font-medium select-none whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:rounded"
+                        className="px-3 py-3 text-left font-medium select-none whitespace-nowrap cursor-pointer hover:text-amber-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:rounded"
                         tabIndex={0}
                         role="button"
                         onClick={() => toggleSort("ticker")}
@@ -548,7 +548,7 @@ export default function WatchlistPage() {
                       >
                         <span className="inline-flex items-center gap-1">
                           Ticker
-                          {sortKey === "ticker" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-green-400" /> : <ArrowDown className="h-3 w-3 text-green-400" />)}
+                          {sortKey === "ticker" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-amber-400" /> : <ArrowDown className="h-3 w-3 text-amber-400" />)}
                         </span>
                       </th>
                       <SortHeader label="Price" sortKey="price" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-price" />
@@ -571,12 +571,12 @@ export default function WatchlistPage() {
                       return (
                         <tr
                           key={item.id}
-                          className="border-b border-zinc-800/50 hover:bg-green-900/10 transition-colors"
+                          className="border-b border-zinc-800/50 hover:bg-amber-900/10 transition-colors"
                           data-testid={`watchlist-row-${item.ticker}`}
                         >
                           <td className="px-3 py-2.5 overflow-hidden">
                             <Link href={`/analysis?ticker=${item.ticker}`} className="hover:underline">
-                              <span className="font-mono font-semibold text-green-400 truncate block">{item.ticker}</span>
+                              <span className="font-mono font-semibold text-amber-400 truncate block">{item.ticker}</span>
                             </Link>
                             {item.name && item.name !== item.ticker && (
                               <span className="text-xs text-zinc-500 truncate block leading-tight">{item.name}</span>

@@ -175,7 +175,7 @@ export default function SubscriptionPage() {
   if (authLoading || statusLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
       </div>
     );
   }
@@ -228,19 +228,19 @@ export default function SubscriptionPage() {
 
         {isActive && (
           <>
-          <Card className="mb-8 bg-zinc-900/50 border-green-900/30">
+          <Card className="mb-8 bg-zinc-900/50 border-zinc-800">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-white flex items-center gap-2">
-                    <Crown className="w-5 h-5 text-green-500" />
+                    <Crown className="w-5 h-5 text-amber-500" />
                     Buy Side Bro Pro
                   </CardTitle>
                   <CardDescription className="text-zinc-400">
                     Your subscription is active
                   </CardDescription>
                 </div>
-                <Badge className="bg-green-500/20 text-green-500 border-green-500/30">
+                <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30">
                   Active
                 </Badge>
               </div>
@@ -249,7 +249,7 @@ export default function SubscriptionPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {features.map((feature, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm text-zinc-300">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    <Check className="w-4 h-4 text-amber-500 flex-shrink-0" />
                     <span>{feature.text}</span>
                   </div>
                 ))}
@@ -258,7 +258,7 @@ export default function SubscriptionPage() {
             <CardFooter>
               <Button
                 variant="outline"
-                className="border-green-500/50 text-green-500 hover:bg-green-500/10"
+                className="border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
                 onClick={() => portalMutation.mutate()}
                 disabled={portalMutation.isPending}
                 data-testid="button-manage-billing"
@@ -341,12 +341,12 @@ export default function SubscriptionPage() {
                       <Button
                         key={pack.id}
                         variant="outline"
-                        className="border-zinc-700 hover:border-green-500/50 hover:bg-green-500/10 flex flex-col py-3 h-auto min-h-[44px]"
+                        className="border-zinc-700 hover:border-amber-500/50 hover:bg-amber-500/10 flex flex-col py-3 h-auto min-h-[44px]"
                         onClick={() => creditPurchaseMutation.mutate(pack.priceId)}
                         disabled={creditPurchaseMutation.isPending}
                         data-testid={`button-buy-credits-${pack.amount / 100}`}
                       >
-                        <span className="text-green-500 font-bold">${pack.amount / 100}</span>
+                        <span className="text-amber-500 font-bold">${pack.amount / 100}</span>
                         <span className="text-zinc-500 text-xs">${(pack.credits / 100).toFixed(0)} credits</span>
                       </Button>
                     ))}
@@ -360,10 +360,10 @@ export default function SubscriptionPage() {
 
         {!isActive && (
           <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
-            <Card className="bg-zinc-900/50 border-green-900/30">
+            <Card className="bg-zinc-900/50 border-zinc-800">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
-                  <Crown className="w-5 h-5 text-green-500" />
+                  <Crown className="w-5 h-5 text-amber-500" />
                   Buy Side Bro Pro
                 </CardTitle>
                 <CardDescription className="text-zinc-400">
@@ -376,7 +376,7 @@ export default function SubscriptionPage() {
                     ${price ? (price.unit_amount / 100).toFixed(0) : "10"}
                   </div>
                   <div className="text-zinc-400 text-sm mt-1">per month</div>
-                  <Badge className="mt-3 bg-green-500/20 text-green-500 border-green-500/30">
+                  <Badge className="mt-3 bg-amber-500/20 text-amber-500 border-amber-500/30">
                     Free tier included
                   </Badge>
                 </div>
@@ -384,7 +384,7 @@ export default function SubscriptionPage() {
                 <div className="space-y-3">
                   {features.map((feature, i) => (
                     <div key={i} className="flex items-center gap-3 text-zinc-300">
-                      <feature.icon className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      <feature.icon className="w-5 h-5 text-amber-500 flex-shrink-0" />
                       <span>{feature.text}</span>
                     </div>
                   ))}
@@ -412,19 +412,19 @@ export default function SubscriptionPage() {
                 <h3 className="display-font text-xl text-white mb-4">Why Choose Buy Side Bro?</h3>
                 <ul className="space-y-3 text-zinc-400">
                   <li className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <Check className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                     <span>Professional-grade market data at a fraction of the cost</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <Check className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                     <span>Bro-powered insights using advanced language models</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <Check className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                     <span>Cancel anytime - no long-term commitment</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <Check className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                     <span>Pro: 5 Bro queries/day + $5 credits (Free: 1/day)</span>
                   </li>
                 </ul>

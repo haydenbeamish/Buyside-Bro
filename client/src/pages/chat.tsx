@@ -46,20 +46,20 @@ function ThinkingLoader() {
   return (
     <div className="flex gap-3">
       <Avatar className="h-8 w-8 flex-shrink-0">
-        <AvatarFallback className="bg-green-500/10 border border-green-500/30">
-          <span className="text-xs font-bold text-green-500 animate-pulse">AB</span>
+        <AvatarFallback className="bg-amber-500/10 border border-amber-500/30">
+          <span className="text-xs font-bold text-amber-500 animate-pulse">AB</span>
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 max-w-[90%] sm:max-w-[80%]">
-        <div className="bg-zinc-900 border border-green-500/30 rounded-lg p-4 space-y-4">
+        <div className="bg-zinc-900 border border-amber-500/30 rounded-lg p-4 space-y-4">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="h-8 w-8 rounded-full border-2 border-green-500/30 border-t-green-500 animate-spin" />
-              <Sparkles className="h-3 w-3 text-green-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+              <div className="h-8 w-8 rounded-full border-2 border-amber-500/30 border-t-amber-500 animate-spin" />
+              <Sparkles className="h-3 w-3 text-amber-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
             <div>
               <p className="text-sm font-medium text-white">Bro is thinking...</p>
-              <span className="text-sm text-green-400 font-mono animate-pulse">
+              <span className="text-sm text-amber-400 font-mono animate-pulse">
                 {loadingMessages[messageIndex]}
               </span>
             </div>
@@ -88,7 +88,7 @@ function ThinkingLoader() {
           
           <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-green-500 via-green-400 to-green-500 rounded-full"
+              className="h-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-full"
               style={{
                 width: '60%',
                 animation: 'loading-bar 2s ease-in-out infinite',
@@ -239,14 +239,14 @@ export default function ChatPage() {
         {messages.length === 0 && !isStreaming ? (
           <div className="flex-1 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
             <div className="w-full max-w-md text-center space-y-4 sm:space-y-6 px-2">
-              <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-green-500/10 border border-green-500/30 mx-auto">
-                <span className="text-2xl sm:text-3xl font-bold text-green-500 display-font">AB</span>
+              <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/30 mx-auto">
+                <span className="text-2xl sm:text-3xl font-bold text-amber-500 display-font">AB</span>
               </div>
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 display-font tracking-wide">
                   ASK BRO
                 </h2>
-                <p className="text-green-400 text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest mb-3 break-words">
+                <p className="text-amber-400 text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest mb-3 break-words">
                   Autonomous Financial Research Agent
                 </p>
                 <p className="text-zinc-500 text-xs sm:text-sm px-2">
@@ -261,7 +261,7 @@ export default function ChatPage() {
                       key={i}
                       variant="outline"
                       size="sm"
-                      className="text-xs border-green-900/50 bg-zinc-900 hover:bg-green-900/20 hover:border-green-500/50 text-zinc-300 text-left justify-start h-auto py-2 px-3 whitespace-normal break-words"
+                      className="text-xs border-zinc-800 bg-zinc-900 hover:bg-amber-900/20 hover:border-amber-500/50 text-zinc-300 text-left justify-start h-auto py-2 px-3 whitespace-normal break-words"
                       onClick={() => handleSuggestedQuestion(q)}
                       data-testid={`suggested-question-${i}`}
                     >
@@ -276,8 +276,8 @@ export default function ChatPage() {
           <>
             <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500/10 border border-green-500/30">
-                  <span className="text-sm font-bold text-green-500">AB</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/30">
+                  <span className="text-sm font-bold text-amber-500">AB</span>
                 </div>
                 <span className="text-sm font-medium text-white">Ask Bro</span>
               </div>
@@ -307,13 +307,13 @@ export default function ChatPage() {
                         className={
                           msg.role === "user"
                             ? "bg-zinc-700"
-                            : "bg-green-500/10 border border-green-500/30"
+                            : "bg-amber-500/10 border border-amber-500/30"
                         }
                       >
                         {msg.role === "user" ? (
                           <User className="h-4 w-4 text-zinc-300" />
                         ) : (
-                          <span className="text-xs font-bold text-green-500">AB</span>
+                          <span className="text-xs font-bold text-amber-500">AB</span>
                         )}
                       </AvatarFallback>
                     </Avatar>
@@ -338,8 +338,8 @@ export default function ChatPage() {
                 {streamingMessage && (
                   <div className="flex gap-3">
                     <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarFallback className="bg-green-500/10 border border-green-500/30">
-                        <span className="text-xs font-bold text-green-500">AB</span>
+                      <AvatarFallback className="bg-amber-500/10 border border-amber-500/30">
+                        <span className="text-xs font-bold text-amber-500">AB</span>
                       </AvatarFallback>
                     </Avatar>
                     <div className="max-w-[90%] sm:max-w-[80%] rounded-lg p-3 bg-zinc-900 border border-zinc-800">
@@ -369,7 +369,7 @@ export default function ChatPage() {
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim() || isStreaming}
                   size="icon"
-                  className="bg-green-500 hover:bg-green-400 text-black min-h-[44px] min-w-[44px]"
+                  className="bg-amber-500 hover:bg-amber-400 text-black min-h-[44px] min-w-[44px]"
                   data-testid="button-send-message"
                 >
                   {isStreaming ? (
@@ -400,7 +400,7 @@ export default function ChatPage() {
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isStreaming}
                 size="icon"
-                className="bg-green-500 hover:bg-green-400 text-black"
+                className="bg-amber-500 hover:bg-amber-400 text-black"
                 data-testid="button-send-message-empty"
               >
                 <Send className="h-4 w-4" />
