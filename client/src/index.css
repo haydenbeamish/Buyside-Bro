@@ -312,6 +312,26 @@
   .cell-flash-up { animation: cell-flash-green 0.7s ease-out; }
   .cell-flash-down { animation: cell-flash-red 0.7s ease-out; }
 
+  /* Sticky column shadow for horizontal scroll tables */
+  td.sticky, th.sticky {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+  }
+  /* Right shadow on sticky column when table overflows */
+  @media (max-width: 640px) {
+    td.sticky::after, th.sticky::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: -6px;
+      bottom: 0;
+      width: 6px;
+      background: linear-gradient(to right, rgba(0, 0, 0, 0.3), transparent);
+      pointer-events: none;
+    }
+  }
+
   /* Hide scrollbar utility */
   .scrollbar-hide {
     -ms-overflow-style: none;

@@ -259,8 +259,6 @@ function downloadCSV(items: EnrichedWatchlistItem[]) {
   URL.revokeObjectURL(url);
 }
 
-const TICKER_COL_WIDTH = 160;
-
 type SortKey = "ticker" | "price" | "dayChangePercent" | "volume" | "marketCap" | "pe";
 type SortDir = "asc" | "desc";
 
@@ -486,144 +484,94 @@ export default function WatchlistPage() {
                 ))}
               </div>
             ) : items && items.length > 0 ? (
-              <>
-                {/* Mobile card view */}
-                <div className="sm:hidden divide-y divide-zinc-800/50" data-testid="watchlist-mobile">
-                  {sortItems(items, sortKey, sortDir).map((item) => (
-                    <div
-                      key={item.id}
-                      className="px-3 py-3.5 flex items-center justify-between gap-2"
-                      data-testid={`watchlist-row-${item.ticker}`}
+              <table className="w-full text-sm" data-testid="watchlist-table">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase">
+                    <th
+                      className="sticky left-0 z-10 bg-zinc-900 px-3 py-3 text-left font-medium select-none whitespace-nowrap cursor-pointer hover:text-amber-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:rounded min-w-[100px] sm:min-w-[140px]"
+                      tabIndex={0}
+                      role="button"
+                      onClick={() => toggleSort("ticker")}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort("ticker"); } }}
+                      data-testid="sort-ticker"
                     >
-                      <Link href={`/analysis?ticker=${item.ticker}`} className="min-w-0 flex-1 hover:underline">
-                        <span className="font-mono font-semibold text-amber-400 text-sm">{item.ticker}</span>
-                        {item.name && item.name !== item.ticker && (
-                          <span className="text-xs text-zinc-500 truncate block leading-tight">{item.name}</span>
-                        )}
-                      </Link>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="text-right">
-                          <span className="font-mono text-sm text-white block">
-                            {item.price ? `$${item.price.toFixed(2)}` : "-"}
-                          </span>
-                          <span className="text-xs"><PercentDisplay value={item.dayChangePercent || 0} /></span>
-                        </div>
-                        {isAuthenticated && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(item.id, item.ticker)}
-                            className="text-zinc-600 hover:text-red-400 min-h-[44px] min-w-[44px]"
-                            data-testid={`button-remove-${item.ticker}`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {/* Desktop table */}
-                <table className="hidden sm:table w-full text-sm" style={{ tableLayout: "fixed" }} data-testid="watchlist-table">
-                  <colgroup>
-                    <col style={{ width: `${TICKER_COL_WIDTH}px` }} />
-                    <col />
-                    <col />
-                    <col />
-                    <col />
-                    <col />
-                    <col style={{ width: "110px" }} />
-                    {isAuthenticated && <col style={{ width: "140px" }} />}
-                    {isAuthenticated && <col style={{ width: "44px" }} />}
-                  </colgroup>
-                  <thead>
-                    <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase">
-                      <th
-                        className="px-3 py-3 text-left font-medium select-none whitespace-nowrap cursor-pointer hover:text-amber-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:rounded"
-                        tabIndex={0}
-                        role="button"
-                        onClick={() => toggleSort("ticker")}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort("ticker"); } }}
-                        data-testid="sort-ticker"
-                      >
-                        <span className="inline-flex items-center gap-1">
-                          Ticker
-                          {sortKey === "ticker" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-amber-400" /> : <ArrowDown className="h-3 w-3 text-amber-400" />)}
-                        </span>
-                      </th>
-                      <SortHeader label="Price" sortKey="price" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-price" />
-                      <SortHeader label="Day %" sortKey="dayChangePercent" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-day" />
-                      <SortHeader label="Volume" sortKey="volume" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-volume" />
-                      <SortHeader label="Mkt Cap" sortKey="marketCap" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-mktcap" />
-                      <SortHeader label="P/E" sortKey="pe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-pe" />
-                      <th className="px-3 py-3 text-center font-medium whitespace-nowrap text-xs">52W Range</th>
-                      {isAuthenticated && <th className="px-3 py-3 text-left font-medium whitespace-nowrap text-xs">Notes</th>}
-                      {isAuthenticated && <th className="px-3 py-3"></th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortItems(items, sortKey, sortDir).map((item) => {
-                      const volRatio = item.volume && item.avgVolume && item.avgVolume > 0
-                        ? item.volume / item.avgVolume
-                        : null;
-                      const highVol = volRatio !== null && volRatio >= 1.5;
+                      <span className="inline-flex items-center gap-1">
+                        Ticker
+                        {sortKey === "ticker" && (sortDir === "asc" ? <ArrowUp className="h-3 w-3 text-amber-400" /> : <ArrowDown className="h-3 w-3 text-amber-400" />)}
+                      </span>
+                    </th>
+                    <SortHeader label="Price" sortKey="price" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-price" />
+                    <SortHeader label="Day %" sortKey="dayChangePercent" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-day" />
+                    <SortHeader label="Volume" sortKey="volume" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-volume" />
+                    <SortHeader label="Mkt Cap" sortKey="marketCap" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-mktcap" />
+                    <SortHeader label="P/E" sortKey="pe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-pe" />
+                    <th className="px-3 py-3 text-center font-medium whitespace-nowrap text-xs hidden sm:table-cell">52W Range</th>
+                    {isAuthenticated && <th className="px-3 py-3 text-left font-medium whitespace-nowrap text-xs hidden sm:table-cell">Notes</th>}
+                    {isAuthenticated && <th className="px-3 py-3 w-[44px]"></th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortItems(items, sortKey, sortDir).map((item) => {
+                    const volRatio = item.volume && item.avgVolume && item.avgVolume > 0
+                      ? item.volume / item.avgVolume
+                      : null;
+                    const highVol = volRatio !== null && volRatio >= 1.5;
 
-                      return (
-                        <tr
-                          key={item.id}
-                          className="border-b border-zinc-800/50 hover:bg-amber-900/10 transition-colors"
-                          data-testid={`watchlist-row-${item.ticker}`}
-                        >
-                          <td className="px-3 py-2.5 overflow-hidden">
-                            <Link href={`/analysis?ticker=${item.ticker}`} className="hover:underline">
-                              <span className="font-mono font-semibold text-amber-400 truncate block">{item.ticker}</span>
-                            </Link>
-                            {item.name && item.name !== item.ticker && (
-                              <span className="text-xs text-zinc-500 truncate block leading-tight">{item.name}</span>
-                            )}
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-b border-zinc-800/50 hover:bg-amber-900/10 transition-colors"
+                        data-testid={`watchlist-row-${item.ticker}`}
+                      >
+                        <td className="sticky left-0 z-10 bg-zinc-900 px-3 py-2.5 overflow-hidden min-w-[100px] sm:min-w-[140px]">
+                          <Link href={`/analysis?ticker=${item.ticker}`} className="hover:underline">
+                            <span className="font-mono font-semibold text-amber-400 truncate block text-xs sm:text-sm">{item.ticker}</span>
+                          </Link>
+                          {item.name && item.name !== item.ticker && (
+                            <span className="text-[10px] sm:text-xs text-zinc-500 truncate block leading-tight">{item.name}</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap text-xs sm:text-sm">
+                          {item.price ? `$${item.price.toFixed(2)}` : "-"}
+                        </td>
+                        <td className="px-3 py-2.5 text-right whitespace-nowrap text-xs sm:text-sm">
+                          <PercentDisplay value={item.dayChangePercent || 0} />
+                        </td>
+                        <td className={`px-3 py-2.5 text-right font-mono text-xs whitespace-nowrap ${highVol ? "text-yellow-400 font-semibold" : "text-zinc-400"}`}>
+                          {formatVolume(item.volume)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
+                          {formatMarketCap(item.marketCap)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
+                          {item.pe ? item.pe.toFixed(1) : "-"}
+                        </td>
+                        <td className="px-3 py-2.5 hidden sm:table-cell">
+                          <FiftyTwoWeekBar price={item.price} low={item.yearLow} high={item.yearHigh} />
+                        </td>
+                        {isAuthenticated && (
+                          <td className="px-3 py-2.5 overflow-hidden hidden sm:table-cell">
+                            <InlineNoteEditor itemId={item.id} initialNote={item.notes ?? null} />
                           </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap overflow-hidden text-ellipsis">
-                            {item.price ? `$${item.price.toFixed(2)}` : "-"}
-                          </td>
-                          <td className="px-3 py-2.5 text-right whitespace-nowrap overflow-hidden text-ellipsis">
-                            <PercentDisplay value={item.dayChangePercent || 0} />
-                          </td>
-                          <td className={`px-3 py-2.5 text-right font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis ${highVol ? "text-yellow-400 font-semibold" : "text-zinc-400"}`}>
-                            {formatVolume(item.volume)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
-                            {formatMarketCap(item.marketCap)}
-                          </td>
-                          <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
-                            {item.pe ? item.pe.toFixed(1) : "-"}
-                          </td>
+                        )}
+                        {isAuthenticated && (
                           <td className="px-3 py-2.5">
-                            <FiftyTwoWeekBar price={item.price} low={item.yearLow} high={item.yearHigh} />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(item.id, item.ticker)}
+                              className="text-zinc-600 hover:text-red-400 min-h-[44px] min-w-[44px]"
+                              data-testid={`button-remove-${item.ticker}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </td>
-                          {isAuthenticated && (
-                            <td className="px-3 py-2.5 overflow-hidden">
-                              <InlineNoteEditor itemId={item.id} initialNote={item.notes ?? null} />
-                            </td>
-                          )}
-                          {isAuthenticated && (
-                            <td className="px-3 py-2.5">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(item.id, item.ticker)}
-                                className="text-zinc-600 hover:text-red-400 min-h-[44px] min-w-[44px]"
-                                data-testid={`button-remove-${item.ticker}`}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </td>
-                          )}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             ) : (
               <div className="text-center py-12">
                 <Eye className="h-12 w-12 text-zinc-700 mx-auto mb-3" />
