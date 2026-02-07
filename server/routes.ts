@@ -348,13 +348,18 @@ export async function registerRoutes(
         })();
         
         pendingRequests.set(cacheKey, fetchPromise);
-        fetchPromise.finally(() => pendingRequests.delete(cacheKey));
+        fetchPromise.catch(() => {}).finally(() => pendingRequests.delete(cacheKey));
       }
 
-      const data = await fetchPromise;
-      res.json(data);
+      try {
+        const data = await fetchPromise;
+        res.json(data);
+      } catch (fetchErr) {
+        console.error("Markets full API error:", fetchErr);
+        res.status(503).json({ error: "Market data temporarily unavailable. The upstream data provider is not responding." });
+      }
     } catch (error) {
-      console.error("Markets full API error:", error);
+      console.error("Markets full route error:", error);
       res.status(500).json({ error: "Failed to fetch markets data" });
     }
   });
