@@ -301,7 +301,7 @@ export async function registerRoutes(
 
   app.get("/robots.txt", (_req: Request, res: Response) => {
     res.type("text/plain").send(
-      `User-agent: *\nAllow: /\nAllow: /dashboard\nAllow: /portfolio\nAllow: /watchlist\nAllow: /analysis\nAllow: /earnings\nAllow: /whats-up\nAllow: /chat\nAllow: /preview\nDisallow: /api/\nDisallow: /admin\nDisallow: /dashboard/subscription\n\nSitemap: ${SITE_URL}/sitemap.xml`
+      `User-agent: *\nAllow: /\nAllow: /dashboard\nAllow: /portfolio\nAllow: /watchlist\nAllow: /analysis\nAllow: /earnings\nAllow: /whats-up\nAllow: /chat\nAllow: /preview\nDisallow: /api/\nDisallow: /admin\nDisallow: /subscription\n\nSitemap: ${SITE_URL}/sitemap.xml`
     );
   });
 
@@ -1781,8 +1781,8 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       const session = await stripeService.createCheckoutSession(
         customerId,
         priceId,
-        `${baseUrl}/dashboard/subscription?success=true`,
-        `${baseUrl}/dashboard/subscription?canceled=true`,
+        `${baseUrl}/subscription?success=true`,
+        `${baseUrl}/subscription?canceled=true`,
         0
       );
 
@@ -1807,7 +1807,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
       const protocol = req.headers["x-forwarded-proto"] || req.protocol;
       const host = req.get("host");
-      const returnUrl = `${protocol}://${host}/dashboard/subscription`;
+      const returnUrl = `${protocol}://${host}/subscription`;
 
       const session = await stripeService.createCustomerPortalSession(
         user.stripeCustomerId,
@@ -1883,8 +1883,8 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
       const protocol = req.headers["x-forwarded-proto"] || req.protocol;
       const host = req.get("host");
-      const successUrl = `${protocol}://${host}/dashboard/subscription?credits=success`;
-      const cancelUrl = `${protocol}://${host}/dashboard/subscription?credits=cancelled`;
+      const successUrl = `${protocol}://${host}/subscription?credits=success`;
+      const cancelUrl = `${protocol}://${host}/subscription?credits=cancelled`;
 
       const session = await stripeService.createCreditPurchaseSession(
         priceId,

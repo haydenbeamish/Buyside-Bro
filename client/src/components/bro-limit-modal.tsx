@@ -34,7 +34,7 @@ export function BroLimitModal({ open, onClose }: BroLimitModalProps) {
             className="neon-button"
             onClick={() => {
               onClose();
-              navigate("/dashboard/subscription");
+              navigate("/subscription");
             }}
           >
             Upgrade

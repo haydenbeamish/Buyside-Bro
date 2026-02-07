@@ -127,11 +127,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* Subscription Link - only for authenticated users */}
             {isAuthenticated && (
-              <Link href="/dashboard/subscription" onClick={() => setSidebarOpen(false)}>
+              <Link href="/subscription" onClick={() => setSidebarOpen(false)}>
                 <div
                   className={`
                     flex items-center gap-3 px-3 py-2.5 rounded-md transition-all duration-200
-                    ${location === '/dashboard/subscription'
+                    ${location === '/subscription'
                       ? 'bg-amber-900/20 border border-zinc-800 text-amber-400'
                       : 'text-zinc-400 hover:text-amber-400 hover:bg-amber-900/10'
                     }

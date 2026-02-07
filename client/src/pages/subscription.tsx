@@ -72,28 +72,28 @@ export default function SubscriptionPage() {
         title: "Welcome to Buy Side Bro Pro!",
         description: "Your subscription is now active. Enjoy full access to all features.",
       });
-      window.history.replaceState({}, "", "/dashboard/subscription");
+      window.history.replaceState({}, "", "/subscription");
     } else if (canceled === "true") {
       toast({
         title: "Checkout canceled",
         description: "Your subscription checkout was canceled. You can try again anytime.",
         variant: "destructive",
       });
-      window.history.replaceState({}, "", "/dashboard/subscription");
+      window.history.replaceState({}, "", "/subscription");
     } else if (credits === "success") {
       toast({
         title: "Credits Added!",
         description: "Your Bro Credits have been added to your account.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
-      window.history.replaceState({}, "", "/dashboard/subscription");
+      window.history.replaceState({}, "", "/subscription");
     } else if (credits === "cancelled") {
       toast({
         title: "Purchase canceled",
         description: "Your credit purchase was canceled.",
         variant: "destructive",
       });
-      window.history.replaceState({}, "", "/dashboard/subscription");
+      window.history.replaceState({}, "", "/subscription");
     }
   }, [success, canceled, credits, toast]);
 

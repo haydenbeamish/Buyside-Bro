@@ -396,7 +396,7 @@ function Footer() {
           <div>
             <h4 className="text-white font-semibold mb-4 uppercase text-sm tracking-wide">Info</h4>
             <div className="space-y-2">
-              <Link href="/dashboard/subscription"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Pricing</span></Link>
+              <Link href="/subscription"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Pricing</span></Link>
               <a href="mailto:support@buysidebro.com" className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Contact</a>
             </div>
           </div>

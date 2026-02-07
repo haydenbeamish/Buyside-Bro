@@ -53,7 +53,7 @@ function DashboardRoutes() {
     <DashboardLayout>
       <Switch>
         <Route path="/whats-up" component={WhatsUpPage} />
-        <Route path="/dashboard/subscription" component={SubscriptionPage} />
+        <Route path="/subscription" component={SubscriptionPage} />
         <Route path="/dashboard" component={MarketsPage} />
         <Route path="/portfolio" component={PortfolioPage} />
         <Route path="/watchlist" component={WatchlistPage} />
