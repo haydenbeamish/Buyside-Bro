@@ -293,7 +293,7 @@ function SortHeader({ label, sortKey: colKey, currentKey, currentDir, onToggle, 
 }) {
   return (
     <th
-      className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-amber-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:rounded"
+      className="px-1.5 sm:px-3 py-2 sm:py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-amber-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:rounded"
       tabIndex={0}
       role="button"
       onClick={() => onToggle(colKey)}
@@ -488,7 +488,7 @@ export default function WatchlistPage() {
                 <thead>
                   <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase">
                     <th
-                      className="sticky left-0 z-10 bg-zinc-900 px-3 py-3 text-left font-medium select-none whitespace-nowrap cursor-pointer hover:text-amber-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:rounded min-w-[100px] sm:min-w-[140px]"
+                      className="sticky left-0 z-10 bg-zinc-900 px-1.5 sm:px-3 py-2 sm:py-3 text-left font-medium select-none whitespace-nowrap cursor-pointer hover:text-amber-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:rounded min-w-[80px] sm:min-w-[140px]"
                       tabIndex={0}
                       role="button"
                       onClick={() => toggleSort("ticker")}
@@ -502,12 +502,12 @@ export default function WatchlistPage() {
                     </th>
                     <SortHeader label="Price" sortKey="price" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-price" />
                     <SortHeader label="Day %" sortKey="dayChangePercent" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-day" />
-                    <SortHeader label="Volume" sortKey="volume" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-volume" />
+                    <SortHeader label="Vol" sortKey="volume" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-volume" />
                     <SortHeader label="Mkt Cap" sortKey="marketCap" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-mktcap" />
                     <SortHeader label="P/E" sortKey="pe" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} testId="sort-pe" />
-                    <th className="px-3 py-3 text-center font-medium whitespace-nowrap text-xs hidden sm:table-cell">52W Range</th>
-                    {isAuthenticated && <th className="px-3 py-3 text-left font-medium whitespace-nowrap text-xs hidden sm:table-cell">Notes</th>}
-                    {isAuthenticated && <th className="px-3 py-3 w-[44px]"></th>}
+                    <th className="px-2 sm:px-3 py-3 text-center font-medium whitespace-nowrap text-xs hidden sm:table-cell">52W Range</th>
+                    {isAuthenticated && <th className="px-2 sm:px-3 py-3 text-left font-medium whitespace-nowrap text-xs hidden sm:table-cell">Notes</th>}
+                    {isAuthenticated && <th className="px-1 sm:px-3 py-2 sm:py-3 w-[44px]"></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -523,44 +523,44 @@ export default function WatchlistPage() {
                         className="border-b border-zinc-800/50 hover:bg-amber-900/10 transition-colors"
                         data-testid={`watchlist-row-${item.ticker}`}
                       >
-                        <td className="sticky left-0 z-10 bg-zinc-900 px-3 py-2.5 overflow-hidden min-w-[100px] sm:min-w-[140px]">
+                        <td className="sticky left-0 z-10 bg-zinc-900 px-1.5 sm:px-3 py-2 sm:py-2.5 overflow-hidden min-w-[80px] sm:min-w-[140px]">
                           <Link href={`/analysis?ticker=${item.ticker}`} className="hover:underline">
                             <span className="font-mono font-semibold text-amber-400 truncate block text-xs sm:text-sm">{item.ticker}</span>
                           </Link>
                           {item.name && item.name !== item.ticker && (
-                            <span className="text-[10px] sm:text-xs text-zinc-500 truncate block leading-tight">{item.name}</span>
+                            <span className="text-[10px] sm:text-xs text-zinc-500 truncate block leading-tight max-w-[70px] sm:max-w-none">{item.name}</span>
                           )}
                         </td>
-                        <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap text-xs sm:text-sm">
+                        <td className="px-1.5 sm:px-3 py-2 sm:py-2.5 text-right font-mono text-white whitespace-nowrap text-xs sm:text-sm">
                           {item.price ? `$${item.price.toFixed(2)}` : "-"}
                         </td>
-                        <td className="px-3 py-2.5 text-right whitespace-nowrap text-xs sm:text-sm">
+                        <td className="px-1.5 sm:px-3 py-2 sm:py-2.5 text-right whitespace-nowrap text-xs sm:text-sm">
                           <PercentDisplay value={item.dayChangePercent || 0} />
                         </td>
-                        <td className={`px-3 py-2.5 text-right font-mono text-xs whitespace-nowrap ${highVol ? "text-yellow-400 font-semibold" : "text-zinc-400"}`}>
+                        <td className={`px-1.5 sm:px-3 py-2 sm:py-2.5 text-right font-mono text-xs whitespace-nowrap ${highVol ? "text-yellow-400 font-semibold" : "text-zinc-400"}`}>
                           {formatVolume(item.volume)}
                         </td>
-                        <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
+                        <td className="px-1.5 sm:px-3 py-2 sm:py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
                           {formatMarketCap(item.marketCap)}
                         </td>
-                        <td className="px-3 py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
+                        <td className="px-1.5 sm:px-3 py-2 sm:py-2.5 text-right font-mono text-zinc-400 text-xs whitespace-nowrap">
                           {item.pe ? item.pe.toFixed(1) : "-"}
                         </td>
-                        <td className="px-3 py-2.5 hidden sm:table-cell">
+                        <td className="px-2 sm:px-3 py-2 sm:py-2.5 hidden sm:table-cell">
                           <FiftyTwoWeekBar price={item.price} low={item.yearLow} high={item.yearHigh} />
                         </td>
                         {isAuthenticated && (
-                          <td className="px-3 py-2.5 overflow-hidden hidden sm:table-cell">
+                          <td className="px-2 sm:px-3 py-2 sm:py-2.5 overflow-hidden hidden sm:table-cell">
                             <InlineNoteEditor itemId={item.id} initialNote={item.notes ?? null} />
                           </td>
                         )}
                         {isAuthenticated && (
-                          <td className="px-3 py-2.5">
+                          <td className="px-1 sm:px-3 py-2 sm:py-2.5">
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => handleDelete(item.id, item.ticker)}
-                              className="text-zinc-600 hover:text-red-400 min-h-[44px] min-w-[44px]"
+                              className="text-zinc-600 hover:text-red-400"
                               data-testid={`button-remove-${item.ticker}`}
                             >
                               <Trash2 className="h-4 w-4" />
