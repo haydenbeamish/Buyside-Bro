@@ -28,7 +28,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import type { PortfolioHolding } from "@shared/schema";
-import logoImg from "@assets/image_1770292490089.png";
+import logoImg from "@assets/image_1770442846290.png";
 import ReactMarkdown from "react-markdown";
 import { useLoginGate } from "@/hooks/use-login-gate";
 import { LoginGateModal } from "@/components/login-gate-modal";

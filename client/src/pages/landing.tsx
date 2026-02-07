@@ -10,7 +10,7 @@ import { SiDiscord } from "react-icons/si";
 import { useAuth } from "@/hooks/use-auth";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import logoImg from "@assets/image_1770296632105.png";
+import logoImg from "@assets/image_1770442846290.png";
 import heroImg from "@assets/image_1770297600939.png";
 import screenshotWhatsUp from "@assets/image_1770367320606.png";
 import screenshotMarkets from "@assets/image_1770353894237.png";

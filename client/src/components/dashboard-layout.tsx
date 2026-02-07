@@ -7,7 +7,7 @@ import { useBroStatus } from "@/hooks/use-bro-status";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import logoImg from "@assets/image_1770291732587.png";
+import logoImg from "@assets/image_1770442846290.png";
 
 interface DashboardLayoutProps {
   children: ReactNode;

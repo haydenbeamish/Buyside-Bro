@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { ArrowRight, BarChart3, Bot, TrendingUp, Shield, Zap, Clock, Briefcase, Eye, Brain, /* Newspaper, */ Sparkles } from "lucide-react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
-import logoImg from "@assets/image_1770296632105.png";
+import logoImg from "@assets/image_1770442846290.png";
 import screenshotWhatsUp from "@assets/image_1770367320606.png";
 import screenshotMarkets from "@assets/image_1770353894237.png";
 import screenshotPortfolio from "@assets/image_1770293388261.png";

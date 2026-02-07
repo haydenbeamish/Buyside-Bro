@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3, Coins, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import logoImg from "@assets/image_1770296632105.png";
+import logoImg from "@assets/image_1770442846290.png";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
 interface SubscriptionStatus {
