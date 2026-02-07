@@ -17,7 +17,9 @@ import {
   getMarketEventTitle,
   checkAndDeductCredits,
   checkBroQueryAllowed,
-  getBroStatus
+  getBroStatus,
+  MARKET_SCHEDULES,
+  hasNewsFeedItemForMarketToday
 } from "./creditService";
 import { db } from "./db";
 import { desc, sql, eq, gte, count, and, isNotNull } from "drizzle-orm";
@@ -191,6 +193,84 @@ function startMSFTCacheScheduler() {
   setInterval(() => {
     refreshMSFTAnalysisCache();
   }, TWENTY_FOUR_HOURS);
+}
+
+async function generateAndPostMarketSummary(market: string, eventType: string): Promise<void> {
+  let summaryContent = "";
+  try {
+    const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/market-summary`, { headers: LASER_BEAM_HEADERS });
+    if (response.ok) {
+      summaryContent = await response.text();
+    }
+  } catch (e) {
+    console.error(`[NewsFeed Scheduler] Failed to fetch market summary for ${market}:`, e);
+  }
+
+  if (!summaryContent) {
+    summaryContent = `Market update for ${market}. Check the markets tab for latest prices and performance data.`;
+  }
+
+  const title = getMarketEventTitle(market, eventType);
+
+  await addNewsFeedItem({
+    title,
+    content: summaryContent,
+    market,
+    eventType,
+    source: "system",
+    publishedAt: new Date(),
+    metadata: { generatedAt: new Date().toISOString() },
+  });
+
+  console.log(`[NewsFeed Scheduler] Posted ${eventType} summary for ${market}: ${title}`);
+}
+
+async function checkAndPostMarketCloseSummaries(): Promise<void> {
+  for (const [market, schedule] of Object.entries(MARKET_SCHEDULES)) {
+    try {
+      // Get current time in market's timezone
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: schedule.timezone,
+        hour: 'numeric',
+        minute: 'numeric',
+        weekday: 'short',
+        hour12: false,
+      });
+      const parts = formatter.formatToParts(now);
+      const hour = parseInt(parts.find(p => p.type === 'hour')?.value || '0');
+      const minute = parseInt(parts.find(p => p.type === 'minute')?.value || '0');
+      const weekday = parts.find(p => p.type === 'weekday')?.value || '';
+
+      // Skip weekends
+      if (weekday === 'Sat' || weekday === 'Sun') continue;
+
+      // Calculate post time (close + offset)
+      const postMinutes = schedule.closeHour * 60 + schedule.closeMinute + schedule.updateOffsetMinutes;
+      const currentMinutes = hour * 60 + minute;
+
+      // Check if within 30-min window after post time
+      if (currentMinutes < postMinutes || currentMinutes >= postMinutes + 30) continue;
+
+      // Check if already posted today (DB-based, survives restarts)
+      const alreadyPosted = await hasNewsFeedItemForMarketToday(market, 'close');
+      if (alreadyPosted) continue;
+
+      await generateAndPostMarketSummary(market, 'close');
+    } catch (e) {
+      console.error(`[NewsFeed Scheduler] Error checking ${market}:`, e);
+    }
+  }
+}
+
+function startNewsFeedScheduler() {
+  console.log("[NewsFeed Scheduler] Started - checking every 60s for market close summaries");
+
+  // Initial check 30s after server start (handles restarts during posting window)
+  setTimeout(() => checkAndPostMarketCloseSummaries(), 30 * 1000);
+
+  // Then check every 60 seconds
+  setInterval(() => checkAndPostMarketCloseSummaries(), 60 * 1000);
 }
 
 function classifyAction(method: string, path: string): string {
@@ -1850,7 +1930,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   // Newsfeed API endpoints
   app.get("/api/newsfeed", async (req: any, res: Response) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 20;
+      const limit = parseInt(req.query.limit as string) || 10;
       const items = await getNewsFeed(limit);
       res.json({ items });
     } catch (error) {
@@ -1884,43 +1964,24 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  // Market summary generation endpoint (can be called by scheduler)
+  // Market summary generation endpoint (can be called manually or by scheduler)
   app.post("/api/newsfeed/generate-summary", isAuthenticated, async (req: any, res: Response) => {
     try {
       const { market, eventType } = req.body;
-      
+
       if (!market || !eventType) {
         return res.status(400).json({ error: "Market and eventType required" });
       }
 
-      // Fetch market summary from Laser Beam API
-      let summaryContent = "";
-      try {
-        const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/market-summary`, { headers: LASER_BEAM_HEADERS });
-        if (response.ok) {
-          summaryContent = await response.text();
-        }
-      } catch (e) {
-        console.error("Failed to fetch market summary:", e);
+      // Check for duplicate before generating
+      const alreadyPosted = await hasNewsFeedItemForMarketToday(market, eventType);
+      if (alreadyPosted) {
+        return res.status(409).json({ error: "Summary already posted for this market today" });
       }
 
-      if (!summaryContent) {
-        summaryContent = `Market update for ${market}. Check the markets tab for latest prices and performance data.`;
-      }
-
-      const title = getMarketEventTitle(market, eventType);
-      
-      const item = await addNewsFeedItem({
-        title,
-        content: summaryContent,
-        market,
-        eventType,
-        source: "system",
-        publishedAt: new Date(),
-        metadata: { generatedAt: new Date().toISOString() },
-      });
-
-      res.json(item);
+      await generateAndPostMarketSummary(market, eventType);
+      const items = await getNewsFeed(1);
+      res.json(items[0]);
     } catch (error) {
       console.error("Error generating market summary:", error);
       res.status(500).json({ error: "Failed to generate market summary" });
@@ -2390,6 +2451,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   startMSFTCacheScheduler();
+  startNewsFeedScheduler();
 
   return httpServer;
 }

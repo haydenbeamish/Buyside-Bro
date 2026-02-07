@@ -202,8 +202,8 @@ export async function addNewsFeedItem(item: InsertNewsFeedItem): Promise<NewsFee
       .from(newsFeed)
       .orderBy(desc(newsFeed.publishedAt), desc(newsFeed.id));
 
-    if (allItems.length > 20) {
-      const idsToDelete = allItems.slice(20).map(r => r.id);
+    if (allItems.length > 100) {
+      const idsToDelete = allItems.slice(100).map(r => r.id);
       for (const id of idsToDelete) {
         await db.delete(newsFeed).where(eq(newsFeed.id, id));
       }
@@ -252,6 +252,25 @@ export function getMarketEventTitle(market: string, eventType: string): string {
   };
   
   return `${market} ${eventLabels[eventType] || 'Update'} - ${dateStr}`;
+}
+
+export async function hasNewsFeedItemForMarketToday(market: string, eventType: string): Promise<boolean> {
+  const expectedTitle = getMarketEventTitle(market, eventType);
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000); // 48h ago
+
+  const existing = await db.select({ id: newsFeed.id })
+    .from(newsFeed)
+    .where(
+      and(
+        eq(newsFeed.market, market),
+        eq(newsFeed.eventType, eventType),
+        eq(newsFeed.title, expectedTitle),
+        gte(newsFeed.publishedAt, cutoff)
+      )
+    )
+    .limit(1);
+
+  return existing.length > 0;
 }
 
 // --- Daily Bro query tracking ---
