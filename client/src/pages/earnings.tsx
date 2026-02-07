@@ -308,12 +308,12 @@ function KeyInfoCard({
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-      <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 sm:p-4">
+      <h3 className="font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
         <Building2 className="h-4 w-4 text-green-500" />
         Key Information
       </h3>
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
         <div>
           <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Market Cap</p>
           {profileLoading ? <Skeleton className="h-6 w-20 bg-zinc-800" /> : (
@@ -369,7 +369,7 @@ function RecommendationBadge({ action, confidence }: { action: string; confidenc
   }
   return (
     <div className="flex items-center gap-3">
-      <div className={`${bgColor} ${textColor} px-4 py-2 rounded-lg flex items-center gap-2 font-bold text-lg`}>
+      <div className={`${bgColor} ${textColor} px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 font-bold text-base sm:text-lg`}>
         <Icon className="h-5 w-5" />
         {action?.toUpperCase() || "HOLD"}
       </div>
@@ -391,7 +391,7 @@ function MarkdownSection({ content }: { content: string }) {
         const body = title ? lines.slice(1).join("\n").trim() : section.trim();
         if (!body && !title) return null;
         return (
-          <div key={idx} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-5">
+          <div key={idx} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-5">
             {title && (
               <h3 className="text-lg font-semibold text-green-400 mb-3 flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-green-500" />
@@ -459,7 +459,7 @@ function AnalysisLoader({ ticker, mode, progress: apiProgress, message, isComple
   const currentStage = stageIndex === -1 ? loadingStages.length - 1 : stageIndex;
 
   return (
-    <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-green-950/20 border border-green-500/30 rounded-lg p-8 relative overflow-hidden">
+    <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-green-950/20 border border-green-500/30 rounded-lg p-4 sm:p-8 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,255,0,0.05),transparent_70%)]" />
       <div className="relative">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -471,7 +471,7 @@ function AnalysisLoader({ ticker, mode, progress: apiProgress, message, isComple
               <div className="absolute inset-0 rounded-full border-2 border-green-500/30 animate-ping" />
             </div>
             <div>
-              <h3 className="font-bold text-xl text-white">{modeLabel} in Progress</h3>
+              <h3 className="font-bold text-base sm:text-xl text-white">{modeLabel} in Progress</h3>
               <p className="text-zinc-400 text-sm mt-1">
                 Analyzing <span className="font-mono text-green-400">{ticker}</span>
               </p>
@@ -491,7 +491,7 @@ function AnalysisLoader({ ticker, mode, progress: apiProgress, message, isComple
             return (
               <div
                 key={stage.label}
-                className={`text-center p-3 rounded-lg transition-all ${isActive ? "bg-green-500/20 border border-green-500/50" : isDone ? "bg-zinc-800" : "bg-zinc-900/50"}`}
+                className={`text-center p-2 sm:p-3 rounded-lg transition-all ${isActive ? "bg-green-500/20 border border-green-500/50" : isDone ? "bg-zinc-800" : "bg-zinc-900/50"}`}
               >
                 <stage.icon className={`h-5 w-5 mx-auto mb-2 ${isActive ? "text-green-400 animate-pulse" : isDone ? "text-green-500" : "text-zinc-600"}`} />
                 <p className={`text-xs ${isActive ? "text-green-400" : isDone ? "text-zinc-400" : "text-zinc-600"}`}>{stage.label}</p>
@@ -512,7 +512,7 @@ function AnalysisResult({ result }: { result: DeepAnalysisResultData }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-green-950/10 border border-green-500/20 rounded-lg p-6">
+      <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-green-950/10 border border-green-500/20 rounded-lg p-4 sm:p-6">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-4">
@@ -527,11 +527,11 @@ function AnalysisResult({ result }: { result: DeepAnalysisResultData }) {
           <div className="grid grid-cols-2 gap-4 md:text-right">
             <div>
               <p className="text-xs text-zinc-500 uppercase tracking-wide">Target Price</p>
-              <p className="text-2xl font-bold font-mono text-white">${rec?.targetPrice?.toFixed(2) || "\u2014"}</p>
+              <p className="text-xl sm:text-2xl font-bold font-mono text-white">${rec?.targetPrice?.toFixed(2) || "\u2014"}</p>
             </div>
             <div>
               <p className="text-xs text-zinc-500 uppercase tracking-wide">Upside</p>
-              <p className={`text-2xl font-bold font-mono ${(rec?.upside || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+              <p className={`text-xl sm:text-2xl font-bold font-mono ${(rec?.upside || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
                 {(rec?.upside || 0) >= 0 ? "+" : ""}{rec?.upside?.toFixed(1) || 0}%
               </p>
             </div>
@@ -717,15 +717,15 @@ export default function EarningsAnalysisPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Brain className="h-8 w-8 text-green-400" />
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle" data-testid="text-page-title">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2">
+            <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-green-400" />
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle" data-testid="text-page-title">
               EARNINGS
             </h1>
           </div>
-          <p className="text-zinc-500">
+          <p className="text-zinc-500 text-sm sm:text-base">
             Bro-powered earnings analysis — preview what's ahead or review what just happened
           </p>
         </div>
@@ -749,7 +749,7 @@ export default function EarningsAnalysisPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-8">
+        <div className="flex gap-2 mb-6 sm:mb-8">
           <Button
             variant={mode === "preview" ? "default" : "outline"}
             className={mode === "preview"
@@ -779,8 +779,8 @@ export default function EarningsAnalysisPage() {
         </div>
 
         {!activeTicker ? (
-          <div className="bg-zinc-900 border border-zinc-800 border-dashed rounded-lg py-16 text-center">
-            <Brain className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+          <div className="bg-zinc-900 border border-zinc-800 border-dashed rounded-lg py-10 sm:py-16 px-4 text-center">
+            <Brain className="h-8 w-8 sm:h-12 sm:w-12 text-zinc-600 mx-auto mb-4" />
             <h3 className="font-semibold text-white mb-2">Search for a stock to analyze</h3>
             <p className="text-sm text-zinc-500 max-w-md mx-auto mb-2">
               Enter a ticker symbol, then choose whether you want an earnings preview or review.
@@ -822,11 +822,11 @@ export default function EarningsAnalysisPage() {
                 </div>
               </div>
             ) : profile ? (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 sm:p-6">
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
-                      <h2 className="text-2xl font-bold font-mono text-white">{profile.symbol}</h2>
+                      <h2 className="text-xl sm:text-2xl font-bold font-mono text-white">{profile.symbol}</h2>
                       <Badge variant="outline" className="border-zinc-700 text-zinc-400">{profile.exchange}</Badge>
                     </div>
                     <p className="text-lg text-zinc-300 mb-2">{profile.companyName}</p>
@@ -836,7 +836,7 @@ export default function EarningsAnalysisPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-bold font-mono text-white">${profile.price.toFixed(2)}</p>
+                    <p className="text-2xl sm:text-3xl font-bold font-mono text-white">${profile.price.toFixed(2)}</p>
                     <PercentDisplay value={profile.changesPercentage} />
                   </div>
                 </div>

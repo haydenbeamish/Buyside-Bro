@@ -50,7 +50,7 @@ function ThinkingLoader() {
           <span className="text-xs font-bold text-green-500 animate-pulse">AB</span>
         </AvatarFallback>
       </Avatar>
-      <div className="flex-1 max-w-[80%]">
+      <div className="flex-1 max-w-[90%] sm:max-w-[80%]">
         <div className="bg-zinc-900 border border-green-500/30 rounded-lg p-4 space-y-4">
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -234,7 +234,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-64px)] max-h-[calc(100vh-64px)] bg-black overflow-hidden">
+    <div className="flex h-[calc(100dvh-56px)] sm:h-[calc(100vh-64px)] max-h-[calc(100dvh-56px)] sm:max-h-[calc(100vh-64px)] bg-black overflow-hidden">
       <div className="flex-1 flex flex-col bg-black overflow-hidden">
         {messages.length === 0 && !isStreaming ? (
           <div className="flex-1 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
@@ -318,13 +318,13 @@ export default function ChatPage() {
                       </AvatarFallback>
                     </Avatar>
                     <div
-                      className={`max-w-[80%] rounded-lg p-3 ${
+                      className={`max-w-[90%] sm:max-w-[80%] rounded-lg p-3 ${
                         msg.role === "user"
                           ? "bg-zinc-800 text-white"
                           : "bg-zinc-900 border border-zinc-800 text-zinc-300"
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed break-words">
                         {msg.content}
                       </p>
                     </div>
@@ -342,8 +342,8 @@ export default function ChatPage() {
                         <span className="text-xs font-bold text-green-500">AB</span>
                       </AvatarFallback>
                     </Avatar>
-                    <div className="max-w-[80%] rounded-lg p-3 bg-zinc-900 border border-zinc-800">
-                      <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed">
+                    <div className="max-w-[90%] sm:max-w-[80%] rounded-lg p-3 bg-zinc-900 border border-zinc-800">
+                      <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed break-words">
                         {streamingMessage}
                       </p>
                     </div>
@@ -354,7 +354,7 @@ export default function ChatPage() {
               </div>
             </ScrollArea>
 
-            <div className="border-t border-zinc-800 p-4">
+            <div className="border-t border-zinc-800 p-2.5 sm:p-4">
               <div className="max-w-3xl mx-auto flex gap-2">
                 <Textarea
                   value={inputValue}
@@ -369,7 +369,7 @@ export default function ChatPage() {
                   onClick={handleSendMessage}
                   disabled={!inputValue.trim() || isStreaming}
                   size="icon"
-                  className="bg-green-500 hover:bg-green-400 text-black"
+                  className="bg-green-500 hover:bg-green-400 text-black min-h-[44px] min-w-[44px]"
                   data-testid="button-send-message"
                 >
                   {isStreaming ? (

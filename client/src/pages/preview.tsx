@@ -183,7 +183,7 @@ export default function PreviewPage() {
           </p>
           <Link href="/dashboard">
             <button
-              className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3"
+              className="bg-green-500 hover:bg-green-400 text-black font-bold px-6 sm:px-10 py-3 sm:py-4 rounded text-base sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3"
               data-testid="button-start-trial"
             >
               Open Terminal <ArrowRight className="w-5 h-5" />

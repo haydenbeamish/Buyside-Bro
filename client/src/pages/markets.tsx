@@ -129,26 +129,26 @@ function GroupedSection({ title, items, flashCells, note }: { title: string; ite
       </div>
       {/* Mobile view */}
       <div className="sm:hidden">
-        <div className="grid grid-cols-4 gap-1 px-2 py-1.5 text-[10px] text-zinc-500 uppercase border-b border-zinc-800">
+        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800">
           <span>Name</span>
-          <span className="text-right">Price</span>
-          <span className="text-right">1D%</span>
-          <span className="text-right">1M%</span>
+          <span className="text-right w-16">Price</span>
+          <span className="text-right w-14">1D%</span>
+          <span className="text-right w-14">1M%</span>
         </div>
         {items.map((item) => (
           <div
             key={item.name}
-            className="grid grid-cols-4 gap-1 px-2 py-2 border-b border-zinc-800/50 text-xs"
+            className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-2.5 border-b border-zinc-800/50 text-xs"
           >
             <span className="text-zinc-200 truncate">{item.name}</span>
-            <span className={`text-right font-mono text-zinc-300 ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
+            <span className={`text-right font-mono text-zinc-300 w-16 ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
               {item.price >= 10000
                 ? item.price.toLocaleString(undefined, { maximumFractionDigits: 0 })
                 : item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
               }
             </span>
-            <span className="text-right"><MobilePercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} /></span>
-            <span className="text-right"><MobilePercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} /></span>
+            <span className="text-right w-14"><MobilePercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} /></span>
+            <span className="text-right w-14"><MobilePercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} /></span>
           </div>
         ))}
       </div>
@@ -260,18 +260,18 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
     <>
       {/* Mobile view - compact 4-column layout */}
       <div className="sm:hidden">
-        <div className="grid grid-cols-4 gap-1 px-2 py-2 text-[10px] text-zinc-500 uppercase border-b border-zinc-800 sticky top-0 bg-black z-10">
+        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800 sticky top-0 bg-black z-10">
           <span className="font-medium">NAME</span>
-          <span className="text-right font-medium">PRICE</span>
-          <button 
-            onClick={() => handleSort('change1D')} 
-            className="text-right font-medium flex items-center justify-end gap-0.5"
+          <span className="text-right font-medium w-16">PRICE</span>
+          <button
+            onClick={() => handleSort('change1D')}
+            className="text-right font-medium flex items-center justify-end gap-0.5 w-14 min-h-[44px]"
           >
             1D% <SortIndicator field="change1D" />
           </button>
-          <button 
-            onClick={() => handleSort('change1M')} 
-            className="text-right font-medium flex items-center justify-end gap-0.5"
+          <button
+            onClick={() => handleSort('change1M')}
+            className="text-right font-medium flex items-center justify-end gap-0.5 w-14 min-h-[44px]"
           >
             1M% <SortIndicator field="change1M" />
           </button>
@@ -280,72 +280,45 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
           {sortedItems.map((item, idx) => (
             <div
               key={item.name}
-              className="grid grid-cols-4 gap-1 px-2 py-2.5 text-xs"
+              className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-3 py-3 text-xs"
               data-testid={`market-row-mobile-${idx}`}
             >
               <span className="text-zinc-200 truncate pr-1">{item.name}</span>
-              <span className={`text-right font-mono text-zinc-300 ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
+              <span className={`text-right font-mono text-zinc-300 w-16 ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
                 {item.price >= 10000
                   ? item.price.toLocaleString(undefined, { maximumFractionDigits: 0 })
                   : item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                 }
               </span>
-              <span className="text-right"><MobilePercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} /></span>
-              <span className="text-right"><MobilePercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} /></span>
+              <span className="text-right w-14"><MobilePercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} /></span>
+              <span className="text-right w-14"><MobilePercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} /></span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Desktop view - full table */}
-      <div className="hidden sm:block overflow-x-auto">
+      <div className="hidden sm:block overflow-x-auto scroll-fade-right">
         <table className="w-full text-sm" data-testid="markets-table">
           <thead>
             <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase">
               <th className="px-3 py-3 text-left font-medium">Name</th>
               <th className="px-3 py-3 text-right font-medium">Price</th>
-              <th 
-                className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
-                onClick={() => handleSort('change1D')}
-              >
-                1D% <SortIndicator field="change1D" />
-              </th>
-              <th 
-                className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
-                onClick={() => handleSort('change1M')}
-              >
-                1M% <SortIndicator field="change1M" />
-              </th>
-              <th 
-                className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
-                onClick={() => handleSort('change1Q')}
-              >
-                1Q% <SortIndicator field="change1Q" />
-              </th>
-              <th 
-                className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
-                onClick={() => handleSort('change1Y')}
-              >
-                1Y% <SortIndicator field="change1Y" />
-              </th>
-              <th 
-                className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
-                onClick={() => handleSort('vs10D')}
-              >
-                VS 10D <SortIndicator field="vs10D" />
-              </th>
-              <th 
-                className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
-                onClick={() => handleSort('vs20D')}
-              >
-                VS 20D <SortIndicator field="vs20D" />
-              </th>
-              <th 
-                className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors"
-                onClick={() => handleSort('vs200D')}
-              >
-                VS 200D <SortIndicator field="vs200D" />
-              </th>
+              {(['change1D', 'change1M', 'change1Q', 'change1Y', 'vs10D', 'vs20D', 'vs200D'] as const).map((field) => {
+                const labels: Record<string, string> = { change1D: '1D%', change1M: '1M%', change1Q: '1Q%', change1Y: '1Y%', vs10D: 'VS 10D', vs20D: 'VS 20D', vs200D: 'VS 200D' };
+                return (
+                  <th
+                    key={field}
+                    className="px-3 py-3 text-right font-medium cursor-pointer hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:rounded"
+                    tabIndex={0}
+                    role="button"
+                    onClick={() => handleSort(field)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort(field); } }}
+                  >
+                    {labels[field]} <SortIndicator field={field} />
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -541,56 +514,56 @@ export default function MarketsPage() {
             <TabsList className="bg-zinc-900 border border-zinc-800 rounded-lg p-1 mb-4 sm:mb-6 inline-flex min-w-max gap-1">
               <TabsTrigger 
                 value="global" 
-                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-1.5 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
                 data-testid="tab-global-markets"
               >
                 Global Markets
               </TabsTrigger>
               <TabsTrigger 
                 value="futures"
-                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-1.5 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
                 data-testid="tab-futures"
               >
                 Futures
               </TabsTrigger>
               <TabsTrigger 
                 value="commodities"
-                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-1.5 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
                 data-testid="tab-commodities"
               >
                 Commodities
               </TabsTrigger>
               <TabsTrigger 
                 value="usa-thematics"
-                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-1.5 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
                 data-testid="tab-usa-thematics"
               >
                 USA Thematics
               </TabsTrigger>
               <TabsTrigger 
                 value="usa-sectors"
-                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-1.5 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
                 data-testid="tab-usa-sectors"
               >
                 USA Sectors
               </TabsTrigger>
               <TabsTrigger 
                 value="usa-equal"
-                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-1.5 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
                 data-testid="tab-usa-equal"
               >
                 USA Equal Weight
               </TabsTrigger>
               <TabsTrigger 
                 value="asx-sectors"
-                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-1.5 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
                 data-testid="tab-asx-sectors"
               >
                 ASX Sectors
               </TabsTrigger>
               <TabsTrigger 
                 value="forex"
-                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-1.5 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
                 data-testid="tab-forex"
               >
                 Forex

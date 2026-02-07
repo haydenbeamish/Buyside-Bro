@@ -156,7 +156,7 @@ function NewsFeed() {
           </div>
         </div>
       </div>
-      <div className="max-h-[700px] overflow-y-auto">
+      <div className="max-h-[60dvh] sm:max-h-[700px] overflow-y-auto">
         {items.map((item, index) => (
           <NewsFeedItemCard
             key={item.id}
@@ -176,8 +176,8 @@ export default function WhatsUpPage() {
   });
 
   return (
-    <div className="p-4 sm:p-6">
-      <h1 className="display-font text-3xl tracking-wider neon-green mb-8 uppercase" data-testid="text-whats-up-title">
+    <div className="px-3 sm:px-4 py-4 sm:py-6">
+      <h1 className="display-font text-xl sm:text-3xl tracking-wider neon-green mb-6 sm:mb-8 uppercase" data-testid="text-whats-up-title">
         What's Up?
       </h1>
 

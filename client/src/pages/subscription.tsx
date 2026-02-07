@@ -213,13 +213,13 @@ export default function SubscriptionPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <img src={logoImg} alt="Buy Side Bro" className="w-16 h-16 mx-auto mb-6" />
-          <h1 className="display-font text-3xl md:text-4xl neon-green mb-4">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
+        <div className="text-center mb-8 sm:mb-12">
+          <img src={logoImg} alt="Buy Side Bro" className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 sm:mb-6" />
+          <h1 className="display-font text-2xl sm:text-3xl md:text-4xl neon-green mb-4">
             {isActive ? "Your Subscription" : "Go Pro with Buy Side Bro"}
           </h1>
-          <p className="text-zinc-400 text-lg max-w-xl mx-auto">
+          <p className="text-zinc-400 text-sm sm:text-lg max-w-xl mx-auto">
             {isActive
               ? "Manage your subscription and billing details."
               : "Don't pay $30k USD for a terminal. You've got a buy side bro instead."}
@@ -246,7 +246,7 @@ export default function SubscriptionPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {features.map((feature, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm text-zinc-300">
                     <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
@@ -295,10 +295,10 @@ export default function SubscriptionPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-zinc-800/50 rounded-lg p-4">
-                  <div className="text-zinc-400 text-sm mb-1">Monthly Included</div>
-                  <div className="text-white text-xl font-bold ticker-font">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <div className="bg-zinc-800/50 rounded-lg p-3 sm:p-4">
+                  <div className="text-zinc-400 text-xs sm:text-sm mb-1">Monthly Included</div>
+                  <div className="text-white text-base sm:text-xl font-bold ticker-font">
                     ${((creditsData?.monthlyLimitCents || 500) / 100).toFixed(2)}
                   </div>
                   <Progress 
@@ -309,9 +309,9 @@ export default function SubscriptionPage() {
                     ${((creditsData?.monthlyUsedCents || 0) / 100).toFixed(2)} used
                   </div>
                 </div>
-                <div className="bg-zinc-800/50 rounded-lg p-4">
-                  <div className="text-zinc-400 text-sm mb-1">Purchased Credits</div>
-                  <div className="text-green-500 text-xl font-bold ticker-font">
+                <div className="bg-zinc-800/50 rounded-lg p-3 sm:p-4">
+                  <div className="text-zinc-400 text-xs sm:text-sm mb-1">Purchased Credits</div>
+                  <div className="text-green-500 text-base sm:text-xl font-bold ticker-font">
                     ${((creditsData?.purchasedCreditsCents || 0) / 100).toFixed(2)}
                   </div>
                   <div className="text-zinc-500 text-xs mt-2">
@@ -320,7 +320,7 @@ export default function SubscriptionPage() {
                 </div>
               </div>
               
-              <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700/50">
+              <div className="bg-zinc-800/30 rounded-lg p-3 sm:p-4 border border-zinc-700/50">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-zinc-400 text-sm">Total Available</span>
                   <span className={`text-lg font-bold ticker-font ${(creditsData?.availableCreditsCents || 0) > 0 ? 'text-green-500' : 'text-red-500'}`}>
@@ -341,7 +341,7 @@ export default function SubscriptionPage() {
                       <Button
                         key={pack.id}
                         variant="outline"
-                        className="border-zinc-700 hover:border-green-500/50 hover:bg-green-500/10 flex flex-col py-3 h-auto"
+                        className="border-zinc-700 hover:border-green-500/50 hover:bg-green-500/10 flex flex-col py-3 h-auto min-h-[44px]"
                         onClick={() => creditPurchaseMutation.mutate(pack.priceId)}
                         disabled={creditPurchaseMutation.isPending}
                         data-testid={`button-buy-credits-${pack.amount / 100}`}
@@ -359,7 +359,7 @@ export default function SubscriptionPage() {
         )}
 
         {!isActive && (
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
             <Card className="bg-zinc-900/50 border-green-900/30">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
@@ -372,7 +372,7 @@ export default function SubscriptionPage() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="text-center py-4">
-                  <div className="display-font text-4xl neon-green">
+                  <div className="display-font text-3xl sm:text-4xl neon-green">
                     ${price ? (price.unit_amount / 100).toFixed(0) : "10"}
                   </div>
                   <div className="text-zinc-400 text-sm mt-1">per month</div>

@@ -82,8 +82,21 @@ export default {
           foreground: "hsl(var(--sidebar-accent-foreground) / <alpha-value>)",
           border: "var(--sidebar-accent-border)"
         },
+        green: {
+          50: "hsl(120 60% 96%)",
+          100: "hsl(120 60% 90%)",
+          200: "hsl(120 60% 78%)",
+          300: "hsl(120 60% 64%)",
+          400: "hsl(120 80% 48%)",
+          500: "hsl(120 100% 40%)",
+          600: "hsl(120 100% 33%)",
+          700: "hsl(120 100% 26%)",
+          800: "hsl(120 100% 20%)",
+          900: "hsl(120 100% 14%)",
+          950: "hsl(120 100% 8%)",
+        },
         status: {
-          online: "rgb(34 197 94)",
+          online: "hsl(120 100% 45%)",
           away: "rgb(245 158 11)",
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",

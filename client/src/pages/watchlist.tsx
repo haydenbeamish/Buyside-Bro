@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { Plus, Trash2, Search, Loader2, Eye, ArrowUp, ArrowDown, Download } from "lucide-react";
 import { Link } from "wouter";
 import type { WatchlistItem } from "@shared/schema";
@@ -47,6 +48,7 @@ function WatchlistStockSearch({
   const [results, setResults] = useState<StockSearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -89,28 +91,42 @@ function WatchlistStockSearch({
         <Input
           placeholder="Search stocks globally... (e.g., Apple, VOD.L)"
           value={query}
-          onChange={(e) => setQuery(e.target.value.toUpperCase())}
+          onChange={(e) => { setQuery(e.target.value.toUpperCase()); setActiveIndex(-1); }}
           onFocus={() => results.length > 0 && setIsOpen(true)}
+          onKeyDown={(e) => {
+            if (!isOpen || results.length === 0) return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex(i => i < results.length - 1 ? i + 1 : 0); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex(i => i > 0 ? i - 1 : results.length - 1); }
+            else if (e.key === 'Enter' && activeIndex >= 0) { e.preventDefault(); const s = results[activeIndex]; onSelect(s.symbol, s.name); setQuery(''); setIsOpen(false); setActiveIndex(-1); }
+            else if (e.key === 'Escape') { setIsOpen(false); setActiveIndex(-1); }
+          }}
           className="bg-zinc-800 border-zinc-700 text-white font-mono uppercase pl-10"
           data-testid="input-watchlist-search"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-activedescendant={activeIndex >= 0 ? `watchlist-option-${activeIndex}` : undefined}
         />
         {isLoading && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 animate-spin" />
         )}
       </div>
       {isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl">
+        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl" role="listbox">
           {results.map((stock, idx) => (
             <button
               key={`${stock.symbol}-${idx}`}
+              id={`watchlist-option-${idx}`}
               type="button"
               onClick={() => {
                 onSelect(stock.symbol, stock.name);
                 setQuery("");
                 setIsOpen(false);
+                setActiveIndex(-1);
               }}
-              className="w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0"
+              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
               data-testid={`watchlist-result-${stock.symbol}`}
+              role="option"
+              aria-selected={idx === activeIndex}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -279,8 +295,11 @@ function SortHeader({ label, sortKey: colKey, currentKey, currentDir, onToggle, 
 }) {
   return (
     <th
-      className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors"
+      className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:rounded"
+      tabIndex={0}
+      role="button"
       onClick={() => onToggle(colKey)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(colKey); } }}
       data-testid={testId}
     >
       <span className="inline-flex items-center justify-end gap-1">
@@ -362,28 +381,55 @@ export default function WatchlistPage() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      if (!gate()) return;
-      await apiRequest("DELETE", `/api/watchlist/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/watchlist/enriched"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/watchlist"] });
-      toast({
-        title: "Removed",
-        description: "Stock removed from watchlist.",
-      });
-    },
-  });
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleDelete = useCallback((id: number, ticker: string) => {
+    if (!gate()) return;
+
+    // Snapshot current data for undo
+    const prevData = queryClient.getQueryData<EnrichedWatchlistItem[]>(["/api/watchlist/enriched"]);
+
+    // Optimistically remove from cache
+    queryClient.setQueryData<EnrichedWatchlistItem[]>(
+      ["/api/watchlist/enriched"],
+      (old) => old?.filter((item) => item.id !== id) ?? []
+    );
+
+    // Schedule actual delete after 5s
+    const timer = setTimeout(async () => {
+      try {
+        await apiRequest("DELETE", `/api/watchlist/${id}`);
+        queryClient.invalidateQueries({ queryKey: ["/api/watchlist/enriched"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/watchlist"] });
+      } catch {
+        // Restore on error
+        if (prevData) queryClient.setQueryData(["/api/watchlist/enriched"], prevData);
+        toast({ title: "Error", description: "Failed to remove stock.", variant: "destructive" });
+      }
+    }, 5000);
+    deleteTimerRef.current = timer;
+
+    toast({
+      title: `${ticker} removed`,
+      description: "Stock removed from watchlist.",
+      action: (
+        <ToastAction altText="Undo remove" onClick={() => {
+          clearTimeout(timer);
+          if (prevData) queryClient.setQueryData(["/api/watchlist/enriched"], prevData);
+        }}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  }, [gate, toast]);
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <Eye className="h-8 w-8 text-green-400" />
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle" data-testid="text-watchlist-title">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6 flex-wrap gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Eye className="h-6 w-6 sm:h-8 sm:w-8 text-green-400" />
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle" data-testid="text-watchlist-title">
               WATCHLIST
             </h1>
           </div>
@@ -432,7 +478,7 @@ export default function WatchlistPage() {
         </div>
 
         <div className="bg-zinc-900 border border-green-900/30 rounded-lg">
-          <div className="overflow-x-auto relative">
+          <div className="overflow-x-auto relative scroll-fade-right">
             {isLoading ? (
               <div className="p-4 space-y-2">
                 {Array.from({ length: 8 }).map((_, i) => (
@@ -446,18 +492,16 @@ export default function WatchlistPage() {
                   {sortItems(items, sortKey, sortDir).map((item) => (
                     <div
                       key={item.id}
-                      className="px-3 py-3 flex items-center justify-between"
+                      className="px-3 py-3.5 flex items-center justify-between gap-2"
                       data-testid={`watchlist-row-${item.ticker}`}
                     >
-                      <div className="min-w-0">
-                        <Link href={`/analysis?ticker=${item.ticker}`} className="hover:underline">
-                          <span className="font-mono font-semibold text-green-400">{item.ticker}</span>
-                        </Link>
+                      <Link href={`/analysis?ticker=${item.ticker}`} className="min-w-0 flex-1 hover:underline">
+                        <span className="font-mono font-semibold text-green-400 text-sm">{item.ticker}</span>
                         {item.name && item.name !== item.ticker && (
-                          <span className="text-[11px] text-zinc-500 truncate block leading-tight">{item.name}</span>
+                          <span className="text-xs text-zinc-500 truncate block leading-tight">{item.name}</span>
                         )}
-                      </div>
-                      <div className="flex items-center gap-3">
+                      </Link>
+                      <div className="flex items-center gap-2 shrink-0">
                         <div className="text-right">
                           <span className="font-mono text-sm text-white block">
                             {item.price ? `$${item.price.toFixed(2)}` : "-"}
@@ -468,11 +512,11 @@ export default function WatchlistPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => deleteMutation.mutate(item.id)}
-                            className="text-zinc-600 hover:text-red-400 h-7 w-7"
+                            onClick={() => handleDelete(item.id, item.ticker)}
+                            className="text-zinc-600 hover:text-red-400 min-h-[44px] min-w-[44px]"
                             data-testid={`button-remove-${item.ticker}`}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         )}
                       </div>
@@ -495,8 +539,11 @@ export default function WatchlistPage() {
                   <thead>
                     <tr className="border-b border-green-900/30 text-zinc-500 text-xs uppercase">
                       <th
-                        className="px-3 py-3 text-left font-medium select-none whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors"
+                        className="px-3 py-3 text-left font-medium select-none whitespace-nowrap cursor-pointer hover:text-green-400 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:rounded"
+                        tabIndex={0}
+                        role="button"
                         onClick={() => toggleSort("ticker")}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSort("ticker"); } }}
                         data-testid="sort-ticker"
                       >
                         <span className="inline-flex items-center gap-1">
@@ -532,7 +579,7 @@ export default function WatchlistPage() {
                               <span className="font-mono font-semibold text-green-400 truncate block">{item.ticker}</span>
                             </Link>
                             {item.name && item.name !== item.ticker && (
-                              <span className="text-[11px] text-zinc-500 truncate block leading-tight">{item.name}</span>
+                              <span className="text-xs text-zinc-500 truncate block leading-tight">{item.name}</span>
                             )}
                           </td>
                           <td className="px-3 py-2.5 text-right font-mono text-white whitespace-nowrap overflow-hidden text-ellipsis">
@@ -563,8 +610,8 @@ export default function WatchlistPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => deleteMutation.mutate(item.id)}
-                                className="text-zinc-600 hover:text-red-400"
+                                onClick={() => handleDelete(item.id, item.ticker)}
+                                className="text-zinc-600 hover:text-red-400 min-h-[44px] min-w-[44px]"
                                 data-testid={`button-remove-${item.ticker}`}
                               >
                                 <Trash2 className="h-4 w-4" />

@@ -222,7 +222,7 @@ function StockChart({ data, isLoading }: { data?: HistoricalData; isLoading: boo
   const priceChange = lastPrice - firstPrice;
   const percentChange = firstPrice > 0 ? (priceChange / firstPrice) * 100 : 0;
   const isPositive = percentChange >= 0;
-  const chartColor = isPositive ? "#22c55e" : "#ef4444";
+  const chartColor = isPositive ? "hsl(120, 100%, 45%)" : "#ef4444";
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
@@ -235,7 +235,7 @@ function StockChart({ data, isLoading }: { data?: HistoricalData; isLoading: boo
           </span>
         </div>
       </div>
-      <div className="h-48 sm:h-64">
+      <div className="h-48 sm:h-64" role="img" aria-label={`1 year price chart showing ${isPositive ? "positive" : "negative"} ${Math.abs(percentChange).toFixed(1)}% return`}>
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
             <defs>
@@ -304,12 +304,12 @@ function MetricCard({
   colorClass?: string;
 }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3">
-      <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">{label}</p>
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 sm:p-3">
+      <p className="text-[11px] sm:text-xs text-zinc-500 uppercase tracking-wide mb-1">{label}</p>
       {isLoading ? (
         <Skeleton className="h-6 w-20 bg-zinc-800" />
       ) : (
-        <p className={`text-lg font-bold font-mono ${colorClass || "text-white"}`}>
+        <p className={`text-sm sm:text-lg font-bold font-mono truncate ${colorClass || "text-white"}`}>
           {value}
         </p>
       )}
@@ -356,7 +356,7 @@ function MetricsGrid({
         <BarChart3 className="h-4 w-4 text-green-500" />
         Key Metrics
       </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
         {/* Profile metrics */}
         <MetricCard
           label="Market Cap"
@@ -585,14 +585,14 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
           />
         </div>
         
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2">
           {loadingStages.map((stage, i) => {
             const isActive = i === currentStage;
             const isComplete = displayProgress >= stage.threshold;
             return (
-              <div 
+              <div
                 key={stage.label}
-                className={`text-center p-3 rounded-lg transition-all ${
+                className={`text-center p-2 sm:p-3 rounded-lg transition-all ${
                   isActive ? "bg-green-500/20 border border-green-500/50" :
                   isComplete ? "bg-zinc-800" : "bg-zinc-900/50"
                 }`}
@@ -702,6 +702,7 @@ function StockSearchInput({
   const [results, setResults] = useState<StockSearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const userTypedRef = useRef(false);
 
@@ -746,13 +747,21 @@ function StockSearchInput({
     onSelect(stock.symbol);
     onSubmit(stock.symbol);
     setIsOpen(false);
+    setActiveIndex(-1);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (isOpen && results.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex(i => i < results.length - 1 ? i + 1 : 0); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex(i => i > 0 ? i - 1 : results.length - 1); return; }
+      if (e.key === 'Escape') { setIsOpen(false); setActiveIndex(-1); return; }
+      if (e.key === 'Enter' && activeIndex >= 0) { e.preventDefault(); handleSelect(results[activeIndex]); return; }
+    }
     if (e.key === 'Enter' && query.trim()) {
       e.preventDefault();
       onSubmit(query.toUpperCase().trim());
       setIsOpen(false);
+      setActiveIndex(-1);
     }
   };
 
@@ -768,25 +777,32 @@ function StockSearchInput({
             userTypedRef.current = true;
             setQuery(val);
             onSelect(val);
+            setActiveIndex(-1);
           }}
           onFocus={() => results.length > 0 && setIsOpen(true)}
           onKeyDown={handleKeyDown}
           className="pl-10 bg-zinc-900 border-zinc-800 text-white font-mono uppercase"
           data-testid="input-search-ticker"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-activedescendant={activeIndex >= 0 ? `analysis-option-${activeIndex}` : undefined}
         />
         {isLoading && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 animate-spin" />
         )}
       </div>
       {isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl">
+        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl" role="listbox">
           {results.map((stock, idx) => (
             <button
               key={`${stock.symbol}-${idx}`}
+              id={`analysis-option-${idx}`}
               type="button"
               onClick={() => handleSelect(stock)}
-              className="w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0"
+              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
               data-testid={`stock-result-${stock.symbol}`}
+              role="option"
+              aria-selected={idx === activeIndex}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -1083,17 +1099,17 @@ export default function AnalysisPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-1 sm:mb-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
             COMPANY
           </h1>
-          <p className="text-zinc-500">
+          <p className="text-zinc-500 text-sm sm:text-base">
             Deep dive into company fundamentals with Bro-powered insights
           </p>
         </div>
 
-        <div className="flex gap-2 max-w-md mb-8">
+        <div className="flex gap-2 max-w-full sm:max-w-md mb-6 sm:mb-8">
           <StockSearchInput
             value={searchTicker}
             onSelect={(symbol) => setSearchTicker(symbol)}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import {
   Plus,
   TrendingUp,
@@ -75,6 +76,7 @@ function StockTickerInput({
   const [results, setResults] = useState<StockSearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -114,6 +116,7 @@ function StockTickerInput({
     setQuery(stock.symbol);
     onSelect(stock.symbol);
     setIsOpen(false);
+    setActiveIndex(-1);
   };
 
   return (
@@ -127,24 +130,38 @@ function StockTickerInput({
             const val = e.target.value.toUpperCase();
             setQuery(val);
             onSelect(val);
+            setActiveIndex(-1);
           }}
           onFocus={() => results.length > 0 && setIsOpen(true)}
+          onKeyDown={(e) => {
+            if (!isOpen || results.length === 0) return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex(i => i < results.length - 1 ? i + 1 : 0); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex(i => i > 0 ? i - 1 : results.length - 1); }
+            else if (e.key === 'Enter' && activeIndex >= 0) { e.preventDefault(); handleSelect(results[activeIndex]); }
+            else if (e.key === 'Escape') { setIsOpen(false); setActiveIndex(-1); }
+          }}
           className="bg-zinc-800 border-zinc-700 text-white font-mono uppercase pl-10"
           data-testid="input-stock-search"
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-activedescendant={activeIndex >= 0 ? `portfolio-option-${activeIndex}` : undefined}
         />
         {isLoading && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 animate-spin" />
         )}
       </div>
       {isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl">
+        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl" role="listbox">
           {results.map((stock, idx) => (
             <button
               key={`${stock.symbol}-${idx}`}
+              id={`portfolio-option-${idx}`}
               type="button"
               onClick={() => handleSelect(stock)}
-              className="w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0"
+              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
               data-testid={`stock-result-${stock.symbol}`}
+              role="option"
+              aria-selected={idx === activeIndex}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
@@ -332,19 +349,43 @@ export default function PortfolioPage() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/portfolio/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolio/enriched"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolio/stats"] });
-      toast({
-        title: "Position removed",
-        description: "The holding has been removed from your portfolio.",
-      });
-    },
-  });
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleDelete = useCallback((id: number, ticker: string) => {
+    if (!gate()) return;
+
+    const prevData = queryClient.getQueryData<EnrichedHolding[]>(["/api/portfolio/enriched"]);
+
+    queryClient.setQueryData<EnrichedHolding[]>(
+      ["/api/portfolio/enriched"],
+      (old) => old?.filter((h) => h.id !== id) ?? []
+    );
+
+    const timer = setTimeout(async () => {
+      try {
+        await apiRequest("DELETE", `/api/portfolio/${id}`);
+        queryClient.invalidateQueries({ queryKey: ["/api/portfolio/enriched"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/portfolio/stats"] });
+      } catch {
+        if (prevData) queryClient.setQueryData(["/api/portfolio/enriched"], prevData);
+        toast({ title: "Error", description: "Failed to remove position.", variant: "destructive" });
+      }
+    }, 5000);
+    deleteTimerRef.current = timer;
+
+    toast({
+      title: `${ticker} removed`,
+      description: "Position removed from portfolio.",
+      action: (
+        <ToastAction altText="Undo remove" onClick={() => {
+          clearTimeout(timer);
+          if (prevData) queryClient.setQueryData(["/api/portfolio/enriched"], prevData);
+        }}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  }, [gate, toast]);
 
   const handleAddHolding = (e: React.FormEvent) => {
     e.preventDefault();
@@ -355,9 +396,9 @@ export default function PortfolioPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6 flex-wrap gap-3">
+          <h1 className="text-xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle">
             PORTFOLIO
           </h1>
           <div className="flex items-center gap-3">
@@ -423,32 +464,32 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4">
-            <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Total Value</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 mb-6 sm:mb-8">
+          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-3 sm:p-4">
+            <p className="text-zinc-500 text-[11px] sm:text-xs uppercase tracking-wide mb-1">Total Value</p>
             {statsLoading ? (
               <Skeleton className="h-8 w-28 bg-zinc-800" />
             ) : (
-              <p className="text-xl sm:text-2xl font-bold font-mono text-white truncate">
+              <p className="text-base sm:text-2xl font-bold font-mono text-white truncate">
                 ${stats?.totalValue?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || "0.00"}
               </p>
             )}
           </div>
-          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4">
-            <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Total Gain</p>
+          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-3 sm:p-4">
+            <p className="text-zinc-500 text-[11px] sm:text-xs uppercase tracking-wide mb-1">Total Gain</p>
             {statsLoading ? (
               <Skeleton className="h-8 w-28 bg-zinc-800" />
             ) : (
               <div>
-                <p className="text-xl sm:text-2xl font-bold font-mono text-white truncate">
+                <p className="text-base sm:text-2xl font-bold font-mono text-white truncate">
                   ${Math.abs(stats?.totalGain || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </p>
                 <PercentDisplay value={stats?.totalGainPercent || 0} />
               </div>
             )}
           </div>
-          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4">
-            <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Day Change</p>
+          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-3 sm:p-4">
+            <p className="text-zinc-500 text-[11px] sm:text-xs uppercase tracking-wide mb-1">Day Change</p>
             {statsLoading ? (
               <Skeleton className="h-8 w-28 bg-zinc-800" />
             ) : (
@@ -459,7 +500,7 @@ export default function PortfolioPage() {
                   <TrendingDown className="h-5 w-5 text-red-500" />
                 )}
                 <div>
-                  <p className="text-xl sm:text-2xl font-bold font-mono text-white truncate">
+                  <p className="text-base sm:text-2xl font-bold font-mono text-white truncate">
                     ${Math.abs(stats?.dayChange || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                   <PercentDisplay value={stats?.dayChangePercent || 0} />
@@ -467,8 +508,8 @@ export default function PortfolioPage() {
               </div>
             )}
           </div>
-          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-4">
-            <p className="text-zinc-500 text-xs uppercase tracking-wide mb-1">Positions</p>
+          <div className="bg-zinc-900 border border-green-900/30 rounded-lg p-3 sm:p-4">
+            <p className="text-zinc-500 text-[11px] sm:text-xs uppercase tracking-wide mb-1">Positions</p>
             {holdingsLoading ? (
               <Skeleton className="h-8 w-12 bg-zinc-800" />
             ) : (
@@ -481,7 +522,7 @@ export default function PortfolioPage() {
 
         <div className="mb-8">
           <div className="bg-zinc-900 border border-green-900/30 rounded-lg">
-            <div className="overflow-x-auto relative">
+            <div className="overflow-x-auto relative scroll-fade-right">
               {holdingsLoading ? (
                 <div className="p-4 space-y-2">
                   {Array.from({ length: 5 }).map((_, i) => (
@@ -497,12 +538,12 @@ export default function PortfolioPage() {
                       return (
                         <div
                           key={holding.id}
-                          className="px-3 py-3 flex items-center justify-between"
+                          className="px-3 py-3.5 flex items-center justify-between gap-2"
                           data-testid={`holding-row-${holding.ticker}`}
                         >
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-semibold text-green-400">{holding.ticker}</span>
+                              <span className="font-mono font-semibold text-green-400 text-sm">{holding.ticker}</span>
                               <span className="text-xs text-zinc-500 truncate">{holding.name || holding.ticker}</span>
                             </div>
                             <div className="flex items-center gap-3 mt-1">
@@ -510,7 +551,7 @@ export default function PortfolioPage() {
                               <span className="text-xs text-zinc-400">${(holding.value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                             </div>
                           </div>
-                          <div className="text-right flex items-center gap-3">
+                          <div className="text-right flex items-center gap-2 shrink-0">
                             <div>
                               <div className="text-sm"><PercentDisplay value={holding.pnlPercent || 0} /></div>
                               <div className="text-xs"><PercentDisplay value={holding.dayChangePercent || 0} /></div>
@@ -518,12 +559,11 @@ export default function PortfolioPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => { if (gate()) deleteMutation.mutate(holding.id); }}
-                              disabled={deleteMutation.isPending}
-                              className="text-zinc-500 hover:text-red-500 h-7 w-7"
+                              onClick={() => handleDelete(holding.id, holding.ticker)}
+                              className="text-zinc-500 hover:text-red-500 min-h-[44px] min-w-[44px]"
                               data-testid={`button-delete-${holding.ticker}`}
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
@@ -604,9 +644,8 @@ export default function PortfolioPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => { if (gate()) deleteMutation.mutate(holding.id); }}
-                                disabled={deleteMutation.isPending}
-                                className="text-zinc-500 hover:text-red-500 h-7 w-7"
+                                onClick={() => handleDelete(holding.id, holding.ticker)}
+                                  className="text-zinc-500 hover:text-red-500 min-h-[44px] min-w-[44px]"
                                 data-testid={`button-delete-${holding.ticker}`}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -653,7 +692,7 @@ export default function PortfolioPage() {
                 data-testid="button-get-bro-opinion"
               >
                 <Sparkles className="w-4 h-4 text-green-400 group-hover:drop-shadow-[0_0_8px_rgba(0,255,0,0.6)] transition-all" />
-                <span className="text-green-400 text-sm font-medium">Get Your Bro's Opinion</span>
+                <span className="text-green-400 text-sm font-medium">Get Bro's Opinion</span>
               </button>
             )}
           </div>
@@ -722,7 +761,7 @@ export default function PortfolioPage() {
                     data-testid="button-get-bro-opinion-center"
                   >
                     <Sparkles className="w-5 h-5 text-green-400 group-hover:drop-shadow-[0_0_8px_rgba(0,255,0,0.6)] transition-all" />
-                    <span className="text-green-400 font-medium">Get Your Bro's Opinion</span>
+                    <span className="text-green-400 font-medium">Get Bro's Opinion</span>
                   </button>
                 )}
               </div>

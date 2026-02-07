@@ -156,7 +156,7 @@ function HeroSection() {
             <img
               src={heroImg}
               alt="Buy Side Bro terminal mascot - your AI-powered financial markets assistant"
-              className="w-72 h-72 md:w-96 md:h-96 lg:w-[28rem] lg:h-[28rem] object-contain"
+              className="w-56 h-56 sm:w-72 sm:h-72 md:w-96 md:h-96 lg:w-[28rem] lg:h-[28rem] object-contain"
               width="448"
               height="448"
               data-testid="img-hero"
@@ -181,7 +181,7 @@ function HeroSection() {
             </div>
 
             <Link href={isAuthenticated ? "/whats-up" : "/dashboard"}>
-              <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)]" data-testid="button-launch-terminal">
+              <button className="bg-green-500 hover:bg-green-400 text-black font-bold px-6 sm:px-10 py-3 sm:py-4 rounded text-base sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)]" data-testid="button-launch-terminal">
                 Launch Terminal
               </button>
             </Link>
@@ -339,7 +339,7 @@ function CTASection() {
         </p>
         <Link href="/dashboard">
           <button
-            className="bg-green-500 hover:bg-green-400 text-black font-bold px-10 py-4 rounded text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3"
+            className="bg-green-500 hover:bg-green-400 text-black font-bold px-6 sm:px-10 py-3 sm:py-4 rounded text-base sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(0,255,0,0.3)] hover:shadow-[0_0_30px_rgba(0,255,0,0.5)] inline-flex items-center gap-3"
             data-testid="button-cta"
           >
             Open Terminal <ArrowRight className="w-5 h-5" />

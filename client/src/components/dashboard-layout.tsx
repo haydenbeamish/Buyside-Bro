@@ -45,6 +45,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-black flex">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-green-600 focus:text-black focus:rounded focus:font-semibold focus:outline-none"
+      >
+        Skip to content
+      </a>
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -152,7 +158,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     {user.firstName || user.email?.split("@")[0] || "User"}
                   </p>
                 </div>
-                <a href="/api/logout" className="p-1.5 text-zinc-400 hover:text-red-400 transition-colors" data-testid="button-logout">
+                <a href="/api/logout" className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-zinc-400 hover:text-red-400 transition-colors" data-testid="button-logout">
                   <LogOut className="w-4 h-4" />
                 </a>
               </div>
@@ -174,7 +180,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex items-center justify-between px-4 h-14">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 text-zinc-400 hover:text-green-400 transition-colors"
+              className="lg:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-zinc-400 hover:text-green-400 transition-colors"
               data-testid="button-mobile-menu"
             >
               {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -184,12 +190,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* Bro query status for logged-in users */}
             {isAuthenticated && broStatus && (
-              <div className="flex items-center gap-3 mr-4">
-                <span className="text-xs text-zinc-400">
-                  <span className="text-green-400 font-mono">{broStatus.dailyUsed}/{broStatus.dailyLimit}</span> Bro queries
+              <div className="flex items-center gap-2 sm:gap-3 mr-2 sm:mr-4">
+                <span className="text-[11px] sm:text-xs text-zinc-400 whitespace-nowrap">
+                  <span className="text-green-400 font-mono">{broStatus.dailyUsed}/{broStatus.dailyLimit}</span> <span className="hidden xs:inline">Bro </span>queries
                 </span>
                 {broStatus.isPro && (
-                  <span className="text-xs text-zinc-500">
+                  <span className="text-[11px] sm:text-xs text-zinc-500 hidden sm:inline">
                     <span className="text-green-400 font-mono">${(broStatus.credits / 100).toFixed(2)}</span> credits
                   </span>
                 )}
@@ -205,7 +211,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto">
+        <main id="main-content" className="flex-1 overflow-auto">
           {children}
         </main>
       </div>
