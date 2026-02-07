@@ -2100,10 +2100,11 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  // Seed watchlist endpoint (one-time use)
+  // Seed watchlist endpoint (one-time use per user)
   app.post("/api/watchlist/seed", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const existing = await storage.getWatchlist();
+      const userId = req.user.claims.sub;
+      const existing = await storage.getWatchlist(userId);
       if (existing.length > 0) {
         return res.json({ message: "Watchlist already has items", count: existing.length });
       }
@@ -2112,13 +2113,13 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
       for (const stock of defaultStocks) {
         try {
-          await storage.addToWatchlist(stock);
+          await storage.addToWatchlist(userId, stock);
         } catch (e) {
           // skip duplicates
         }
       }
 
-      const items = await storage.getWatchlist();
+      const items = await storage.getWatchlist(userId);
       res.json({ message: "Watchlist seeded", count: items.length, items });
     } catch (error) {
       console.error("Seed watchlist error:", error);
