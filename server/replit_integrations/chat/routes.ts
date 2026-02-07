@@ -4,6 +4,9 @@ import { checkAndDeductCredits, recordUsage, checkBroQueryAllowed } from "../../
 import { isAuthenticated, authStorage } from "../auth";
 
 const LASER_BEAM_API = "https://api.laserbeamcapital.com";
+const LASER_BEAM_HEADERS: HeadersInit = {
+  "X-API-Key": process.env.API_KEY || "",
+};
 const ESTIMATED_COST_CENTS = 10;
 
 async function proxySSEStream(
@@ -155,7 +158,7 @@ export function registerChatRoutes(app: Express): void {
 
       const response = await fetch(`${LASER_BEAM_API}/api/chat/bro`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
         body: JSON.stringify({
           message: content,
           history: chatMessages.slice(0, -1),
@@ -227,7 +230,7 @@ export function registerChatRoutes(app: Express): void {
 
       const response = await fetch(`${LASER_BEAM_API}/api/chat/bro`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
         body: JSON.stringify({ message, history }),
       });
 
