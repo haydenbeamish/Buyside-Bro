@@ -703,6 +703,7 @@ function StockSearchInput({
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const userTypedRef = useRef(false);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -715,6 +716,9 @@ function StockSearchInput({
   }, []);
 
   useEffect(() => {
+    if (!userTypedRef.current) {
+      return;
+    }
     const searchStocks = async () => {
       if (query.length < 1) {
         setResults([]);
@@ -761,6 +765,7 @@ function StockSearchInput({
           value={query}
           onChange={(e) => {
             const val = e.target.value.toUpperCase();
+            userTypedRef.current = true;
             setQuery(val);
             onSelect(val);
           }}
