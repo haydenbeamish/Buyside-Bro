@@ -9,13 +9,31 @@ import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 
 const app = express();
 const httpServer = createServer(app);
 
 // Security headers
 app.use(helmet({
-  contentSecurityPolicy: false, // Let the SPA handle CSP
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      connectSrc: [
+        "'self'",
+        "https://api.laserbeamcapital.com",
+        "https://financialmodelingprep.com",
+      ],
+      imgSrc: ["'self'", "data:", "https:"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+    },
+  },
 }));
 
 // Rate limiting for API routes
@@ -27,6 +45,37 @@ const apiLimiter = rateLimit({
   message: { error: "Too many requests, please try again later" },
 });
 app.use("/api/", apiLimiter);
+
+// Stricter rate limiting for sensitive endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many attempts, please try again later" },
+});
+app.use("/api/login", authLimiter);
+app.use("/api/callback", authLimiter);
+
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later" },
+});
+app.use("/api/subscription/checkout", paymentLimiter);
+app.use("/api/credits/purchase", paymentLimiter);
+
+// Health check endpoint
+app.get("/health", async (_req: Request, res: Response) => {
+  try {
+    await db.execute(sql`SELECT 1`);
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  } catch (error) {
+    res.status(503).json({ status: "error", timestamp: new Date().toISOString() });
+  }
+});
 
 declare module "http" {
   interface IncomingMessage {

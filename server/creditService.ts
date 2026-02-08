@@ -81,18 +81,73 @@ export async function getUserCredits(userId: string): Promise<{
 }
 
 export async function checkAndDeductCredits(
-  userId: string, 
+  userId: string,
   estimatedCostCents: number
 ): Promise<{ allowed: boolean; message?: string }> {
-  const credits = await getUserCredits(userId);
-  
-  if (credits.availableCreditsCents < estimatedCostCents) {
+  // Atomic check-and-deduct: first try deducting from monthly credits
+  const monthlyResult = await db.update(users)
+    .set({
+      monthlyCreditsUsedCents: sql`${users.monthlyCreditsUsedCents} + ${estimatedCostCents}`,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(users.id, userId),
+        sql`(${MONTHLY_CREDIT_LIMIT_CENTS} - COALESCE(${users.monthlyCreditsUsedCents}, 0)) >= ${estimatedCostCents}`
+      )
+    )
+    .returning({ id: users.id });
+
+  if (monthlyResult.length > 0) {
+    return { allowed: true };
+  }
+
+  // Monthly credits insufficient - try splitting between monthly remainder and purchased
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  if (!user) {
     return {
       allowed: false,
       message: "You've used all your Bro credits for this month. Purchase additional credits to continue using Bro features.",
     };
   }
-  
+
+  const monthlyUsed = user.monthlyCreditsUsedCents || 0;
+  const monthlyRemaining = Math.max(0, MONTHLY_CREDIT_LIMIT_CENTS - monthlyUsed);
+  const purchasedBalance = user.creditBalanceCents || 0;
+  const totalAvailable = monthlyRemaining + purchasedBalance;
+
+  if (totalAvailable < estimatedCostCents) {
+    return {
+      allowed: false,
+      message: "You've used all your Bro credits for this month. Purchase additional credits to continue using Bro features.",
+    };
+  }
+
+  // Atomically deduct from both monthly and purchased using WHERE to prevent over-deduction
+  const fromMonthly = monthlyRemaining;
+  const fromPurchased = estimatedCostCents - fromMonthly;
+
+  const splitResult = await db.update(users)
+    .set({
+      monthlyCreditsUsedCents: sql`${users.monthlyCreditsUsedCents} + ${fromMonthly}`,
+      creditBalanceCents: sql`GREATEST(0, ${users.creditBalanceCents} - ${fromPurchased})`,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(users.id, userId),
+        sql`COALESCE(${users.creditBalanceCents}, 0) >= ${fromPurchased}`
+      )
+    )
+    .returning({ id: users.id });
+
+  if (splitResult.length === 0) {
+    return {
+      allowed: false,
+      message: "You've used all your Bro credits for this month. Purchase additional credits to continue using Bro features.",
+    };
+  }
+
   return { allowed: true };
 }
 
@@ -105,12 +160,8 @@ export async function recordUsage(
   metadata?: Record<string, unknown>
 ): Promise<void> {
   const costCents = calculateCostCents(inputTokens, outputTokens);
-  
-  // Single query to get user data and calculate remaining credits
-  const [user] = await db.select().from(users).where(eq(users.id, userId));
-  
-  // Insert usage log (no await needed for this independent operation)
-  const logPromise = db.insert(usageLogs).values({
+
+  await db.insert(usageLogs).values({
     userId,
     feature,
     model,
@@ -119,42 +170,6 @@ export async function recordUsage(
     costCents,
     metadata,
   });
-
-  if (!user) {
-    await logPromise;
-    return;
-  }
-  
-  // Calculate remaining monthly credits directly from user data
-  const monthlyUsed = user.monthlyCreditsUsedCents || 0;
-  const monthlyRemaining = Math.max(0, MONTHLY_CREDIT_LIMIT_CENTS - monthlyUsed);
-  
-  // Determine how to split cost between monthly and purchased credits
-  if (monthlyRemaining >= costCents) {
-    await Promise.all([
-      logPromise,
-      db.update(users)
-        .set({ 
-          monthlyCreditsUsedCents: sql`${users.monthlyCreditsUsedCents} + ${costCents}`,
-          updatedAt: new Date()
-        })
-        .where(eq(users.id, userId))
-    ]);
-  } else {
-    const fromMonthly = monthlyRemaining;
-    const fromPurchased = costCents - fromMonthly;
-    
-    await Promise.all([
-      logPromise,
-      db.update(users)
-        .set({ 
-          monthlyCreditsUsedCents: sql`${users.monthlyCreditsUsedCents} + ${fromMonthly}`,
-          creditBalanceCents: sql`GREATEST(0, ${users.creditBalanceCents} - ${fromPurchased})`,
-          updatedAt: new Date()
-        })
-        .where(eq(users.id, userId))
-    ]);
-  }
 }
 
 export async function addPurchasedCredits(userId: string, amountCents: number): Promise<void> {

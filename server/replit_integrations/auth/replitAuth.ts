@@ -19,6 +19,12 @@ const getOidcConfig = memoize(
 );
 
 export function getSession() {
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (!sessionSecret || sessionSecret.trim().length === 0) {
+    console.error("FATAL: SESSION_SECRET environment variable is not set or is empty. Exiting.");
+    process.exit(1);
+  }
+
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -28,7 +34,7 @@ export function getSession() {
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: sessionSecret,
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -45,10 +51,10 @@ function updateUserSession(
   user: any,
   tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
 ) {
-  user.claims = tokens.claims();
-  user.access_token = tokens.access_token;
+  const claims = tokens.claims()!;
+  user.claims = { sub: claims.sub, email: (claims as any).email };
   user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
+  user.expires_at = claims!.exp;
 }
 
 async function upsertUser(claims: any) {

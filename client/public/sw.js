@@ -1,10 +1,28 @@
-const CACHE_NAME = 'buysidebro-v1';
+const CACHE_VERSION = '2';
+const CACHE_NAME = `buysidebro-v${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
   '/dashboard',
   '/favicon.png',
   '/manifest.json',
 ];
+
+// Authenticated API routes that must never be cached
+const AUTHENTICATED_API_PATTERNS = [
+  '/api/portfolio',
+  '/api/credits',
+  '/api/conversations',
+  '/api/subscription',
+  '/api/user',
+  '/api/admin',
+  '/api/bro-status',
+  '/api/usage',
+  '/api/chat',
+];
+
+function isAuthenticatedApiRoute(url) {
+  return AUTHENTICATED_API_PATTERNS.some(pattern => url.includes(pattern));
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -34,8 +52,14 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // For API requests, use network-first strategy
+  // For API requests
   if (request.url.includes('/api/')) {
+    // Never cache authenticated API routes - always go to network
+    if (isAuthenticatedApiRoute(request.url)) {
+      return;
+    }
+
+    // For public API routes (markets, newsfeed, watchlist/default), use network-first
     event.respondWith(
       fetch(request)
         .then((response) => {

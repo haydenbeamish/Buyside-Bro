@@ -24,14 +24,17 @@ import {
 import { db } from "./db";
 import { desc, sql, eq, gte, count, and, isNotNull } from "drizzle-orm";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "hbeamish1@gmail.com";
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || "hbeamish1@gmail.com")
+  .split(",")
+  .map((e: string) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 function isAdmin(req: any, res: Response, next: NextFunction) {
   const user = req.user as any;
   if (!req.isAuthenticated() || !user?.claims?.email) {
     return res.status(401).json({ message: "Unauthorized" });
   }
-  if (user.claims.email !== ADMIN_EMAIL) {
+  if (!ADMIN_EMAILS.includes(user.claims.email.toLowerCase())) {
     return res.status(403).json({ message: "Forbidden" });
   }
   next();
@@ -342,7 +345,6 @@ export async function registerRoutes(
         method: req.method,
         metadata: {
           userAgent: req.headers["user-agent"]?.substring(0, 200),
-          ip: req.ip,
           query: Object.keys(req.query || {}).length > 0 ? req.query : undefined,
         },
       }).catch((err: any) => console.error("Activity log error:", err));
@@ -395,6 +397,7 @@ export async function registerRoutes(
         sectors: FALLBACK_SECTORS,
         crypto: [],
         _stale: true,
+        _staleAsOf: "2025-01-01T00:00:00Z",
       });
     } catch (error) {
       console.error("Markets API error:", error);
@@ -405,6 +408,7 @@ export async function registerRoutes(
         sectors: FALLBACK_SECTORS.slice(0, 3),
         crypto: [],
         _stale: true,
+        _staleAsOf: "2025-01-01T00:00:00Z",
       });
     }
   });
@@ -509,14 +513,8 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/clear-market-cache", isAuthenticated, async (req: any, res: Response) => {
+  app.post("/api/admin/clear-market-cache", isAdmin, async (req: any, res: Response) => {
     try {
-      const userId = req.user?.claims?.sub;
-      const user = userId ? await storage.getUser(userId) : null;
-      const adminEmails = ["lachlanmacpherson@icloud.com", "lachlan@laserbeamcapital.com"];
-      if (!user || !adminEmails.includes(user.email || "")) {
-        return res.status(403).json({ error: "Admin access required" });
-      }
       const cacheKeys = ["markets", "markets_full", "market_summary"];
       for (const key of cacheKeys) {
         await storage.deleteCachedData(key);
@@ -1952,7 +1950,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  app.post("/api/newsfeed", isAuthenticated, async (req: any, res: Response) => {
+  app.post("/api/newsfeed", isAdmin, async (req: any, res: Response) => {
     try {
       const { title, content, market, eventType, source, metadata } = req.body;
       
@@ -1978,7 +1976,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   // Market summary generation endpoint (can be called manually or by scheduler)
-  app.post("/api/newsfeed/generate-summary", isAuthenticated, async (req: any, res: Response) => {
+  app.post("/api/newsfeed/generate-summary", isAdmin, async (req: any, res: Response) => {
     try {
       const { market, eventType } = req.body;
 
@@ -2460,7 +2458,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.get("/api/admin/check", isAuthenticated, async (req: any, res: Response) => {
     const email = req.user?.claims?.email;
-    res.json({ isAdmin: email === ADMIN_EMAIL });
+    res.json({ isAdmin: email ? ADMIN_EMAILS.includes(email.toLowerCase()) : false });
   });
 
   startMSFTCacheScheduler();

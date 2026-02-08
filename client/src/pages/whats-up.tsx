@@ -3,17 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, Sunrise, Sun, Moon, Newspaper, ChevronDown, ChevronUp } from "lucide-react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import DOMPurify from "dompurify";
+
+const ALLOWED_TAGS = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
 function sanitizeHtml(html: string): string {
-  const allowedTags = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
-  const tagPattern = /<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/gi;
-  return html.replace(tagPattern, (match, tagName) => {
-    if (allowedTags.includes(tagName.toLowerCase())) {
-      const isClosing = match.startsWith('</');
-      return isClosing ? `</${tagName.toLowerCase()}>` : `<${tagName.toLowerCase()}>`;
-    }
-    return '';
-  }).replace(/on\w+\s*=/gi, '').replace(/javascript:/gi, '');
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS,
+    ALLOWED_ATTR: [],
+  });
 }
 
 interface MarketSummary {
