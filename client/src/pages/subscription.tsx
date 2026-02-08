@@ -207,7 +207,7 @@ export default function SubscriptionPage() {
   const proFeatures = [
     { icon: Globe, text: "Live global market data across 8 categories", desc: "Futures, commodities, forex, US sectors, ASX sectors, thematics and more" },
     { icon: Bot, text: "5 Bro AI queries per day", desc: "Ask Bro anything about stocks, markets, or your portfolio" },
-    { icon: Coins, text: "$5 AI credits included monthly", desc: "For deep-dive AI analysis on any stock or market trend" },
+
     { icon: LineChart, text: "Advanced stock analysis", desc: "AI-powered company breakdowns with financial metrics" },
     { icon: BarChart3, text: "Full earnings insights", desc: "AI analysis of quarterly earnings with key takeaways" },
     { icon: BriefcaseBusiness, text: "Unlimited portfolio tracking", desc: "Track your holdings with real-time P&L and performance" },
@@ -219,7 +219,7 @@ export default function SubscriptionPage() {
     { feature: "Live market dashboard", free: true, pro: true },
     { feature: "Global markets data", free: true, pro: true },
     { feature: "Ask Bro AI queries", free: "1/day", pro: "5/day" },
-    { feature: "Monthly AI credits", free: false, pro: "$5/mo" },
+
     { feature: "Stock analysis", free: false, pro: true },
     { feature: "Earnings insights", free: false, pro: true },
     { feature: "Portfolio tracking", free: false, pro: true },
@@ -401,8 +401,6 @@ export default function SubscriptionPage() {
                   <p className="text-zinc-500 text-sm mt-2">Cancel anytime. No lock-in contracts.</p>
                   <div className="flex items-center justify-center gap-4 mt-3">
                     <span className="text-amber-500/80 text-xs font-medium">Less than a coffee a week</span>
-                    <span className="text-zinc-700">|</span>
-                    <span className="text-amber-500/80 text-xs font-medium">$5 AI credits included free</span>
                   </div>
                 </div>
 
@@ -519,10 +517,8 @@ export default function SubscriptionPage() {
                     <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                     <span><strong className="text-zinc-200">AI that actually helps.</strong> Ask Bro about any stock, get deep earnings analysis, or have it break down complex market moves in plain English.</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <span><strong className="text-zinc-200">$5 in AI credits free every month.</strong> That's 50% of your subscription back in value. Most users never need to buy more.</span>
-                  </li>
+
+
                   <li className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                     <span><strong className="text-zinc-200">No commitment.</strong> Cancel anytime with one click. No annual contracts, no hidden fees, no questions asked.</span>
