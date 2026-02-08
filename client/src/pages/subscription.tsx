@@ -7,7 +7,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3, Coins, AlertCircle } from "lucide-react";
+import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3, Coins, AlertCircle, Shield, Globe, LineChart, Newspaper, BriefcaseBusiness, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import logoImg from "@assets/image_1770442846290.png";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -102,7 +102,7 @@ export default function SubscriptionPage() {
     enabled: isAuthenticated,
   });
 
-  const { data: productsData, isLoading: productsLoading } = useQuery<{ products: Product[] }>({
+  const { data: productsData } = useQuery<{ products: Product[] }>({
     queryKey: ["/api/subscription/products"],
   });
 
@@ -135,7 +135,7 @@ export default function SubscriptionPage() {
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: async (priceId: string) => {
+    mutationFn: async (priceId?: string) => {
       const response = await apiRequest("POST", "/api/subscription/checkout", { priceId });
       return response.json();
     },
@@ -144,7 +144,7 @@ export default function SubscriptionPage() {
         window.location.href = data.url;
       }
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to start checkout. Please try again.",
@@ -163,7 +163,7 @@ export default function SubscriptionPage() {
         window.location.href = data.url;
       }
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error",
         description: "Failed to open billing portal. Please try again.",
@@ -201,14 +201,30 @@ export default function SubscriptionPage() {
   const product = productsData?.products?.[0];
   const price = product?.prices?.[0];
 
-  const features = [
-    { icon: TrendingUp, text: "Real-time market data & analysis" },
-    { icon: BarChart3, text: "Interactive charts & visualizations" },
-    { icon: Bot, text: "Bro-powered stock analysis" },
-    { icon: Zap, text: "Deep dive earnings analysis" },
-    { icon: Coins, text: "5 Bro queries/day + $5 credits/month" },
-    { icon: CreditCard, text: "Portfolio tracking & performance" },
-    { icon: Crown, text: "Priority support" },
+  // Use Stripe price if available, otherwise display the hardcoded $10
+  const displayPrice = price ? (price.unit_amount / 100).toFixed(0) : "10";
+
+  const proFeatures = [
+    { icon: Globe, text: "Live global market data across 8 categories", desc: "Futures, commodities, forex, US sectors, ASX sectors, thematics and more" },
+    { icon: Bot, text: "5 Bro AI queries per day", desc: "Ask Bro anything about stocks, markets, or your portfolio" },
+    { icon: Coins, text: "$5 AI credits included monthly", desc: "For deep-dive AI analysis on any stock or market trend" },
+    { icon: LineChart, text: "Advanced stock analysis", desc: "AI-powered company breakdowns with financial metrics" },
+    { icon: BarChart3, text: "Full earnings insights", desc: "AI analysis of quarterly earnings with key takeaways" },
+    { icon: BriefcaseBusiness, text: "Unlimited portfolio tracking", desc: "Track your holdings with real-time P&L and performance" },
+    { icon: TrendingUp, text: "Custom watchlists", desc: "Build and monitor unlimited watchlists with live prices" },
+    { icon: Newspaper, text: "Curated market news feed", desc: "Stay on top of what's moving the markets" },
+  ];
+
+  const comparisonRows = [
+    { feature: "Live market dashboard", free: true, pro: true },
+    { feature: "Global markets data", free: true, pro: true },
+    { feature: "Ask Bro AI queries", free: "1/day", pro: "5/day" },
+    { feature: "Monthly AI credits", free: false, pro: "$5/mo" },
+    { feature: "Stock analysis", free: false, pro: true },
+    { feature: "Earnings insights", free: false, pro: true },
+    { feature: "Portfolio tracking", free: false, pro: true },
+    { feature: "Custom watchlists", free: false, pro: true },
+    { feature: "Priority support", free: false, pro: true },
   ];
 
   return (
@@ -216,13 +232,13 @@ export default function SubscriptionPage() {
       <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
         <div className="text-center mb-8 sm:mb-12">
           <img src={logoImg} alt="Buy Side Bro" className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 sm:mb-6" />
-          <h1 className="display-font text-2xl sm:text-3xl md:text-4xl neon-green mb-4">
+          <h1 className="display-font text-2xl sm:text-3xl md:text-4xl neon-green mb-3">
             {isActive ? "Your Subscription" : "Go Pro with Buy Side Bro"}
           </h1>
-          <p className="text-zinc-400 text-sm sm:text-lg max-w-xl mx-auto">
+          <p className="text-zinc-400 text-sm sm:text-lg max-w-2xl mx-auto">
             {isActive
               ? "Manage your subscription and billing details."
-              : "Don't pay $30k USD for a terminal. You've got a buy side bro instead."}
+              : "Why pay $30,000/yr for a Bloomberg Terminal? Get AI-powered market intelligence for less than a Netflix subscription."}
           </p>
         </div>
 
@@ -246,8 +262,8 @@ export default function SubscriptionPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {features.map((feature, i) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {proFeatures.map((feature, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm text-zinc-300">
                     <Check className="w-4 h-4 text-amber-500 flex-shrink-0" />
                     <span>{feature.text}</span>
@@ -301,8 +317,8 @@ export default function SubscriptionPage() {
                   <div className="text-white text-base sm:text-xl font-bold ticker-font">
                     ${((creditsData?.monthlyLimitCents || 500) / 100).toFixed(2)}
                   </div>
-                  <Progress 
-                    value={Math.min(100, ((creditsData?.monthlyUsedCents || 0) / (creditsData?.monthlyLimitCents || 500)) * 100)} 
+                  <Progress
+                    value={Math.min(100, ((creditsData?.monthlyUsedCents || 0) / (creditsData?.monthlyLimitCents || 500)) * 100)}
                     className="mt-2 h-2"
                   />
                   <div className="text-zinc-500 text-xs mt-1">
@@ -319,7 +335,7 @@ export default function SubscriptionPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-zinc-800/30 rounded-lg p-3 sm:p-4 border border-zinc-700/50">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-zinc-400 text-sm">Total Available</span>
@@ -359,86 +375,162 @@ export default function SubscriptionPage() {
         )}
 
         {!isActive && (
-          <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
-            <Card className="bg-zinc-900/50 border-zinc-800">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <Crown className="w-5 h-5 text-amber-500" />
+          <>
+            {/* Hero pricing card */}
+            <Card className="mb-8 bg-gradient-to-b from-zinc-900/80 to-zinc-900/40 border-amber-500/30 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-green-500 to-amber-500" />
+              <CardHeader className="text-center pb-2">
+                <Badge className="mx-auto mb-3 bg-amber-500/20 text-amber-500 border-amber-500/30 text-xs">
+                  MOST POPULAR
+                </Badge>
+                <CardTitle className="text-white flex items-center justify-center gap-2 text-xl sm:text-2xl">
+                  <Crown className="w-6 h-6 text-amber-500" />
                   Buy Side Bro Pro
                 </CardTitle>
                 <CardDescription className="text-zinc-400">
-                  Full access to all features
+                  Everything you need to trade smarter
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="text-center py-4">
-                  <div className="display-font text-3xl sm:text-4xl neon-green">
-                    ${price ? (price.unit_amount / 100).toFixed(0) : "10"}
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-zinc-500 text-lg">$</span>
+                    <span className="display-font text-5xl sm:text-6xl neon-green">{displayPrice}</span>
+                    <span className="text-zinc-500 text-lg">/mo</span>
                   </div>
-                  <div className="text-zinc-400 text-sm mt-1">per month</div>
-                  <Badge className="mt-3 bg-amber-500/20 text-amber-500 border-amber-500/30">
-                    Free tier included
-                  </Badge>
+                  <p className="text-zinc-500 text-sm mt-2">Cancel anytime. No lock-in contracts.</p>
+                  <div className="flex items-center justify-center gap-4 mt-3">
+                    <span className="text-amber-500/80 text-xs font-medium">Less than a coffee a week</span>
+                    <span className="text-zinc-700">|</span>
+                    <span className="text-amber-500/80 text-xs font-medium">$5 AI credits included free</span>
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  {features.map((feature, i) => (
-                    <div key={i} className="flex items-center gap-3 text-zinc-300">
-                      <feature.icon className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                      <span>{feature.text}</span>
+                <div className="grid gap-3 sm:gap-4">
+                  {proFeatures.map((feature, i) => (
+                    <div key={i} className="flex items-start gap-3 text-zinc-300">
+                      <feature.icon className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-medium text-sm sm:text-base">{feature.text}</span>
+                        <p className="text-zinc-500 text-xs sm:text-sm">{feature.desc}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex-col gap-3 pt-2">
                 <Button
-                  className="w-full neon-button"
-                  onClick={() => price && checkoutMutation.mutate(price.id)}
-                  disabled={checkoutMutation.isPending || !price || productsLoading}
+                  className="w-full neon-button text-base py-6"
+                  onClick={() => checkoutMutation.mutate(price?.id)}
+                  disabled={checkoutMutation.isPending}
                   data-testid="button-subscribe"
                 >
                   {checkoutMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   ) : (
-                    <Zap className="w-4 h-4 mr-2" />
+                    <Zap className="w-5 h-5 mr-2" />
                   )}
-                  Go Pro
+                  Go Pro Now
                 </Button>
+                <div className="flex items-center gap-2 text-zinc-500 text-xs">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Secured by Stripe. Your payment info never touches our servers.</span>
+                </div>
               </CardFooter>
             </Card>
 
-            <div className="space-y-6">
-              <div className="bg-zinc-900/30 rounded-lg p-6 border border-zinc-800">
-                <h3 className="display-font text-xl text-white mb-4">Why Choose Buy Side Bro?</h3>
-                <ul className="space-y-3 text-zinc-400">
+            {/* Free vs Pro comparison */}
+            <Card className="mb-8 bg-zinc-900/50 border-zinc-800">
+              <CardHeader>
+                <CardTitle className="text-white text-lg sm:text-xl">Free vs Pro</CardTitle>
+                <CardDescription className="text-zinc-400">See what you're missing out on</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-800">
+                        <th className="text-left py-3 text-zinc-400 font-medium">Feature</th>
+                        <th className="text-center py-3 text-zinc-400 font-medium w-20 sm:w-28">Free</th>
+                        <th className="text-center py-3 text-amber-500 font-medium w-20 sm:w-28">Pro</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {comparisonRows.map((row, i) => (
+                        <tr key={i} className="border-b border-zinc-800/50">
+                          <td className="py-3 text-zinc-300">{row.feature}</td>
+                          <td className="py-3 text-center">
+                            {row.free === true ? (
+                              <Check className="w-4 h-4 text-green-500 mx-auto" />
+                            ) : row.free === false ? (
+                              <X className="w-4 h-4 text-zinc-600 mx-auto" />
+                            ) : (
+                              <span className="text-zinc-400 text-xs">{row.free}</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-center">
+                            {row.pro === true ? (
+                              <Check className="w-4 h-4 text-amber-500 mx-auto" />
+                            ) : (
+                              <span className="text-amber-500 text-xs font-medium">{row.pro}</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Value proposition */}
+            <div className="grid sm:grid-cols-3 gap-4 mb-8">
+              <div className="bg-zinc-900/30 rounded-lg p-5 border border-zinc-800 text-center">
+                <div className="text-3xl sm:text-4xl font-bold neon-green display-font mb-1">$30k</div>
+                <div className="text-zinc-500 text-sm">Bloomberg Terminal/yr</div>
+                <div className="mt-3 h-px bg-zinc-800" />
+                <div className="text-3xl sm:text-4xl font-bold text-amber-500 display-font mt-3 mb-1">${displayPrice}</div>
+                <div className="text-zinc-500 text-sm">Buy Side Bro/mo</div>
+              </div>
+              <div className="bg-zinc-900/30 rounded-lg p-5 border border-zinc-800 text-center">
+                <div className="text-3xl sm:text-4xl font-bold text-amber-500 display-font mb-1">$5</div>
+                <div className="text-zinc-500 text-sm">AI credits free every month</div>
+                <div className="mt-3 h-px bg-zinc-800" />
+                <p className="text-zinc-400 text-xs mt-3">Covers dozens of AI stock analyses and Bro queries each month at no extra cost</p>
+              </div>
+              <div className="bg-zinc-900/30 rounded-lg p-5 border border-zinc-800 text-center">
+                <div className="text-3xl sm:text-4xl font-bold text-amber-500 display-font mb-1">8+</div>
+                <div className="text-zinc-500 text-sm">Global market categories</div>
+                <div className="mt-3 h-px bg-zinc-800" />
+                <p className="text-zinc-400 text-xs mt-3">Futures, forex, commodities, US sectors, ASX sectors, thematics, and more</p>
+              </div>
+            </div>
+
+            {/* FAQ / Trust */}
+            <div className="space-y-4">
+              <div className="bg-zinc-900/30 rounded-lg p-5 border border-zinc-800">
+                <h3 className="display-font text-lg text-white mb-3">Why Buy Side Bro is worth it</h3>
+                <ul className="space-y-3 text-zinc-400 text-sm">
                   <li className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <span>Professional-grade market data at a fraction of the cost</span>
+                    <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span><strong className="text-zinc-200">Save thousands.</strong> Professional-grade market data and AI analysis that rivals tools costing 100x more.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <span>Bro-powered insights using advanced language models</span>
+                    <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span><strong className="text-zinc-200">AI that actually helps.</strong> Ask Bro about any stock, get deep earnings analysis, or have it break down complex market moves in plain English.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <span>Cancel anytime - no long-term commitment</span>
+                    <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span><strong className="text-zinc-200">$5 in AI credits free every month.</strong> That's 50% of your subscription back in value. Most users never need to buy more.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <Check className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <span>Pro: 5 Bro queries/day + $5 credits (Free: 1/day)</span>
+                    <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <span><strong className="text-zinc-200">No commitment.</strong> Cancel anytime with one click. No annual contracts, no hidden fees, no questions asked.</span>
                   </li>
                 </ul>
               </div>
-
-              <div className="bg-zinc-900/30 rounded-lg p-6 border border-zinc-800">
-                <h3 className="display-font text-lg text-white mb-2">Secure Payments</h3>
-                <p className="text-zinc-400 text-sm">
-                  All payments are securely processed by Stripe. Your payment information is never
-                  stored on our servers.
-                </p>
-              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
