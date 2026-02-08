@@ -202,6 +202,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             )}
 
+            {!isAuthenticated && !isLoading && (
+              <a href="/api/login" className="mr-3">
+                <Button className="neon-button" data-testid="button-login-header">
+                  Sign In
+                </Button>
+              </a>
+            )}
+
             <div className="display-font text-xs tracking-wider hidden sm:block">
               <span className="text-zinc-500">TERMINAL</span>
               <span className="mx-2 text-amber-500">●</span>
