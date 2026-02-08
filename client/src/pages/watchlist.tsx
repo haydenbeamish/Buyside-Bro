@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { Plus, Trash2, Search, Loader2, Eye, ArrowUp, ArrowDown, Download } from "lucide-react";
@@ -368,7 +368,7 @@ export default function WatchlistPage() {
       });
     },
     onError: (error: any) => {
-      const msg = error?.message?.includes("409") || error?.status === 409
+      const msg = error instanceof ApiError && error.status === 409
         ? "This stock is already in your watchlist."
         : "Failed to add stock. Please try again.";
       toast({

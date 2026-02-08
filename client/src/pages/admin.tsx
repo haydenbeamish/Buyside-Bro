@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
   ChevronUp,
   Shield,
   ShieldAlert,
+  LogOut,
 } from "lucide-react";
 import {
   BarChart,
@@ -29,6 +30,7 @@ import {
   Area,
 } from "recharts";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface AdminStats {
   totalUsers: number;
@@ -167,6 +169,19 @@ export default function AdminPage() {
     enabled: isAdmin && activeTab === "ai-usage",
   });
 
+  const { data: killSwitchData } = useQuery<{ active: boolean; reason?: string }>({
+    queryKey: ["/api/admin/kill-switch-status"],
+    enabled: isAdmin && activeTab === "overview",
+  });
+
+  const adminLogoutMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/admin/logout"),
+    onSettled: () => {
+      queryClient.clear();
+      navigate("/");
+    },
+  });
+
   if (adminCheckLoading) {
     return (
       <div className="flex items-center justify-center h-full bg-black">
@@ -206,9 +221,21 @@ export default function AdminPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Shield className="h-6 w-6 text-amber-400" />
-        <h1 className="display-font text-xl md:text-2xl tracking-wider neon-green">ADMIN DASHBOARD</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Shield className="h-6 w-6 text-amber-400" />
+          <h1 className="display-font text-xl md:text-2xl tracking-wider neon-green">ADMIN DASHBOARD</h1>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => adminLogoutMutation.mutate()}
+          disabled={adminLogoutMutation.isPending}
+          className="border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-700"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          {adminLogoutMutation.isPending ? "Logging out..." : "Logout"}
+        </Button>
       </div>
       <p className="text-sm text-zinc-500">Monitor user activity, Bro costs, and platform usage.</p>
 
@@ -232,6 +259,21 @@ export default function AdminPage() {
 
       {activeTab === "overview" && (
         <div className="space-y-6">
+          {killSwitchData?.active ? (
+            <div className="bg-red-900/20 border border-red-700 rounded-md p-4 flex items-center gap-3">
+              <ShieldAlert className="h-5 w-5 text-red-400 flex-shrink-0" />
+              <div>
+                <p className="text-red-400 font-semibold text-sm">Kill Switch Active</p>
+                <p className="text-red-300/70 text-xs">{killSwitchData.reason || "AI features are currently disabled."}</p>
+              </div>
+            </div>
+          ) : killSwitchData && !killSwitchData.active ? (
+            <div className="flex items-center gap-2 text-xs text-zinc-500">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              All systems operational
+            </div>
+          ) : null}
+
           {statsLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, i) => (

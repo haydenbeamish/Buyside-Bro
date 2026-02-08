@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import {
@@ -297,7 +297,7 @@ export default function PortfolioPage() {
       }, 100);
     },
     onError: (error: any) => {
-      if (error?.message?.includes("429")) {
+      if (error instanceof ApiError && error.status === 429) {
         setShowBroLimit(true);
         return;
       }

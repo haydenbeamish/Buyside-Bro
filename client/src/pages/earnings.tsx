@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Search,
@@ -632,7 +632,7 @@ export default function EarningsAnalysisPage() {
         throw new Error("No job ID returned");
       }
     } catch (err: any) {
-      if (err?.message?.includes("429")) {
+      if (err instanceof ApiError && err.status === 429) {
         setShowBroLimit(true);
         return;
       }

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, Sunrise, Sun, Moon, Newspaper, ChevronDown, ChevronUp } from "lucide-react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { ApiError } from "@/lib/queryClient";
 import DOMPurify from "dompurify";
 
 const ALLOWED_TAGS = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
@@ -109,7 +110,7 @@ function NewsFeedItemCard({ item, defaultExpanded }: { item: NewsFeedItem; defau
 }
 
 function NewsFeed() {
-  const { data, isLoading } = useQuery<{ items: NewsFeedItem[] }>({
+  const { data, isLoading, isError, error } = useQuery<{ items: NewsFeedItem[] }>({
     queryKey: ["/api/newsfeed"],
     refetchInterval: 120000,
   });
@@ -128,6 +129,20 @@ function NewsFeed() {
             </div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    const is503 = error instanceof ApiError && error.status === 503;
+    return (
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+        <h3 className="text-zinc-300 font-semibold text-sm sm:text-base mb-4">NEWS FEED</h3>
+        <p className="text-zinc-500 text-sm">
+          {is503
+            ? "Newsletter feed is temporarily unavailable. Please try again later."
+            : "Failed to load news feed. Please try again later."}
+        </p>
       </div>
     );
   }

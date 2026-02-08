@@ -25,7 +25,7 @@ import {
   FileText,
   ExternalLink,
 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, ApiError } from "@/lib/queryClient";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { useLoginGate } from "@/hooks/use-login-gate";
 import { LoginGateModal } from "@/components/login-gate-modal";
@@ -982,7 +982,7 @@ export default function AnalysisPage() {
       refetchBroStatus();
     },
     onError: (error: any) => {
-      if (error?.message?.includes("429")) {
+      if (error instanceof ApiError && error.status === 429) {
         setShowBroLimit(true);
         return;
       }

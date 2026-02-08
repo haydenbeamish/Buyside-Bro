@@ -1,9 +1,40 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = "ApiError";
+  }
+}
+
+export function getUserMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    switch (error.status) {
+      case 400: return "Invalid request. Please check your input and try again.";
+      case 401: return "Please log in to continue.";
+      case 403: return "You don't have permission to do that.";
+      case 429: return "Too many requests. Please wait a moment and try again.";
+      case 503: return "Service temporarily unavailable. Please try again later.";
+      default: return "Something went wrong. Please try again.";
+    }
+  }
+  return "Something went wrong. Please try again.";
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let message = res.statusText;
+    try {
+      const body = await res.json();
+      message = body.message || body.error || JSON.stringify(body);
+    } catch {
+      const text = await res.text();
+      if (text) message = text;
+    }
+    throw new ApiError(res.status, message);
   }
 }
 
