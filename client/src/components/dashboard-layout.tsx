@@ -202,10 +202,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
             )}
 
-            {!isLoading && (
-              <a href={isAuthenticated ? "/api/logout" : "/api/login"} className="mr-3">
-                <Button className="neon-button" data-testid={isAuthenticated ? "button-logout-header" : "button-login-header"}>
-                  {isAuthenticated ? "Sign Out" : "Sign In"}
+            {!isAuthenticated && !isLoading && (
+              <a href="/api/login" className="mr-3">
+                <Button className="neon-button" data-testid="button-login-header">
+                  Sign In
                 </Button>
               </a>
             )}
