@@ -55,7 +55,10 @@
       "Bash(npx vite build:*)",
       "Bash(git status:*)",
       "Bash(yes:*)",
-      "Bash(psql:*)"
+      "Bash(psql:*)",
+      "Bash(npm run build:*)",
+      "WebSearch",
+      "Bash(printf:*)"
     ]
   }
 }
