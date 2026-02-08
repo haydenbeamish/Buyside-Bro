@@ -156,3 +156,65 @@ export const activityLogs = pgTable("activity_logs", {
 }));
 
 export type ActivityLog = typeof activityLogs.$inferSelect;
+
+// Push notification device tokens
+export const deviceTokens = pgTable("device_tokens", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  deviceToken: text("device_token").notNull(),
+  platform: text("platform").notNull(), // 'ios', 'web'
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => ({
+  userIdIdx: index("device_tokens_user_id_idx").on(table.userId),
+  deviceTokenUnique: uniqueIndex("device_tokens_token_idx").on(table.deviceToken),
+}));
+
+export const insertDeviceTokenSchema = createInsertSchema(deviceTokens).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type DeviceToken = typeof deviceTokens.$inferSelect;
+export type InsertDeviceToken = z.infer<typeof insertDeviceTokenSchema>;
+
+// Push notification preferences per user
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  watchlistPriceAlerts: boolean("watchlist_price_alerts").default(true).notNull(),
+  priceAlertThreshold: decimal("price_alert_threshold", { precision: 5, scale: 4 }).default("0.05").notNull(),
+  usaMarketSummary: boolean("usa_market_summary").default(true).notNull(),
+  asxMarketSummary: boolean("asx_market_summary").default(true).notNull(),
+  europeMarketSummary: boolean("europe_market_summary").default(true).notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => ({
+  userIdUnique: uniqueIndex("notification_preferences_user_id_idx").on(table.userId),
+}));
+
+export const insertNotificationPreferencesSchema = createInsertSchema(notificationPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreference = z.infer<typeof insertNotificationPreferencesSchema>;
+
+// Notification dedup log
+export const notificationLog = pgTable("notification_log", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  notificationType: text("notification_type").notNull(), // 'price_alert', 'market_summary'
+  referenceId: text("reference_id").notNull(), // symbol or summaryId
+  sentDate: text("sent_date").notNull(), // 'YYYY-MM-DD' for dedup
+  sentAt: timestamp("sent_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => ({
+  dedupUnique: uniqueIndex("notification_log_dedup_idx").on(table.userId, table.notificationType, table.referenceId, table.sentDate),
+  userIdIdx: index("notification_log_user_id_idx").on(table.userId),
+  sentAtIdx: index("notification_log_sent_at_idx").on(table.sentAt),
+}));
+
+export type NotificationLogEntry = typeof notificationLog.$inferSelect;

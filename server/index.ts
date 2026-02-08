@@ -11,6 +11,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
+import { shutdownApns } from "./push/apnsService";
 
 const app = express();
 const httpServer = createServer(app);
@@ -235,6 +236,7 @@ app.use((req, res, next) => {
   // Graceful shutdown
   const shutdown = () => {
     log("Shutting down gracefully...");
+    try { shutdownApns(); } catch (_) { /* APNs may not be initialized */ }
     httpServer.close(() => {
       log("Server closed");
       process.exit(0);

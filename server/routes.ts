@@ -2,6 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerChatRoutes } from "./replit_integrations/chat";
+import { registerPushRoutes, sendMarketSummaryNotification } from "./push";
 import { insertPortfolioHoldingSchema, insertWatchlistSchema, activityLogs } from "@shared/schema";
 import { users, usageLogs } from "@shared/schema";
 import OpenAI from "openai";
@@ -215,7 +216,7 @@ async function generateAndPostMarketSummary(market: string, eventType: string): 
 
   const title = getMarketEventTitle(market, eventType);
 
-  await addNewsFeedItem({
+  const newItem = await addNewsFeedItem({
     title,
     content: summaryContent,
     market,
@@ -226,6 +227,19 @@ async function generateAndPostMarketSummary(market: string, eventType: string): 
   });
 
   console.log(`[NewsFeed Scheduler] Posted ${eventType} summary for ${market}: ${title}`);
+
+  // Send push notifications for market close summaries
+  if (eventType === "close") {
+    const marketMap: Record<string, string> = { USA: "usa", ASX: "asx", Europe: "europe" };
+    const summaryType = marketMap[market];
+    if (summaryType) {
+      try {
+        await sendMarketSummaryNotification(summaryType, String(newItem.id));
+      } catch (e) {
+        console.error(`[Push] Failed to send summary notification for ${market}:`, e);
+      }
+    }
+  }
 }
 
 async function checkAndPostMarketCloseSummaries(): Promise<void> {
@@ -292,6 +306,7 @@ function classifyAction(method: string, path: string): string {
   if (path.startsWith("/api/subscription")) return "subscription";
   if (path.startsWith("/api/stocks/search")) return "stock_search";
   if (path.startsWith("/api/newsfeed")) return "newsfeed";
+  if (path.startsWith("/api/push")) return "push_notifications";
   return "other";
 }
 
@@ -352,6 +367,7 @@ export async function registerRoutes(
     next();
   });
   registerChatRoutes(app);
+  registerPushRoutes(app);
 
   app.get("/api/markets", async (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
