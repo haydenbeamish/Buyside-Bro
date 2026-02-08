@@ -7,7 +7,7 @@ import { users, usageLogs } from "@shared/schema";
 import OpenAI from "openai";
 import { isAuthenticated, authStorage } from "./replit_integrations/auth";
 import { stripeService } from "./stripeService";
-import { getStripePublishableKey } from "./stripeClient";
+import { getStripePublishableKey, getUncachableStripeClient } from "./stripeClient";
 import {
   getUserCredits,
   recordUsage,
@@ -1690,7 +1690,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   app.get("/api/subscription/products", async (req: Request, res: Response) => {
     try {
       const rows = await stripeService.listProductsWithPrices();
-      
+
       const productsMap = new Map();
       for (const row of rows as any[]) {
         if (!productsMap.has(row.product_id)) {
@@ -1716,8 +1716,9 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
       res.json({ products: Array.from(productsMap.values()) });
     } catch (error) {
+      // Return empty products if the stripe schema/tables don't exist yet
       console.error("Error listing products:", error);
-      res.status(500).json({ error: "Failed to list products" });
+      res.json({ products: [] });
     }
   });
 
@@ -1757,9 +1758,21 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const { priceId } = req.body;
+      let { priceId } = req.body;
+
+      // If no priceId provided, look up the first active recurring price from Stripe API
       if (!priceId) {
-        return res.status(400).json({ error: "Price ID is required" });
+        const stripe = await getUncachableStripeClient();
+        const prices = await stripe.prices.list({
+          active: true,
+          type: 'recurring',
+          limit: 10,
+        });
+        const subscriptionPrice = prices.data.find(p => p.recurring?.interval === 'month');
+        if (!subscriptionPrice) {
+          return res.status(400).json({ error: "No subscription price configured in Stripe" });
+        }
+        priceId = subscriptionPrice.id;
       }
 
       const user = await authStorage.getUser(userId);
