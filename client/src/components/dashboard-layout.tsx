@@ -203,7 +203,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             )}
 
             {!isAuthenticated && !isLoading && (
-              <a href="/api/login" className="mr-3">
+              <a href="/api/login" className="mr-3 hidden lg:block">
                 <Button className="neon-button" data-testid="button-login-header">
                   Sign In
                 </Button>
