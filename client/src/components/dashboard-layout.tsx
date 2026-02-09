@@ -16,11 +16,10 @@ interface DashboardLayoutProps {
 const navItems = [
   { path: "/whats-up", label: "What's Up?", icon: Sparkles },
   { path: "/dashboard", label: "Markets", icon: LayoutGrid },
-  { path: "/portfolio", label: "Portfolio", icon: Briefcase },
-  { path: "/watchlist", label: "Watchlist", icon: Eye },
   { path: "/analysis", label: "Company", icon: Building2 },
+  { path: "/watchlist", label: "Watchlist", icon: Eye },
+  { path: "/portfolio", label: "Portfolio", icon: Briefcase },
   { path: "/earnings", label: "Earnings", icon: Brain },
-  // { path: "/news", label: "News", icon: Newspaper },
   { path: "/chat", label: "Ask Bro", icon: MessageSquare },
 ];
 
