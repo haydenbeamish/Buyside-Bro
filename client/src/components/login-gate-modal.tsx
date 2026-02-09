@@ -20,7 +20,7 @@ export function LoginGateModal({ open, onClose }: LoginGateModalProps) {
         <DialogHeader>
           <DialogTitle className="text-amber-400 text-xl">Sign in for access</DialogTitle>
           <DialogDescription className="text-zinc-400 text-base pt-2">
-            Create an account to use Portfolio, Watchlist, Analysis, Earnings, News, and Ask Bro.
+            Sign in to access Portfolio, Watchlist, Analysis, Earnings, News, Ask Bro, and market wrap emails.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex gap-3 pt-4">

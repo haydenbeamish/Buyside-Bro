@@ -166,6 +166,7 @@ export default function SubscriptionPage() {
   useEffect(() => {
     if (success === "true") {
       queryClient.invalidateQueries({ queryKey: ["/api/subscription/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/bro/status"] });
       toast({
         title: "Welcome to Buy Side Bro Pro!",
         description: "Your subscription is now active. Enjoy full access to all features.",
@@ -629,7 +630,6 @@ export default function SubscriptionPage() {
               </div>
             </div>
 
-            <EmailPreferencesSection />
           </>
         )}
       </div>
