@@ -995,17 +995,7 @@ export default function AnalysisPage() {
                       <Building2 className="h-4 w-4 text-amber-500" />
                       About {profile.companyName}
                     </h3>
-                    <p className="text-sm text-zinc-400 leading-relaxed">
-                      {(() => {
-                        const desc = profile.description;
-                        if (desc.length <= 300) return desc;
-                        const sentences = desc.match(/[^.!?]+[.!?]+/g);
-                        if (sentences && sentences.length > 2) {
-                          return sentences.slice(0, 2).join("").trim();
-                        }
-                        return desc;
-                      })()}
-                    </p>
+                    <p className="text-sm text-zinc-400 leading-relaxed">{profile.description}</p>
                   </div>
                 )}
                 {profile?.investmentCase && (

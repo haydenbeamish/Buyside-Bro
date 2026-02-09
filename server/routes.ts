@@ -1266,7 +1266,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  // Forward metrics (P/E, EPS growth)
+  // Forward metrics (P/E, EPS growth) — sourced from Laser Beam Capital API
   app.get("/api/analysis/forward/:ticker", async (req: any, res: Response) => {
     try {
       const rawTicker = req.params.ticker as string;
@@ -1275,47 +1275,22 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
       const ticker = normalizeTicker(rawTicker);
 
-      // Fetch price quote, key metrics, and analyst estimates
-      const quoteUrl = `https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
-      const estimatesUrl = `https://financialmodelingprep.com/stable/analyst-estimates?symbol=${encodeURIComponent(ticker)}&period=annual&limit=2&apikey=${process.env.FMP_API_KEY}`;
-      const ratiosUrl = `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
+      const lbcUrl = `${LASER_BEAM_API}/api/stock/quick-summary/${encodeURIComponent(ticker)}`;
+      const lbcResponse = await fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 10000);
 
-      const [quoteRes, estimatesRes, ratiosRes] = await Promise.all([
-        fetchWithTimeout(quoteUrl, {}, 10000),
-        fetchWithTimeout(estimatesUrl, {}, 10000),
-        fetchWithTimeout(ratiosUrl, {}, 10000),
-      ]);
-
-      const quotes = quoteRes.ok ? await quoteRes.json() : [];
-      const estimates = estimatesRes.ok ? await estimatesRes.json() : [];
-      const ratios = ratiosRes.ok ? await ratiosRes.json() : [];
-
-      const quote = (quotes as any[])[0] || {};
-      const r = (ratios as any[])[0] || {};
-      const currentPrice = quote.price || null;
-
-      // Calculate forward EPS growth from analyst estimates (year-over-year)
-      let forwardEpsGrowth: number | null = null;
-      if (estimates.length >= 2) {
-        const currentYearEps = estimates[0]?.epsAvg;
-        const nextYearEps = estimates[1]?.epsAvg;
-        if (typeof currentYearEps === 'number' && typeof nextYearEps === 'number' && currentYearEps !== 0) {
-          forwardEpsGrowth = ((nextYearEps - currentYearEps) / Math.abs(currentYearEps)) * 100;
-        }
+      if (!lbcResponse.ok) {
+        return res.status(502).json({ error: "Failed to fetch forward metrics from data source" });
       }
 
-      // Forward P/E = Current Price / Estimated Forward EPS
-      let forwardPE: number | null = null;
-      if (estimates.length > 0 && currentPrice) {
-        const forwardEps = estimates[0]?.epsAvg;
-        if (typeof forwardEps === 'number' && forwardEps > 0) {
-          forwardPE = currentPrice / forwardEps;
-        }
-      }
+      const lbcRaw = await lbcResponse.json() as any;
+      const lbcData = lbcRaw?.data || lbcRaw;
+      const fm = lbcData.forwardMetrics || {};
 
-      // PEG Ratio: use TTM ratio or calculate from forward P/E and growth
-      let pegRatio: number | null = r.priceToEarningsGrowthRatioTTM ?? null;
-      if (pegRatio === null && forwardPE !== null && forwardEpsGrowth !== null && forwardEpsGrowth > 0) {
+      const forwardPE = typeof fm.forwardPE === 'number' ? fm.forwardPE : null;
+      const forwardEpsGrowth = typeof fm.forwardEPSGrowth === 'number' ? fm.forwardEPSGrowth : null;
+
+      let pegRatio: number | null = null;
+      if (forwardPE !== null && forwardEpsGrowth !== null && forwardEpsGrowth > 0) {
         pegRatio = forwardPE / forwardEpsGrowth;
       }
 
@@ -1324,8 +1299,8 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         forwardPE,
         forwardEpsGrowth,
         pegRatio,
-        currentEps: r.netIncomePerShareTTM ?? null,
-        estimatedEps: estimates[0]?.epsAvg ?? null,
+        currentEps: null,
+        estimatedEps: null,
       });
     } catch (error) {
       console.error("Forward metrics error:", error);
