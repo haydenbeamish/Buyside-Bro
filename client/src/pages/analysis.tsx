@@ -32,13 +32,7 @@ import { LoginGateModal } from "@/components/login-gate-modal";
 import { useBroStatus } from "@/hooks/use-bro-status";
 import { BroLimitModal } from "@/components/bro-limit-modal";
 import { useDocumentTitle } from "@/hooks/use-document-title";
-
-interface StockSearchResult {
-  symbol: string;
-  name: string;
-  exchange: string;
-  type: string;
-}
+import { StockSearch } from "@/components/stock-search";
 
 interface StockProfile {
   symbol: string;
@@ -689,136 +683,6 @@ function PercentDisplay({ value }: { value: number }) {
   );
 }
 
-function StockSearchInput({ 
-  value, 
-  onSelect,
-  onSubmit
-}: { 
-  value: string; 
-  onSelect: (symbol: string) => void;
-  onSubmit: (symbol: string) => void;
-}) {
-  const [query, setQuery] = useState(value);
-  const [results, setResults] = useState<StockSearchResult[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const userTypedRef = useRef(false);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (!userTypedRef.current) {
-      return;
-    }
-    const searchStocks = async () => {
-      if (query.length < 1) {
-        setResults([]);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const res = await fetch(`/api/stocks/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        setResults(data);
-        if (data.length > 0) setIsOpen(true);
-      } catch (e) {
-        setResults([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const debounce = setTimeout(searchStocks, 300);
-    return () => clearTimeout(debounce);
-  }, [query]);
-
-  const handleSelect = (stock: StockSearchResult) => {
-    setQuery(stock.symbol);
-    onSelect(stock.symbol);
-    onSubmit(stock.symbol);
-    setIsOpen(false);
-    setActiveIndex(-1);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (isOpen && results.length > 0) {
-      if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex(i => i < results.length - 1 ? i + 1 : 0); return; }
-      if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex(i => i > 0 ? i - 1 : results.length - 1); return; }
-      if (e.key === 'Escape') { setIsOpen(false); setActiveIndex(-1); return; }
-      if (e.key === 'Enter' && activeIndex >= 0) { e.preventDefault(); handleSelect(results[activeIndex]); return; }
-    }
-    if (e.key === 'Enter' && query.trim()) {
-      e.preventDefault();
-      onSubmit(query.toUpperCase().trim());
-      setIsOpen(false);
-      setActiveIndex(-1);
-    }
-  };
-
-  return (
-    <div ref={containerRef} className="relative flex-1">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-        <Input
-          placeholder="Search stocks... (e.g., Apple, TSLA)"
-          value={query}
-          onChange={(e) => {
-            const val = e.target.value.toUpperCase();
-            userTypedRef.current = true;
-            setQuery(val);
-            onSelect(val);
-            setActiveIndex(-1);
-          }}
-          onFocus={() => results.length > 0 && setIsOpen(true)}
-          onKeyDown={handleKeyDown}
-          className="pl-10 bg-zinc-900 border-zinc-800 text-white font-mono uppercase"
-          data-testid="input-search-ticker"
-          role="combobox"
-          aria-expanded={isOpen}
-          aria-activedescendant={activeIndex >= 0 ? `analysis-option-${activeIndex}` : undefined}
-        />
-        {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500 animate-spin" />
-        )}
-      </div>
-      {isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl" role="listbox">
-          {results.map((stock, idx) => (
-            <button
-              key={`${stock.symbol}-${idx}`}
-              id={`analysis-option-${idx}`}
-              type="button"
-              onClick={() => handleSelect(stock)}
-              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
-              data-testid={`stock-result-${stock.symbol}`}
-              role="option"
-              aria-selected={idx === activeIndex}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-semibold text-amber-400">{stock.symbol}</span>
-                  <span className="text-xs text-zinc-500 bg-zinc-700 px-1.5 py-0.5 rounded">{stock.exchange}</span>
-                </div>
-                <p className="text-sm text-zinc-400 truncate">{stock.name}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function AILoadingAnimation({ ticker }: { ticker: string }) {
   const loadingMessages = [
     "Analyzing fundamentals...",
@@ -929,7 +793,8 @@ export default function AnalysisPage() {
   );
   const [deepResult, setDeepResult] = useState<DeepAnalysisResult | null>(null);
   const [deepError, setDeepError] = useState<string | null>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollAttemptRef = useRef<number>(0);
   const deepResultCache = useRef<Record<string, DeepAnalysisResult>>({});
 
   const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
@@ -979,6 +844,7 @@ export default function AnalysisPage() {
       setDeepJobStatus({ jobId: data.jobId, status: "pending", progress: 0, message: "Starting analysis..." });
       setDeepResult(null);
       setDeepError(null);
+      pollAttemptRef.current = 0;
       refetchBroStatus();
     },
     onError: (error: any) => {
@@ -1016,30 +882,40 @@ export default function AnalysisPage() {
         // Update status after result is set so both render together
         setDeepJobStatus(status);
         if (pollingRef.current) {
-          clearInterval(pollingRef.current);
+          clearTimeout(pollingRef.current);
           pollingRef.current = null;
         }
+        return;
       } else if (status.status === "failed") {
         setDeepJobStatus(status);
         setDeepError("Analysis failed. Please try again.");
         if (pollingRef.current) {
-          clearInterval(pollingRef.current);
+          clearTimeout(pollingRef.current);
           pollingRef.current = null;
         }
+        return;
       } else {
         setDeepJobStatus(status);
       }
     } catch (e) {
       console.error("Poll error:", e);
     }
+    // Schedule next poll with exponential backoff: 1s, 2s, 4s, 8s, capped at 10s
+    pollAttemptRef.current += 1;
+    const INITIAL_DELAY = 1000;
+    const MAX_DELAY = 10000;
+    const delay = Math.min(INITIAL_DELAY * Math.pow(2, pollAttemptRef.current), MAX_DELAY);
+    pollingRef.current = setTimeout(() => pollJobStatus(jobId), delay);
   }, []);
 
   useEffect(() => {
     if (deepJobId && deepJobStatus?.status !== "completed" && deepJobStatus?.status !== "failed") {
-      pollingRef.current = setInterval(() => pollJobStatus(deepJobId), 2000);
+      pollAttemptRef.current = 0;
+      const INITIAL_DELAY = 1000;
+      pollingRef.current = setTimeout(() => pollJobStatus(deepJobId), INITIAL_DELAY);
       return () => {
         if (pollingRef.current) {
-          clearInterval(pollingRef.current);
+          clearTimeout(pollingRef.current);
           pollingRef.current = null;
         }
       };
@@ -1050,12 +926,13 @@ export default function AnalysisPage() {
   useEffect(() => {
     if (activeTicker && activeTicker !== prevTickerRef.current) {
       if (pollingRef.current) {
-        clearInterval(pollingRef.current);
+        clearTimeout(pollingRef.current);
         pollingRef.current = null;
       }
       setDeepJobId(null);
       setDeepJobStatus(null);
       setDeepError(null);
+      setShowCompletionAnimation(false);
       const cached = deepResultCache.current[activeTicker];
       if (cached) {
         setDeepResult(cached);
@@ -1066,7 +943,7 @@ export default function AnalysisPage() {
     prevTickerRef.current = activeTicker;
     return () => {
       if (pollingRef.current) {
-        clearInterval(pollingRef.current);
+        clearTimeout(pollingRef.current);
         pollingRef.current = null;
       }
     };
@@ -1086,7 +963,21 @@ export default function AnalysisPage() {
     }
   }, [isAuthenticated, activeTicker]);
 
-  const isDeepLoading = startDeepAnalysis.isPending || 
+  const isJobComplete = deepJobStatus?.status === "completed";
+  const [showCompletionAnimation, setShowCompletionAnimation] = useState(false);
+
+  // When job completes, briefly show 100% progress before revealing the result
+  useEffect(() => {
+    if (isJobComplete && deepResult) {
+      setShowCompletionAnimation(true);
+      const timer = setTimeout(() => {
+        setShowCompletionAnimation(false);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isJobComplete, deepResult]);
+
+  const isDeepLoading = startDeepAnalysis.isPending ||
     (deepJobStatus?.status === "pending" || deepJobStatus?.status === "processing");
 
   const formatMarketCap = (value: number) => {
@@ -1110,10 +1001,13 @@ export default function AnalysisPage() {
         </div>
 
         <div className="flex gap-2 max-w-full sm:max-w-md mb-6 sm:mb-8">
-          <StockSearchInput
+          <StockSearch
             value={searchTicker}
             onSelect={(symbol) => setSearchTicker(symbol)}
             onSubmit={(symbol) => handleAnalyze(symbol)}
+            className="flex-1"
+            inputTestId="input-search-ticker"
+            optionIdPrefix="analysis-option"
           />
           <Button 
             type="button" 
@@ -1252,7 +1146,7 @@ export default function AnalysisPage() {
                         setDeepJobStatus(null);
                         setDeepResult(null);
                         if (pollingRef.current) {
-                          clearInterval(pollingRef.current);
+                          clearTimeout(pollingRef.current);
                           pollingRef.current = null;
                         }
                         startDeepAnalysis.mutate(activeTicker);
@@ -1264,12 +1158,12 @@ export default function AnalysisPage() {
                   </Button>
                 </div>
               </div>
-            ) : isDeepLoading ? (
-              <DeepAnalysisLoader 
-                ticker={activeTicker || ""} 
+            ) : isDeepLoading || showCompletionAnimation ? (
+              <DeepAnalysisLoader
+                ticker={activeTicker || ""}
                 progress={deepJobStatus?.progress || 0}
-                message={deepJobStatus?.message || "Starting analysis..."}
-                isComplete={false}
+                message={showCompletionAnimation ? "Analysis complete!" : (deepJobStatus?.message || "Starting analysis...")}
+                isComplete={isJobComplete}
               />
             ) : deepResult ? (
               <DeepAnalysisResult result={deepResult} />
@@ -1294,7 +1188,7 @@ export default function AnalysisPage() {
                       setDeepJobStatus(null);
                       setDeepResult(null);
                       if (pollingRef.current) {
-                        clearInterval(pollingRef.current);
+                        clearTimeout(pollingRef.current);
                         pollingRef.current = null;
                       }
                       startDeepAnalysis.mutate(activeTicker);

@@ -21,7 +21,6 @@ import {
   Trash2,
   Sparkles,
   Loader2,
-  Search,
   BarChart3,
   Target,
   AlertTriangle,
@@ -36,6 +35,7 @@ import { useBroStatus } from "@/hooks/use-bro-status";
 import { BroLimitModal } from "@/components/bro-limit-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { StockSearch } from "@/components/stock-search";
 
 interface PortfolioStats {
   totalValue: number;
@@ -57,126 +57,6 @@ interface EnrichedHolding extends PortfolioHolding {
   nextEarnings: string | null;
 }
 
-
-interface StockSearchResult {
-  symbol: string;
-  name: string;
-  exchange: string;
-  currency: string;
-}
-
-function StockTickerInput({ 
-  value, 
-  onSelect 
-}: { 
-  value: string; 
-  onSelect: (symbol: string) => void;
-}) {
-  const [query, setQuery] = useState(value);
-  const [results, setResults] = useState<StockSearchResult[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const searchStocks = async () => {
-      if (query.length < 1) {
-        setResults([]);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const res = await fetch(`/api/stocks/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        setResults(data);
-        if (data.length > 0) setIsOpen(true);
-      } catch (e) {
-        setResults([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const debounce = setTimeout(searchStocks, 300);
-    return () => clearTimeout(debounce);
-  }, [query]);
-
-  const handleSelect = (stock: StockSearchResult) => {
-    setQuery(stock.symbol);
-    onSelect(stock.symbol);
-    setIsOpen(false);
-    setActiveIndex(-1);
-  };
-
-  return (
-    <div ref={containerRef} className="relative">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-        <Input
-          placeholder="Search stocks... (e.g., Apple, TSLA)"
-          value={query}
-          onChange={(e) => {
-            const val = e.target.value.toUpperCase();
-            setQuery(val);
-            onSelect(val);
-            setActiveIndex(-1);
-          }}
-          onFocus={() => results.length > 0 && setIsOpen(true)}
-          onKeyDown={(e) => {
-            if (!isOpen || results.length === 0) return;
-            if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex(i => i < results.length - 1 ? i + 1 : 0); }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex(i => i > 0 ? i - 1 : results.length - 1); }
-            else if (e.key === 'Enter' && activeIndex >= 0) { e.preventDefault(); handleSelect(results[activeIndex]); }
-            else if (e.key === 'Escape') { setIsOpen(false); setActiveIndex(-1); }
-          }}
-          className="bg-zinc-800 border-zinc-700 text-white font-mono uppercase pl-10"
-          data-testid="input-stock-search"
-          role="combobox"
-          aria-expanded={isOpen}
-          aria-activedescendant={activeIndex >= 0 ? `portfolio-option-${activeIndex}` : undefined}
-        />
-        {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500 animate-spin" />
-        )}
-      </div>
-      {isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl" role="listbox">
-          {results.map((stock, idx) => (
-            <button
-              key={`${stock.symbol}-${idx}`}
-              id={`portfolio-option-${idx}`}
-              type="button"
-              onClick={() => handleSelect(stock)}
-              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
-              data-testid={`stock-result-${stock.symbol}`}
-              role="option"
-              aria-selected={idx === activeIndex}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-semibold text-amber-400">{stock.symbol}</span>
-                  <span className="text-xs text-zinc-500 bg-zinc-700 px-1.5 py-0.5 rounded">{stock.exchange}</span>
-                </div>
-                <p className="text-sm text-zinc-400 truncate">{stock.name}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function formatMarketCap(value: number | null): string {
   if (!value) return "-";
@@ -416,9 +296,11 @@ export default function PortfolioPage() {
                 <form onSubmit={handleAddHolding} className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-zinc-300">Stock Ticker</Label>
-                    <StockTickerInput
+                    <StockSearch
                       value={newHolding.ticker}
                       onSelect={(symbol) => setNewHolding({ ...newHolding, ticker: symbol })}
+                      inputTestId="input-stock-search"
+                      optionIdPrefix="portfolio-option"
                     />
                     {newHolding.ticker && (
                       <p className="text-xs text-amber-400 font-mono">Selected: {newHolding.ticker}</p>

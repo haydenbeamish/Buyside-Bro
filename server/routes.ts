@@ -42,6 +42,10 @@ function isAdmin(req: any, res: Response, next: NextFunction) {
   next();
 }
 
+function isValidTicker(ticker: string): boolean {
+  return /^[A-Za-z0-9._-]{1,20}$/.test(ticker);
+}
+
 const LASER_BEAM_API = "https://api.laserbeamcapital.com";
 if (!process.env.API_KEY) {
   console.error("WARNING: API_KEY environment variable is not set! Market data API calls will fail with 401.");
@@ -723,7 +727,7 @@ export async function registerRoutes(
     }
   });
 
-  // Enriched portfolio data with market data from FMP
+  // Enriched portfolio data with market data from FMP (per-ticker caching, 2-min TTL)
   app.get("/api/portfolio/enriched", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user.claims.sub;
@@ -739,30 +743,59 @@ export async function registerRoutes(
       const metricsMap = new Map<string, any>();
       const profileMap = new Map<string, any>();
 
-      try {
-        const allRequests: Promise<void>[] = [];
-
-        for (const ticker of tickerList) {
-          allRequests.push(
-            fetchWithTimeout(`https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
-              .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) quoteMap.set(ticker, d[0]); } })
-              .catch(() => {})
-          );
-          allRequests.push(
-            fetchWithTimeout(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
-              .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) metricsMap.set(ticker, d[0]); } })
-              .catch(() => {})
-          );
-          allRequests.push(
-            fetchWithTimeout(`https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
-              .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) profileMap.set(ticker, d[0]); } })
-              .catch(() => {})
-          );
+      // Check per-ticker cache first, only fetch uncached tickers from FMP
+      const uncachedTickers: string[] = [];
+      for (const ticker of tickerList) {
+        const cachedEnrichment = await storage.getCachedData(`stock_enrichment_${ticker}`) as { quote?: any; metrics?: any; profile?: any } | null;
+        if (cachedEnrichment) {
+          if (cachedEnrichment.quote) quoteMap.set(ticker, cachedEnrichment.quote);
+          if (cachedEnrichment.metrics) metricsMap.set(ticker, cachedEnrichment.metrics);
+          if (cachedEnrichment.profile) profileMap.set(ticker, cachedEnrichment.profile);
+        } else {
+          uncachedTickers.push(ticker);
         }
+      }
 
-        await Promise.all(allRequests);
-      } catch (e) {
-        console.error("Failed to fetch FMP data:", e);
+      // Only fetch FMP data for tickers not found in cache
+      if (uncachedTickers.length > 0 && apiKey) {
+        try {
+          const allRequests: Promise<void>[] = [];
+
+          for (const ticker of uncachedTickers) {
+            allRequests.push(
+              fetchWithTimeout(`https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+                .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) quoteMap.set(ticker, d[0]); } })
+                .catch(() => {})
+            );
+            allRequests.push(
+              fetchWithTimeout(`https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+                .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) metricsMap.set(ticker, d[0]); } })
+                .catch(() => {})
+            );
+            allRequests.push(
+              fetchWithTimeout(`https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker)}&apikey=${apiKey}`, {}, 8000)
+                .then(async (r) => { if (r.ok) { const d = await r.json(); if (Array.isArray(d) && d[0]) profileMap.set(ticker, d[0]); } })
+                .catch(() => {})
+            );
+          }
+
+          await Promise.all(allRequests);
+
+          // Cache each newly fetched ticker's enrichment data (2-minute TTL)
+          for (const ticker of uncachedTickers) {
+            const enrichmentData = {
+              quote: quoteMap.get(ticker) || null,
+              metrics: metricsMap.get(ticker) || null,
+              profile: profileMap.get(ticker) || null,
+            };
+            // Only cache if we got at least some data for this ticker
+            if (enrichmentData.quote || enrichmentData.metrics || enrichmentData.profile) {
+              await storage.setCachedData(`stock_enrichment_${ticker}`, enrichmentData, 2);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch FMP data:", e);
+        }
       }
 
       const enrichedHoldings = holdings.map(holding => {
@@ -1104,6 +1137,9 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   app.get("/api/analysis/profile/:ticker", async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
+      if (!isValidTicker(ticker)) {
+        return res.status(400).json({ error: "Invalid ticker symbol" });
+      }
       const fmpUrl = `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker.toUpperCase())}&apikey=${process.env.FMP_API_KEY}`;
 
       const response = await fetchWithTimeout(fmpUrl, {}, 10000);
@@ -1136,6 +1172,9 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   app.get("/api/analysis/financials/:ticker", async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
+      if (!isValidTicker(ticker)) {
+        return res.status(400).json({ error: "Invalid ticker symbol" });
+      }
       const tickerUpper = ticker.toUpperCase();
       const ratiosUrl = `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(tickerUpper)}&apikey=${process.env.FMP_API_KEY}`;
       const incomeUrl = `https://financialmodelingprep.com/stable/income-statement?symbol=${encodeURIComponent(tickerUpper)}&limit=1&apikey=${process.env.FMP_API_KEY}`;
@@ -1174,7 +1213,11 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   // Historical price data for 1-year chart
   app.get("/api/analysis/history/:ticker", async (req: any, res: Response) => {
     try {
-      const ticker = (req.params.ticker as string).toUpperCase();
+      const rawTicker = req.params.ticker as string;
+      if (!isValidTicker(rawTicker)) {
+        return res.status(400).json({ error: "Invalid ticker symbol" });
+      }
+      const ticker = rawTicker.toUpperCase();
       const toDate = new Date().toISOString().split('T')[0];
       const fromDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const fmpUrl = `https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${encodeURIComponent(ticker)}&from=${fromDate}&to=${toDate}&apikey=${process.env.FMP_API_KEY}`;
@@ -1202,8 +1245,12 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   // Forward metrics (P/E, EPS growth)
   app.get("/api/analysis/forward/:ticker", async (req: any, res: Response) => {
     try {
-      const ticker = (req.params.ticker as string).toUpperCase();
-      
+      const rawTicker = req.params.ticker as string;
+      if (!isValidTicker(rawTicker)) {
+        return res.status(400).json({ error: "Invalid ticker symbol" });
+      }
+      const ticker = rawTicker.toUpperCase();
+
       // Fetch price quote, key metrics, and analyst estimates
       const quoteUrl = `https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
       const estimatesUrl = `https://financialmodelingprep.com/stable/analyst-estimates?symbol=${encodeURIComponent(ticker)}&period=annual&limit=2&apikey=${process.env.FMP_API_KEY}`;
@@ -1265,6 +1312,9 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   app.get("/api/analysis/sec-filings/:ticker", async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
+      if (!isValidTicker(ticker)) {
+        return res.status(400).json({ error: "Invalid ticker symbol" });
+      }
       const apiKey = process.env.FMP_API_KEY;
       const response = await fetchWithTimeout(
         `https://financialmodelingprep.com/api/v3/sec_filings/${encodeURIComponent(ticker)}?limit=20&apikey=${apiKey}`,
@@ -1286,6 +1336,9 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   app.get("/api/analysis/ai/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const ticker = req.params.ticker as string;
+      if (!isValidTicker(ticker)) {
+        return res.status(400).json({ error: "Invalid ticker symbol" });
+      }
       const userId = req.user?.claims?.sub;
       
       // Try Laser Beam Capital fundamental analysis API first
@@ -1447,8 +1500,12 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   // Route used by analysis page (ticker in URL params)
   app.post("/api/analysis/deep/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
+      const rawTicker = req.params.ticker as string;
+      if (!isValidTicker(rawTicker)) {
+        return res.status(400).json({ error: "Invalid ticker symbol" });
+      }
       const userId = req.user?.claims?.sub;
-      const ticker = (req.params.ticker as string).toUpperCase();
+      const ticker = rawTicker.toUpperCase();
 
       // Check daily Bro query limit
       if (userId) {
@@ -1541,7 +1598,11 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
   });
 
   app.get("/api/analysis/deep/cached/:ticker", async (req: any, res: Response) => {
-    const ticker = (req.params.ticker as string).toUpperCase();
+    const rawTicker = req.params.ticker as string;
+    if (!isValidTicker(rawTicker)) {
+      return res.status(400).json({ error: "Invalid ticker symbol" });
+    }
+    const ticker = rawTicker.toUpperCase();
     if (ticker !== "MSFT") {
       return res.status(404).json({ error: "No cached analysis available" });
     }
@@ -2085,7 +2146,8 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.get("/api/watchlist/default", async (req: Request, res: Response) => {
     try {
-      const cached = await storage.getCachedData("watchlist_default");
+      // Check cache first (5-minute TTL)
+      const cached = await storage.getCachedData("default_watchlist_enriched");
       if (cached) {
         return res.json(cached);
       }
@@ -2149,7 +2211,8 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         };
       });
 
-      await storage.setCachedData("watchlist_default", enriched, 1440);
+      // Cache for 5 minutes (300 seconds = 5 minutes)
+      await storage.setCachedData("default_watchlist_enriched", enriched, 5);
       res.json(enriched);
     } catch (error) {
       console.error("Default watchlist error:", error);

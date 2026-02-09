@@ -14,13 +14,14 @@ import { Label } from "@/components/ui/label";
 import { queryClient, apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import { Plus, Trash2, Search, Loader2, Eye, ArrowUp, ArrowDown, Download } from "lucide-react";
+import { Plus, Trash2, Eye, ArrowUp, ArrowDown, Download } from "lucide-react";
 import { Link } from "wouter";
 import type { WatchlistItem } from "@shared/schema";
 import { useLoginGate } from "@/hooks/use-login-gate";
 import { LoginGateModal } from "@/components/login-gate-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { StockSearch } from "@/components/stock-search";
 
 interface EnrichedWatchlistItem extends WatchlistItem {
   price: number | null;
@@ -31,116 +32,6 @@ interface EnrichedWatchlistItem extends WatchlistItem {
   yearLow: number | null;
   volume: number | null;
   avgVolume: number | null;
-}
-
-interface StockSearchResult {
-  symbol: string;
-  name: string;
-  exchange: string;
-}
-
-function WatchlistStockSearch({
-  onSelect,
-}: {
-  onSelect: (symbol: string, name: string) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<StockSearchResult[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    const searchStocks = async () => {
-      if (query.length < 1) {
-        setResults([]);
-        return;
-      }
-      setIsLoading(true);
-      try {
-        const res = await fetch(`/api/stocks/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        setResults(data);
-        if (data.length > 0) setIsOpen(true);
-      } catch (e) {
-        setResults([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    const debounce = setTimeout(searchStocks, 300);
-    return () => clearTimeout(debounce);
-  }, [query]);
-
-  return (
-    <div ref={containerRef} className="relative">
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-        <Input
-          placeholder="Search stocks globally... (e.g., Apple, VOD.L)"
-          value={query}
-          onChange={(e) => { setQuery(e.target.value.toUpperCase()); setActiveIndex(-1); }}
-          onFocus={() => results.length > 0 && setIsOpen(true)}
-          onKeyDown={(e) => {
-            if (!isOpen || results.length === 0) return;
-            if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex(i => i < results.length - 1 ? i + 1 : 0); }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex(i => i > 0 ? i - 1 : results.length - 1); }
-            else if (e.key === 'Enter' && activeIndex >= 0) { e.preventDefault(); const s = results[activeIndex]; onSelect(s.symbol, s.name); setQuery(''); setIsOpen(false); setActiveIndex(-1); }
-            else if (e.key === 'Escape') { setIsOpen(false); setActiveIndex(-1); }
-          }}
-          className="bg-zinc-800 border-zinc-700 text-white font-mono uppercase pl-10"
-          data-testid="input-watchlist-search"
-          role="combobox"
-          aria-expanded={isOpen}
-          aria-activedescendant={activeIndex >= 0 ? `watchlist-option-${activeIndex}` : undefined}
-        />
-        {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500 animate-spin" />
-        )}
-      </div>
-      {isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl" role="listbox">
-          {results.map((stock, idx) => (
-            <button
-              key={`${stock.symbol}-${idx}`}
-              id={`watchlist-option-${idx}`}
-              type="button"
-              onClick={() => {
-                onSelect(stock.symbol, stock.name);
-                setQuery("");
-                setIsOpen(false);
-                setActiveIndex(-1);
-              }}
-              className={`w-full px-3 py-2.5 text-left hover:bg-zinc-700 flex items-center justify-between gap-2 border-b border-zinc-700/50 last:border-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 focus-visible:bg-zinc-700 ${idx === activeIndex ? 'bg-zinc-700' : ''}`}
-              data-testid={`watchlist-result-${stock.symbol}`}
-              role="option"
-              aria-selected={idx === activeIndex}
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-semibold text-amber-400">{stock.symbol}</span>
-                  <span className="text-xs text-zinc-500 bg-zinc-700 px-1.5 py-0.5 rounded">{stock.exchange}</span>
-                </div>
-                <p className="text-sm text-zinc-400 truncate">{stock.name}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 function formatMarketCap(value: number | null): string {
@@ -457,8 +348,12 @@ export default function WatchlistPage() {
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label className="text-zinc-300">Search for a stock</Label>
-                      <WatchlistStockSearch
+                      <StockSearch
                         onSelect={(symbol, name) => addMutation.mutate({ ticker: symbol, name })}
+                        clearOnSelect
+                        placeholder="Search stocks globally... (e.g., Apple, VOD.L)"
+                        inputTestId="input-watchlist-search"
+                        optionIdPrefix="watchlist-option"
                       />
                     </div>
                     <p className="text-xs text-zinc-500">

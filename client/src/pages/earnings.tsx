@@ -572,7 +572,8 @@ export default function EarningsAnalysisPage() {
   const [result, setResult] = useState<DeepAnalysisResultData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isStarting, setIsStarting] = useState(false);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollAttemptRef = useRef<number>(0);
   const jobStartTimeRef = useRef<number>(Date.now());
   const hasAutoStarted = useRef(!!urlJobId);
   const { toast } = useToast();
@@ -614,8 +615,9 @@ export default function EarningsAnalysisPage() {
     setJobId(null);
     setJobStatus(null);
     jobStartTimeRef.current = Date.now();
+    pollAttemptRef.current = 0;
     if (pollingRef.current) {
-      clearInterval(pollingRef.current);
+      clearTimeout(pollingRef.current);
       pollingRef.current = null;
     }
     try {
@@ -652,7 +654,7 @@ export default function EarningsAnalysisPage() {
     if (elapsed > POLLING_TIMEOUT_MS) {
       setError("Analysis timed out after 5 minutes. The server may be busy — please try again.");
       if (pollingRef.current) {
-        clearInterval(pollingRef.current);
+        clearTimeout(pollingRef.current);
         pollingRef.current = null;
       }
       return;
@@ -670,27 +672,37 @@ export default function EarningsAnalysisPage() {
           setResult(resultData);
         }
         if (pollingRef.current) {
-          clearInterval(pollingRef.current);
+          clearTimeout(pollingRef.current);
           pollingRef.current = null;
         }
+        return;
       } else if (status.status === "failed") {
         setError("Analysis failed. Please try again.");
         if (pollingRef.current) {
-          clearInterval(pollingRef.current);
+          clearTimeout(pollingRef.current);
           pollingRef.current = null;
         }
+        return;
       }
     } catch (e) {
       console.error("Poll error:", e);
     }
+    // Schedule next poll with exponential backoff: 1s, 2s, 4s, 8s, capped at 10s
+    pollAttemptRef.current += 1;
+    const INITIAL_DELAY = 1000;
+    const MAX_DELAY = 10000;
+    const delay = Math.min(INITIAL_DELAY * Math.pow(2, pollAttemptRef.current), MAX_DELAY);
+    pollingRef.current = setTimeout(() => pollJobStatus(currentJobId), delay);
   }, [POLLING_TIMEOUT_MS]);
 
   useEffect(() => {
     if (jobId && jobStatus?.status !== "completed" && jobStatus?.status !== "failed") {
-      pollingRef.current = setInterval(() => pollJobStatus(jobId), 2000);
+      pollAttemptRef.current = 0;
+      const INITIAL_DELAY = 1000;
+      pollingRef.current = setTimeout(() => pollJobStatus(jobId), INITIAL_DELAY);
       return () => {
         if (pollingRef.current) {
-          clearInterval(pollingRef.current);
+          clearTimeout(pollingRef.current);
           pollingRef.current = null;
         }
       };

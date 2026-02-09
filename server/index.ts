@@ -13,6 +13,49 @@ import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { shutdownApns } from "./push/apnsService";
 
+/**
+ * Validates required and optional environment variables at startup.
+ * Throws an error for missing required vars; logs warnings for optional ones.
+ */
+function validateEnvVars(): void {
+  const required: { name: string; reason: string }[] = [
+    { name: "DATABASE_URL", reason: "database connection will fail" },
+  ];
+
+  const optional: { name: string; reason: string }[] = [
+    { name: "API_KEY", reason: "external market data will not work" },
+    { name: "OPENROUTER_API_KEY", reason: "AI chat features will not work" },
+    { name: "INTERNAL_API_KEY", reason: "internal API authentication will not work" },
+    { name: "STRIPE_SECRET_KEY", reason: "Stripe payment processing will not work" },
+    { name: "ADMIN_EMAILS", reason: "admin access will fall back to default" },
+  ];
+
+  // Check required env vars — fail fast if any are missing
+  const missing: string[] = [];
+  for (const { name, reason } of required) {
+    if (!process.env[name]) {
+      console.error(`[Config] ERROR: ${name} is not set — ${reason}`);
+      missing.push(name);
+    }
+  }
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing required environment variable(s): ${missing.join(", ")}. Server cannot start.`
+    );
+  }
+
+  // Check optional env vars — warn but continue
+  for (const { name, reason } of optional) {
+    if (!process.env[name]) {
+      console.warn(`[Config] WARNING: ${name} not set - ${reason}`);
+    }
+  }
+
+  console.log("[Config] Environment variable validation complete");
+}
+
+validateEnvVars();
+
 const app = express();
 const httpServer = createServer(app);
 
