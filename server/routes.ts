@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerPushRoutes, sendMarketSummaryNotification } from "./push";
+import { sendMarketWrapEmails, sendWelcomeEmail } from "./email";
 import { insertPortfolioHoldingSchema, insertWatchlistSchema, activityLogs, newsFeed } from "@shared/schema";
 import { users, usageLogs } from "@shared/schema";
 import OpenAI from "openai";
@@ -239,6 +240,13 @@ async function generateAndPostMarketSummary(market: string, eventType: string): 
       } catch (e) {
         console.error(`[Push] Failed to send summary notification for ${market}:`, e);
       }
+    }
+
+    // Send market wrap emails
+    try {
+      await sendMarketWrapEmails(market, summaryContent, String(newItem.id));
+    } catch (e) {
+      console.error(`[Email] Failed to send market wrap emails for ${market}:`, e);
     }
   }
 }

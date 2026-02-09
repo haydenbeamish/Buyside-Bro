@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -7,8 +7,9 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3, Coins, AlertCircle, Shield, Globe, LineChart, Newspaper, BriefcaseBusiness, X } from "lucide-react";
+import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3, Coins, AlertCircle, Shield, Globe, LineChart, Newspaper, BriefcaseBusiness, X, Mail } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import logoImg from "@assets/image_1770442846290.png";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 
@@ -52,6 +53,95 @@ interface CreditPack {
   amount: number;
   currency: string;
   credits: number;
+}
+
+interface EmailPrefs {
+  emailUsaMarketSummary: boolean;
+  emailAsxMarketSummary: boolean;
+  emailEuropeMarketSummary: boolean;
+}
+
+function EmailPreferencesSection() {
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+
+  const { data: prefs, isLoading } = useQuery<EmailPrefs & Record<string, any>>({
+    queryKey: ["/api/push/preferences"],
+    enabled: isAuthenticated,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (updates: Partial<EmailPrefs>) => {
+      const response = await apiRequest("PUT", "/api/push/preferences", updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/push/preferences"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update email preferences.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleToggle = useCallback((field: keyof EmailPrefs, value: boolean) => {
+    updateMutation.mutate({ [field]: value });
+  }, [updateMutation]);
+
+  if (!isAuthenticated) return null;
+
+  const markets = [
+    { key: "emailUsaMarketSummary" as keyof EmailPrefs, label: "US Markets", desc: "NYSE & NASDAQ close wrap" },
+    { key: "emailAsxMarketSummary" as keyof EmailPrefs, label: "ASX (Australia)", desc: "ASX close wrap" },
+    { key: "emailEuropeMarketSummary" as keyof EmailPrefs, label: "European Markets", desc: "European close wrap" },
+  ];
+
+  return (
+    <Card className="mb-8 bg-zinc-900/50 border-zinc-800">
+      <CardHeader>
+        <CardTitle className="text-white flex items-center gap-2">
+          <Mail className="w-5 h-5 text-amber-500" />
+          Market Wrap Emails
+        </CardTitle>
+        <CardDescription className="text-zinc-400">
+          Get daily market close summaries delivered to your inbox
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-zinc-500" />
+          </div>
+        ) : (
+          markets.map((market) => (
+            <div
+              key={market.key}
+              className="flex items-center justify-between gap-4 py-2"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="text-sm text-zinc-200 font-medium" data-testid={`text-email-pref-${market.key}`}>
+                  {market.label}
+                </div>
+                <div className="text-xs text-zinc-500">{market.desc}</div>
+              </div>
+              <Switch
+                checked={!!(prefs as any)?.[market.key]}
+                onCheckedChange={(checked) => handleToggle(market.key, checked)}
+                disabled={updateMutation.isPending}
+                data-testid={`switch-email-${market.key}`}
+              />
+            </div>
+          ))
+        )}
+        <p className="text-zinc-600 text-xs pt-2 border-t border-zinc-800">
+          Emails are sent once per trading day after each market closes. You can unsubscribe anytime.
+        </p>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function SubscriptionPage() {
@@ -288,6 +378,8 @@ export default function SubscriptionPage() {
               </Button>
             </CardFooter>
           </Card>
+
+          <EmailPreferencesSection />
 
           {/* Bro Credits Section */}
           <Card className="mb-8 bg-zinc-900/50 border-zinc-800">
@@ -526,6 +618,8 @@ export default function SubscriptionPage() {
                 </ul>
               </div>
             </div>
+
+            <EmailPreferencesSection />
           </>
         )}
       </div>

@@ -81,6 +81,9 @@ export function registerPushRoutes(app: Express): void {
         "usaMarketSummary",
         "asxMarketSummary",
         "europeMarketSummary",
+        "emailUsaMarketSummary",
+        "emailAsxMarketSummary",
+        "emailEuropeMarketSummary",
       ];
       const updates: Record<string, any> = {};
       for (const field of allowedFields) {

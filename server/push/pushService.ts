@@ -24,6 +24,9 @@ export async function getPreferences(userId: string): Promise<NotificationPrefer
     usaMarketSummary: true,
     asxMarketSummary: true,
     europeMarketSummary: true,
+    emailUsaMarketSummary: false,
+    emailAsxMarketSummary: false,
+    emailEuropeMarketSummary: false,
   };
 }
 
@@ -33,6 +36,9 @@ interface DefaultPreferences {
   usaMarketSummary: boolean;
   asxMarketSummary: boolean;
   europeMarketSummary: boolean;
+  emailUsaMarketSummary: boolean;
+  emailAsxMarketSummary: boolean;
+  emailEuropeMarketSummary: boolean;
 }
 
 export async function updatePreferences(userId: string, prefs: Partial<NotificationPreference>): Promise<NotificationPreference> {

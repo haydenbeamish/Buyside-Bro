@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
+import { sendWelcomeEmail } from "../../email";
 
 const getOidcConfig = memoize(
   async () => {
@@ -57,7 +58,8 @@ function updateUserSession(
   user.expires_at = claims!.exp;
 }
 
-async function upsertUser(claims: any) {
+async function upsertUser(claims: any): Promise<boolean> {
+  const existingUser = await authStorage.getUser(claims["sub"]);
   await authStorage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
@@ -65,6 +67,7 @@ async function upsertUser(claims: any) {
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
   });
+  return !existingUser;
 }
 
 export async function setupAuth(app: Express) {
@@ -82,9 +85,18 @@ export async function setupAuth(app: Express) {
     try {
       const user = {};
       updateUserSession(user, tokens);
-      await upsertUser(tokens.claims());
       const claims = tokens.claims();
+      const isNewUser = await upsertUser(claims);
       console.log("[Auth] User verified successfully:", (claims as any)?.email || claims?.sub);
+
+      if (isNewUser && claims && (claims as any)?.email) {
+        sendWelcomeEmail(
+          claims.sub!,
+          (claims as any).email,
+          (claims as any).first_name
+        ).catch((e: any) => console.error("[Email] Welcome email error:", e));
+      }
+
       verified(null, user);
     } catch (error) {
       console.error("[Auth] Error in verify function:", error);
