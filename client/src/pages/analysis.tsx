@@ -22,8 +22,6 @@ import {
   ThumbsDown,
   Minus,
   Building2,
-  FileText,
-  ExternalLink,
 } from "lucide-react";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import { useLoginGate } from "@/hooks/use-login-gate";
@@ -95,87 +93,6 @@ interface ForwardMetrics {
   estimatedEps: number | null;
 }
 
-interface SECFiling {
-  symbol: string;
-  type: string;
-  date: string;
-  acceptedDate: string;
-  link: string;
-  finalLink: string;
-  cik: string;
-}
-
-function FilingsSection({ filings, isLoading }: { filings?: SECFiling[]; isLoading: boolean }) {
-  if (isLoading) {
-    return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Skeleton className="h-4 w-4 bg-zinc-800" />
-          <Skeleton className="h-5 w-28 bg-zinc-800" />
-        </div>
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-10 w-full bg-zinc-800" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (!filings?.length) {
-    return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-        <h3 className="font-semibold text-white flex items-center gap-2 mb-4">
-          <FileText className="h-4 w-4 text-zinc-400" />
-          SEC Filings
-        </h3>
-        <p className="text-zinc-500 text-center py-6">No filings available</p>
-      </div>
-    );
-  }
-
-  const getBadgeStyle = (type: string) => {
-    const t = type.toUpperCase();
-    if (t.includes("10-K")) return "bg-green-500/20 text-green-400 border-green-500/30";
-    if (t.includes("10-Q")) return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-    if (t.includes("8-K")) return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-    return "bg-zinc-700/50 text-zinc-400 border-zinc-600/30";
-  };
-
-  return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-      <h3 className="font-semibold text-white flex items-center gap-2 mb-4">
-        <FileText className="h-4 w-4 text-amber-500" />
-        SEC Filings
-      </h3>
-      <div className="max-h-[420px] overflow-y-auto space-y-1 pr-1">
-        {filings.map((filing, i) => (
-          <a
-            key={`${filing.type}-${filing.date}-${i}`}
-            href={filing.finalLink || filing.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-zinc-800 transition-colors group"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded border ${getBadgeStyle(filing.type)}`}>
-                {filing.type}
-              </span>
-              <span className="text-sm text-zinc-400">
-                {new Date(filing.date).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
-            </div>
-            <ExternalLink className="h-3.5 w-3.5 text-zinc-600 group-hover:text-zinc-400 flex-shrink-0" />
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function TradingViewChart({ ticker, exchange }: { ticker: string; exchange?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -442,7 +359,7 @@ function MarkdownSection({ content }: { content: string }) {
       {sections.map((section, idx) => {
         const lines = section.trim().split('\n');
         const titleMatch = lines[0]?.match(/^## (.+)/);
-        const title = titleMatch ? titleMatch[1] : null;
+        const title = titleMatch ? titleMatch[1].replace(/\*\*/g, '') : null;
         const body = title ? lines.slice(1).join('\n').trim() : section.trim();
         
         if (!body && !title) return null;
@@ -457,19 +374,20 @@ function MarkdownSection({ content }: { content: string }) {
             )}
             <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
               {body.split('\n').map((line, i) => {
+                const clean = line.replace(/\*\*/g, '');
                 if (line.startsWith('- ') || line.startsWith('* ')) {
                   return (
                     <div key={i} className="flex items-start gap-2 mb-1">
                       <span className="text-amber-500 mt-1">•</span>
-                      <span>{line.substring(2)}</span>
+                      <span>{clean.substring(2)}</span>
                     </div>
                   );
                 }
                 if (line.startsWith('**') && line.endsWith('**')) {
-                  return <p key={i} className="font-semibold text-white mb-2">{line.replace(/\*\*/g, '')}</p>;
+                  return <p key={i} className="font-semibold text-white mb-2">{clean}</p>;
                 }
                 if (line.trim() === '') return <br key={i} />;
-                return <p key={i} className="mb-1">{line}</p>;
+                return <p key={i} className="mb-1">{clean}</p>;
               })}
             </div>
           </div>
@@ -657,7 +575,7 @@ function AILoadingAnimation({ ticker }: { ticker: string }) {
   const loadingMessages = [
     "Analyzing fundamentals...",
     "Crunching the numbers...",
-    "Reading SEC filings...",
+    "Reviewing financial statements...",
     "Evaluating market position...",
     "Assessing growth potential...",
   ];
@@ -795,10 +713,6 @@ export default function AnalysisPage() {
     enabled: !!activeTicker,
   });
 
-  const { data: secFilings, isLoading: filingsLoading } = useQuery<SECFiling[]>({
-    queryKey: ["/api/analysis/sec-filings", activeTicker],
-    enabled: !!activeTicker,
-  });
 
   const startDeepAnalysis = useMutation({
     mutationFn: async (ticker: string) => {
@@ -1093,10 +1007,6 @@ export default function AnalysisPage() {
               <TradingViewChart ticker={activeTicker} exchange={profile?.exchange} />
             )}
 
-            {/* SEC Filings */}
-            {activeTicker && (
-              <FilingsSection filings={secFilings} isLoading={filingsLoading} />
-            )}
 
             {deepError ? (
               <div className="bg-zinc-900 border border-red-500/30 rounded-lg p-6">
