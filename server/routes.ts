@@ -1146,13 +1146,26 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
       const ticker = normalizeTicker(rawTicker);
       const fmpUrl = `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
+      const lbcUrl = `${LASER_BEAM_API}/api/quick-summary/${encodeURIComponent(ticker)}`;
 
-      const response = await fetchWithTimeout(fmpUrl, {}, 10000);
-      if (!response.ok) throw new Error("Failed to fetch profile");
+      const [fmpResponse, lbcResponse] = await Promise.all([
+        fetchWithTimeout(fmpUrl, {}, 10000),
+        fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 10000).catch(() => null),
+      ]);
 
-      const data = await response.json() as any[];
+      if (!fmpResponse.ok) throw new Error("Failed to fetch profile");
+
+      const data = await fmpResponse.json() as any[];
       if (!data || data.length === 0) {
         return res.status(404).json({ error: "Stock not found" });
+      }
+
+      let lbcDescription = "";
+      if (lbcResponse && lbcResponse.ok) {
+        try {
+          const lbcData = await lbcResponse.json() as any;
+          lbcDescription = lbcData.companyDescription || "";
+        } catch {}
       }
 
       const profile = data[0];
@@ -1166,7 +1179,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         price: profile.price || 0,
         changes: profile.change || 0,
         changesPercentage: profile.changePercentage || 0,
-        description: profile.description || "",
+        description: lbcDescription || profile.description || "",
       });
     } catch (error) {
       console.error("Profile error:", error);

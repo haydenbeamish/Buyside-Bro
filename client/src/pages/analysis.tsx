@@ -26,7 +26,6 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { apiRequest, ApiError } from "@/lib/queryClient";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { useLoginGate } from "@/hooks/use-login-gate";
 import { LoginGateModal } from "@/components/login-gate-modal";
 import { useBroStatus } from "@/hooks/use-bro-status";
@@ -85,17 +84,6 @@ interface JobStatus {
   status: "pending" | "processing" | "completed" | "failed";
   progress: number;
   message: string;
-}
-
-interface HistoricalPrice {
-  date: string;
-  price: number;
-  volume: number;
-}
-
-interface HistoricalData {
-  ticker: string;
-  data: HistoricalPrice[];
 }
 
 interface ForwardMetrics {
@@ -189,99 +177,78 @@ function FilingsSection({ filings, isLoading }: { filings?: SECFiling[]; isLoadi
   );
 }
 
-function StockChart({ data, isLoading }: { data?: HistoricalData; isLoading: boolean }) {
-  if (isLoading) {
-    return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <Skeleton className="h-5 w-32 bg-zinc-800" />
-          <Skeleton className="h-4 w-24 bg-zinc-800" />
-        </div>
-        <Skeleton className="h-48 w-full bg-zinc-800" />
-      </div>
-    );
-  }
+function TradingViewChart({ ticker, exchange }: { ticker: string; exchange?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  if (!data?.data?.length) {
-    return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-        <p className="text-zinc-500 text-center py-8">No chart data available</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
-  const chartData = data.data;
-  const firstPrice = chartData[0]?.price || 0;
-  const lastPrice = chartData[chartData.length - 1]?.price || 0;
-  const priceChange = lastPrice - firstPrice;
-  const percentChange = firstPrice > 0 ? (priceChange / firstPrice) * 100 : 0;
-  const isPositive = percentChange >= 0;
-  const chartColor = isPositive ? "hsl(120, 100%, 45%)" : "#ef4444";
+    // Clear previous widget
+    container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
+
+    // Build TradingView symbol: ASX stocks need "ASX:" prefix without .AX suffix
+    let tvSymbol = ticker;
+    if (ticker.endsWith(".AX")) {
+      tvSymbol = `ASX:${ticker.replace(".AX", "")}`;
+    } else if (exchange) {
+      const exchangeMap: Record<string, string> = {
+        NASDAQ: "NASDAQ",
+        NYSE: "NYSE",
+        AMEX: "AMEX",
+        LSE: "LSE",
+        "London Stock Exchange": "LSE",
+        ASX: "ASX",
+        "Australian Securities Exchange": "ASX",
+      };
+      const prefix = exchangeMap[exchange];
+      if (prefix && !ticker.includes(":")) {
+        tvSymbol = `${prefix}:${ticker}`;
+      }
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.type = "text/javascript";
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      allow_symbol_change: false,
+      calendar: false,
+      details: false,
+      hide_side_toolbar: true,
+      hide_top_toolbar: true,
+      hide_legend: true,
+      hide_volume: false,
+      hotlist: false,
+      interval: "D",
+      locale: "en",
+      save_image: false,
+      style: "1",
+      symbol: tvSymbol,
+      theme: "dark",
+      timezone: "Etc/UTC",
+      backgroundColor: "#09090b",
+      gridColor: "rgba(242, 242, 242, 0.06)",
+      watchlist: [],
+      withdateranges: false,
+      compareSymbols: [],
+      studies: [],
+      autosize: true,
+    });
+    container.appendChild(script);
+
+    return () => {
+      container.innerHTML = "";
+    };
+  }, [ticker, exchange]);
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-white">1 Year Price Chart</h3>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-zinc-400">1Y Return:</span>
-          <span className={`font-mono font-semibold ${isPositive ? "text-green-500" : "text-red-500"}`}>
-            {isPositive ? "+" : ""}{percentChange.toFixed(1)}%
-          </span>
-        </div>
-      </div>
-      <div className="h-48 sm:h-64" role="img" aria-label={`1 year price chart showing ${isPositive ? "positive" : "negative"} ${Math.abs(percentChange).toFixed(1)}% return`}>
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-            <defs>
-              <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={chartColor} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis 
-              dataKey="date" 
-              tick={{ fill: '#71717a', fontSize: 10 }}
-              tickFormatter={(val) => {
-                const d = new Date(val);
-                return d.toLocaleDateString('en-US', { month: 'short' });
-              }}
-              interval={60}
-              axisLine={{ stroke: '#27272a' }}
-              tickLine={false}
-            />
-            <YAxis 
-              domain={['auto', 'auto']}
-              tick={{ fill: '#71717a', fontSize: 10 }}
-              tickFormatter={(val) => `$${val.toFixed(0)}`}
-              width={50}
-              axisLine={false}
-              tickLine={false}
-            />
-            <Tooltip
-              contentStyle={{ 
-                backgroundColor: '#18181b', 
-                border: '1px solid #27272a',
-                borderRadius: '8px',
-                padding: '8px 12px'
-              }}
-              labelStyle={{ color: '#a1a1aa', marginBottom: '4px' }}
-              formatter={(value: number) => [`$${value.toFixed(2)}`, 'Price']}
-              labelFormatter={(label) => new Date(label).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric',
-                year: 'numeric'
-              })}
-            />
-            <Area 
-              type="monotone" 
-              dataKey="price" 
-              stroke={chartColor}
-              strokeWidth={2}
-              fill="url(#chartGradient)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+      <div
+        className="tradingview-widget-container"
+        ref={containerRef}
+        style={{ height: "400px", width: "100%" }}
+      />
     </div>
   );
 }
@@ -822,10 +789,6 @@ export default function AnalysisPage() {
     enabled: !!activeTicker,
   });
 
-  const { data: historicalData, isLoading: chartLoading } = useQuery<HistoricalData>({
-    queryKey: ["/api/analysis/history", activeTicker],
-    enabled: !!activeTicker,
-  });
 
   const { data: forwardMetrics, isLoading: metricsLoading } = useQuery<ForwardMetrics>({
     queryKey: ["/api/analysis/forward", activeTicker],
@@ -1102,6 +1065,17 @@ export default function AnalysisPage() {
               </div>
             ) : null}
 
+            {/* Company Description */}
+            {activeTicker && !profileLoading && profile?.description && (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                <h3 className="font-semibold text-white flex items-center gap-2 mb-2">
+                  <Building2 className="h-4 w-4 text-amber-500" />
+                  About {profile.companyName}
+                </h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">{profile.description}</p>
+              </div>
+            )}
+
             {/* Key Metrics Grid - loads immediately */}
             {activeTicker && (
               <MetricsGrid
@@ -1116,7 +1090,7 @@ export default function AnalysisPage() {
 
             {/* Full-width chart */}
             {activeTicker && (
-              <StockChart data={historicalData} isLoading={chartLoading} />
+              <TradingViewChart ticker={activeTicker} exchange={profile?.exchange} />
             )}
 
             {/* SEC Filings */}
