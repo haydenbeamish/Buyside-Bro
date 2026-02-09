@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,6 +19,43 @@ import { LoginGateModal } from "@/components/login-gate-modal";
 import { useBroStatus } from "@/hooks/use-bro-status";
 import { BroLimitModal } from "@/components/bro-limit-modal";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import ReactMarkdown from "react-markdown";
+
+function stripSources(text: string): string {
+  const idx = text.search(/\n*Sources?:\s*\[/);
+  if (idx !== -1) return text.substring(0, idx).trimEnd();
+  return text;
+}
+
+function FormattedMessage({ content }: { content: string }) {
+  const cleaned = useMemo(() => stripSources(content), [content]);
+  return (
+    <div className="text-sm leading-relaxed break-words prose-chat">
+      <ReactMarkdown
+        components={{
+          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+          strong: ({ children }) => <strong className="font-semibold text-white">{children}</strong>,
+          ul: ({ children }) => <ul className="list-disc pl-4 mb-2 space-y-1">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal pl-4 mb-2 space-y-1">{children}</ol>,
+          li: ({ children }) => <li>{children}</li>,
+          h1: ({ children }) => <h3 className="font-bold text-white text-base mb-1">{children}</h3>,
+          h2: ({ children }) => <h3 className="font-bold text-white text-base mb-1">{children}</h3>,
+          h3: ({ children }) => <h3 className="font-semibold text-white text-sm mb-1">{children}</h3>,
+          a: ({ href, children }) => (
+            <a href={href} target="_blank" rel="noopener noreferrer" className="text-amber-500 underline">
+              {children}
+            </a>
+          ),
+          code: ({ children }) => (
+            <code className="bg-zinc-800 px-1 py-0.5 rounded text-xs text-amber-400">{children}</code>
+          ),
+        }}
+      >
+        {cleaned}
+      </ReactMarkdown>
+    </div>
+  );
+}
 
 interface ChatMessage {
   id: number;
@@ -324,9 +361,13 @@ export default function ChatPage() {
                           : "bg-zinc-900 border border-zinc-800 text-zinc-300"
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed break-words">
-                        {msg.content}
-                      </p>
+                      {msg.role === "assistant" ? (
+                        <FormattedMessage content={msg.content} />
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap leading-relaxed break-words">
+                          {msg.content}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -342,10 +383,8 @@ export default function ChatPage() {
                         <span className="text-xs font-bold text-amber-500">AB</span>
                       </AvatarFallback>
                     </Avatar>
-                    <div className="max-w-[90%] sm:max-w-[80%] rounded-lg p-3 bg-zinc-900 border border-zinc-800">
-                      <p className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed break-words">
-                        {streamingMessage}
-                      </p>
+                    <div className="max-w-[90%] sm:max-w-[80%] rounded-lg p-3 bg-zinc-900 border border-zinc-800 text-zinc-300">
+                      <FormattedMessage content={streamingMessage} />
                     </div>
                   </div>
                 )}
