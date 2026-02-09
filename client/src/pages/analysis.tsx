@@ -104,66 +104,71 @@ function TradingViewChart({ ticker, exchange }: { ticker: string; exchange?: str
     const container = containerRef.current;
     if (!container) return;
 
-    // Clear previous widget
-    container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
+    const initWidget = () => {
+      container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
 
-    // Build TradingView symbol: ASX stocks need "ASX:" prefix without .AX suffix
-    let tvSymbol = ticker;
-    if (ticker.endsWith(".AX")) {
-      tvSymbol = `ASX:${ticker.replace(".AX", "")}`;
-    } else if (exchange) {
-      const exchangeMap: Record<string, string> = {
-        NASDAQ: "NASDAQ",
-        NYSE: "NYSE",
-        AMEX: "AMEX",
-        LSE: "LSE",
-        "London Stock Exchange": "LSE",
-        ASX: "ASX",
-        "Australian Securities Exchange": "ASX",
-      };
-      const prefix = exchangeMap[exchange];
-      if (prefix && !ticker.includes(":")) {
-        tvSymbol = `${prefix}:${ticker}`;
+      let tvSymbol = ticker;
+      if (ticker.endsWith(".AX")) {
+        tvSymbol = `ASX:${ticker.replace(".AX", "")}`;
+      } else if (exchange) {
+        const exchangeMap: Record<string, string> = {
+          NASDAQ: "NASDAQ",
+          NYSE: "NYSE",
+          AMEX: "AMEX",
+          LSE: "LSE",
+          "London Stock Exchange": "LSE",
+          ASX: "ASX",
+          "Australian Securities Exchange": "ASX",
+        };
+        const prefix = exchangeMap[exchange];
+        if (prefix && !ticker.includes(":")) {
+          tvSymbol = `${prefix}:${ticker}`;
+        }
       }
-    }
 
-    const script = document.createElement("script");
-    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-    script.type = "text/javascript";
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      allow_symbol_change: false,
-      calendar: false,
-      details: false,
-      hide_side_toolbar: true,
-      hide_top_toolbar: true,
-      hide_legend: true,
-      hide_volume: false,
-      hotlist: false,
-      interval: "D",
-      locale: "en",
-      save_image: false,
-      style: "1",
-      symbol: tvSymbol,
-      theme: "dark",
-      timezone: "Etc/UTC",
-      backgroundColor: "#09090b",
-      gridColor: "rgba(242, 242, 242, 0.06)",
-      watchlist: [],
-      withdateranges: false,
-      compareSymbols: [],
-      studies: [],
-      autosize: true,
-    });
-    container.appendChild(script);
+      const script = document.createElement("script");
+      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+      script.type = "text/javascript";
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        allow_symbol_change: false,
+        calendar: false,
+        details: false,
+        hide_side_toolbar: true,
+        hide_top_toolbar: true,
+        hide_legend: true,
+        hide_volume: false,
+        hotlist: false,
+        interval: "D",
+        locale: "en",
+        save_image: false,
+        style: "1",
+        symbol: tvSymbol,
+        theme: "dark",
+        timezone: "Etc/UTC",
+        backgroundColor: "#09090b",
+        gridColor: "rgba(242, 242, 242, 0.06)",
+        watchlist: [],
+        withdateranges: false,
+        compareSymbols: [],
+        studies: [],
+        autosize: true,
+        width: "100%",
+        height: "100%",
+      });
+      container.appendChild(script);
+    };
+
+    const timer = setTimeout(initWidget, 100);
 
     return () => {
+      clearTimeout(timer);
       container.innerHTML = "";
     };
   }, [ticker, exchange]);
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden" style={{ height: "600px" }}>
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden h-[350px] sm:h-[500px] lg:h-[600px]">
       <style>{`.tradingview-widget-container, .tradingview-widget-container > div, .tradingview-widget-container iframe { height: 100% !important; width: 100% !important; }`}</style>
       <div
         className="tradingview-widget-container"
