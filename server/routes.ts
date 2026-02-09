@@ -46,6 +46,10 @@ function isValidTicker(ticker: string): boolean {
   return /^[A-Za-z0-9._-]{1,20}$/.test(ticker);
 }
 
+function normalizeTicker(ticker: string): string {
+  return ticker.replace(/\.ASX$/i, ".AX").toUpperCase();
+}
+
 const LASER_BEAM_API = "https://api.laserbeamcapital.com";
 if (!process.env.API_KEY) {
   console.error("WARNING: API_KEY environment variable is not set! Market data API calls will fail with 401.");
@@ -1136,11 +1140,12 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.get("/api/analysis/profile/:ticker", async (req: any, res: Response) => {
     try {
-      const ticker = req.params.ticker as string;
-      if (!isValidTicker(ticker)) {
+      const rawTicker = req.params.ticker as string;
+      if (!isValidTicker(rawTicker)) {
         return res.status(400).json({ error: "Invalid ticker symbol" });
       }
-      const fmpUrl = `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker.toUpperCase())}&apikey=${process.env.FMP_API_KEY}`;
+      const ticker = normalizeTicker(rawTicker);
+      const fmpUrl = `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
 
       const response = await fetchWithTimeout(fmpUrl, {}, 10000);
       if (!response.ok) throw new Error("Failed to fetch profile");
@@ -1171,14 +1176,14 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.get("/api/analysis/financials/:ticker", async (req: any, res: Response) => {
     try {
-      const ticker = req.params.ticker as string;
-      if (!isValidTicker(ticker)) {
+      const rawTicker = req.params.ticker as string;
+      if (!isValidTicker(rawTicker)) {
         return res.status(400).json({ error: "Invalid ticker symbol" });
       }
-      const tickerUpper = ticker.toUpperCase();
-      const ratiosUrl = `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(tickerUpper)}&apikey=${process.env.FMP_API_KEY}`;
-      const incomeUrl = `https://financialmodelingprep.com/stable/income-statement?symbol=${encodeURIComponent(tickerUpper)}&limit=1&apikey=${process.env.FMP_API_KEY}`;
-      const metricsUrl = `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${encodeURIComponent(tickerUpper)}&apikey=${process.env.FMP_API_KEY}`;
+      const ticker = normalizeTicker(rawTicker);
+      const ratiosUrl = `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
+      const incomeUrl = `https://financialmodelingprep.com/stable/income-statement?symbol=${encodeURIComponent(ticker)}&limit=1&apikey=${process.env.FMP_API_KEY}`;
+      const metricsUrl = `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
 
       const [ratiosRes, incomeRes, metricsRes] = await Promise.all([
         fetchWithTimeout(ratiosUrl, {}, 10000),
@@ -1217,7 +1222,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       if (!isValidTicker(rawTicker)) {
         return res.status(400).json({ error: "Invalid ticker symbol" });
       }
-      const ticker = rawTicker.toUpperCase();
+      const ticker = normalizeTicker(rawTicker);
       const toDate = new Date().toISOString().split('T')[0];
       const fromDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const fmpUrl = `https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${encodeURIComponent(ticker)}&from=${fromDate}&to=${toDate}&apikey=${process.env.FMP_API_KEY}`;
@@ -1249,7 +1254,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       if (!isValidTicker(rawTicker)) {
         return res.status(400).json({ error: "Invalid ticker symbol" });
       }
-      const ticker = rawTicker.toUpperCase();
+      const ticker = normalizeTicker(rawTicker);
 
       // Fetch price quote, key metrics, and analyst estimates
       const quoteUrl = `https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
@@ -1311,10 +1316,11 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.get("/api/analysis/sec-filings/:ticker", async (req: any, res: Response) => {
     try {
-      const ticker = req.params.ticker as string;
-      if (!isValidTicker(ticker)) {
+      const rawTicker = req.params.ticker as string;
+      if (!isValidTicker(rawTicker)) {
         return res.status(400).json({ error: "Invalid ticker symbol" });
       }
+      const ticker = normalizeTicker(rawTicker);
       const apiKey = process.env.FMP_API_KEY;
       const response = await fetchWithTimeout(
         `https://financialmodelingprep.com/api/v3/sec_filings/${encodeURIComponent(ticker)}?limit=20&apikey=${apiKey}`,
@@ -1335,24 +1341,25 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.get("/api/analysis/ai/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const ticker = req.params.ticker as string;
-      if (!isValidTicker(ticker)) {
+      const rawTicker = req.params.ticker as string;
+      if (!isValidTicker(rawTicker)) {
         return res.status(400).json({ error: "Invalid ticker symbol" });
       }
+      const ticker = normalizeTicker(rawTicker);
       const userId = req.user?.claims?.sub;
-      
+
       // Try Laser Beam Capital fundamental analysis API first
       try {
         const response = await fetch(`${LASER_BEAM_API}/api/fundamental-analysis/analyze`, {
           method: "POST",
           headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
-          body: JSON.stringify({ ticker: ticker.toUpperCase() }),
+          body: JSON.stringify({ ticker }),
         });
         
         if (response.ok) {
           const data = await response.json() as any;
           return res.json({
-            summary: data.summary || data.analysis || `${ticker.toUpperCase()} analysis from Laser Beam Capital.`,
+            summary: data.summary || data.analysis || `${ticker} analysis from Laser Beam Capital.`,
             sentiment: data.recommendation?.toLowerCase() === "buy" ? "bullish" 
               : data.recommendation?.toLowerCase() === "sell" ? "bearish" 
               : "neutral",
@@ -1400,7 +1407,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
           },
           {
             role: "user",
-            content: `Give a brief investment analysis for ${ticker.toUpperCase()}. Consider recent performance, market position, and outlook.`
+            content: `Give a brief investment analysis for ${ticker}. Consider recent performance, market position, and outlook.`
           }
         ],
         max_tokens: 500,
@@ -1411,20 +1418,20 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       
       // Record usage for authenticated users
       if (userId) {
-        const promptText = `Give a brief investment analysis for ${ticker.toUpperCase()}. Consider recent performance, market position, and outlook.`;
+        const promptText = `Give a brief investment analysis for ${ticker}. Consider recent performance, market position, and outlook.`;
         await recordUsage(userId, 'stock_analysis', 'moonshotai/kimi-k2.5', promptText.length / 4, content.length / 4);
       }
 
       try {
         const parsed = JSON.parse(content);
         res.json({
-          summary: parsed.summary || `${ticker.toUpperCase()} is an interesting opportunity. Do your own research before investing.`,
+          summary: parsed.summary || `${ticker} is an interesting opportunity. Do your own research before investing.`,
           sentiment: parsed.sentiment || "neutral",
           keyPoints: parsed.keyPoints || ["Consider your investment goals", "Review recent earnings", "Monitor market conditions"],
         });
       } catch {
         res.json({
-          summary: `${ticker.toUpperCase()} shows potential. As always, consider your investment horizon and risk tolerance.`,
+          summary: `${ticker} shows potential. As always, consider your investment horizon and risk tolerance.`,
           sentiment: "neutral",
           keyPoints: ["Review recent financial performance", "Consider sector trends", "Monitor competitive landscape"],
         });
@@ -1505,7 +1512,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.status(400).json({ error: "Invalid ticker symbol" });
       }
       const userId = req.user?.claims?.sub;
-      const ticker = rawTicker.toUpperCase();
+      const ticker = normalizeTicker(rawTicker);
 
       // Check daily Bro query limit
       if (userId) {
@@ -1602,7 +1609,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     if (!isValidTicker(rawTicker)) {
       return res.status(400).json({ error: "Invalid ticker symbol" });
     }
-    const ticker = rawTicker.toUpperCase();
+    const ticker = normalizeTicker(rawTicker);
     if (ticker !== "MSFT") {
       return res.status(404).json({ error: "No cached analysis available" });
     }
