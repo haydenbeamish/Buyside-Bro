@@ -161,10 +161,12 @@ function TradingViewChart({ ticker, exchange }: { ticker: string; exchange?: str
   }, [ticker, exchange]);
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden" style={{ height: "600px" }}>
+      <style>{`.tradingview-widget-container, .tradingview-widget-container > div, .tradingview-widget-container iframe { height: 100% !important; width: 100% !important; }`}</style>
       <div
-        className="tradingview-widget-container h-[350px] sm:h-[450px] md:h-[550px] lg:h-[600px]"
+        className="tradingview-widget-container"
         ref={containerRef}
+        style={{ height: "100%", width: "100%" }}
       />
     </div>
   );
