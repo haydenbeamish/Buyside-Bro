@@ -130,7 +130,7 @@ function GroupedSection({ title, items, flashCells, note }: { title: string; ite
       </div>
       {/* Mobile view */}
       <div className="sm:hidden">
-        <div className="grid grid-cols-[minmax(0,1fr)_60px_48px_48px] sm:grid-cols-[minmax(0,1fr)_70px_52px_52px] gap-1 px-2 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800">
+        <div className="grid grid-cols-[minmax(0,1fr)_60px_48px_48px] sm:grid-cols-[minmax(0,1fr)_70px_52px_52px] gap-1 px-2 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800 items-center">
           <span>Name</span>
           <span className="text-right">Price</span>
           <span className="text-right">1D%</span>
@@ -261,7 +261,7 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
     <>
       {/* Mobile view - compact 4-column layout */}
       <div className="sm:hidden">
-        <div className="grid grid-cols-[minmax(0,1fr)_60px_48px_48px] sm:grid-cols-[minmax(0,1fr)_70px_52px_52px] gap-1 px-2 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800 sticky top-0 bg-black z-10">
+        <div className="grid grid-cols-[minmax(0,1fr)_60px_48px_48px] sm:grid-cols-[minmax(0,1fr)_70px_52px_52px] gap-1 px-2 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800 sticky top-0 bg-black z-10 items-center">
           <span className="font-medium">NAME</span>
           <span className="text-right font-medium">PRICE</span>
           <button
