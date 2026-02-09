@@ -54,6 +54,7 @@ interface Financials {
   roe: number;
   debtToEquity: number;
   enterpriseValue?: number;
+  evToEbit?: number;
 }
 
 interface AIAnalysis {
@@ -230,6 +231,7 @@ function MetricsGrid({
     return `${prefix}${value.toLocaleString()}`;
   };
 
+  const isASX = profile?.symbol?.endsWith(".AX") || false;
   const dayChangeColor = (profile?.changesPercentage ?? 0) >= 0 ? "text-green-500" : "text-red-500";
   const epsGrowthColor = (forwardMetrics?.forwardEpsGrowth ?? 0) >= 0 ? "text-green-500" : "text-red-500";
 
@@ -249,6 +251,11 @@ function MetricsGrid({
         <MetricCard
           label="Enterprise Value"
           value={financials?.enterpriseValue != null ? formatMarketCap(financials.enterpriseValue) : "N/A"}
+          isLoading={financialsLoading}
+        />
+        <MetricCard
+          label={isASX ? "EV/EBIT (Forward)" : "EV/EBIT (Trailing)"}
+          value={financials?.evToEbit != null ? `${financials.evToEbit.toFixed(1)}x` : "N/A"}
           isLoading={financialsLoading}
         />
         <MetricCard
