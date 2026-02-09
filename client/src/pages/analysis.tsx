@@ -164,7 +164,7 @@ function TradingViewChart({ ticker, exchange }: { ticker: string; exchange?: str
       <div
         className="tradingview-widget-container"
         ref={containerRef}
-        style={{ height: "400px", width: "100%" }}
+        style={{ height: "600px", width: "100%" }}
       />
     </div>
   );
