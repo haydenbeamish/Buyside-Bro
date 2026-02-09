@@ -242,7 +242,6 @@ function MetricsGrid({
         Key Metrics
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
-        {/* Profile metrics */}
         <MetricCard
           label="Market Cap"
           value={profile?.marketCap != null ? formatMarketCap(profile.marketCap) : "—"}
@@ -251,11 +250,6 @@ function MetricsGrid({
         <MetricCard
           label="Enterprise Value"
           value={financials?.enterpriseValue != null ? formatMarketCap(financials.enterpriseValue) : "N/A"}
-          isLoading={financialsLoading}
-        />
-        <MetricCard
-          label={isASX ? "EV/EBIT (Forward)" : "EV/EBIT (Trailing)"}
-          value={financials?.evToEbit != null ? `${financials.evToEbit.toFixed(1)}x` : "N/A"}
           isLoading={financialsLoading}
         />
         <MetricCard
@@ -271,7 +265,6 @@ function MetricsGrid({
           isLoading={profileLoading}
           colorClass={dayChangeColor}
         />
-        {/* P/E and forward metrics */}
         <MetricCard
           label="P/E (Forward)"
           value={forwardMetrics?.forwardPE != null ? `${forwardMetrics.forwardPE.toFixed(1)}x` : "—"}
@@ -295,7 +288,16 @@ function MetricsGrid({
           value={forwardMetrics?.pegRatio != null ? forwardMetrics.pegRatio.toFixed(2) : "—"}
           isLoading={metricsLoading}
         />
-        {/* Financial metrics */}
+        <MetricCard
+          label={isASX ? "EV/EBIT (Forward)" : "EV/EBIT (Trailing)"}
+          value={financials?.evToEbit != null ? `${financials.evToEbit.toFixed(1)}x` : "N/A"}
+          isLoading={financialsLoading}
+        />
+        <MetricCard
+          label="Dividend Yield"
+          value={financials?.dividendYield != null ? `${(financials.dividendYield * 100).toFixed(2)}%` : "N/A"}
+          isLoading={financialsLoading}
+        />
         <MetricCard
           label="Revenue"
           value={formatLargeNumber(financials?.revenue, "$")}
@@ -307,28 +309,18 @@ function MetricsGrid({
           isLoading={financialsLoading}
         />
         <MetricCard
-          label="EPS"
-          value={financials?.eps != null ? `$${financials.eps.toFixed(2)}` : "N/A"}
-          isLoading={financialsLoading}
-        />
-        <MetricCard
-          label="P/B Ratio"
-          value={financials?.pbRatio != null ? financials.pbRatio.toFixed(2) : "N/A"}
-          isLoading={financialsLoading}
-        />
-        <MetricCard
           label="ROE"
           value={financials?.roe != null ? `${(financials.roe * 100).toFixed(2)}%` : "N/A"}
           isLoading={financialsLoading}
         />
         <MetricCard
-          label="Dividend Yield"
-          value={financials?.dividendYield != null ? `${(financials.dividendYield * 100).toFixed(2)}%` : "N/A"}
+          label="Debt/Equity"
+          value={financials?.debtToEquity != null ? `${(financials.debtToEquity * 100).toFixed(1)}%` : "N/A"}
           isLoading={financialsLoading}
         />
         <MetricCard
-          label="Debt/Equity"
-          value={financials?.debtToEquity != null ? financials.debtToEquity.toFixed(2) : "N/A"}
+          label="P/B Ratio"
+          value={financials?.pbRatio != null ? financials.pbRatio.toFixed(2) : "N/A"}
           isLoading={financialsLoading}
         />
       </div>
