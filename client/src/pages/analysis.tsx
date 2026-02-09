@@ -53,6 +53,7 @@ interface Financials {
   dividendYield: number;
   roe: number;
   debtToEquity: number;
+  enterpriseValue?: number;
 }
 
 interface AIAnalysis {
@@ -245,6 +246,11 @@ function MetricsGrid({
           isLoading={profileLoading}
         />
         <MetricCard
+          label="Enterprise Value"
+          value={financials?.enterpriseValue != null ? formatMarketCap(financials.enterpriseValue) : "N/A"}
+          isLoading={financialsLoading}
+        />
+        <MetricCard
           label="Price"
           value={profile?.price != null ? `$${profile.price.toFixed(2)}` : "—"}
           isLoading={profileLoading}
@@ -257,11 +263,16 @@ function MetricsGrid({
           isLoading={profileLoading}
           colorClass={dayChangeColor}
         />
-        {/* Forward metrics */}
+        {/* P/E and forward metrics */}
         <MetricCard
-          label="Forward P/E"
+          label="P/E (Forward)"
           value={forwardMetrics?.forwardPE != null ? `${forwardMetrics.forwardPE.toFixed(1)}x` : "—"}
           isLoading={metricsLoading}
+        />
+        <MetricCard
+          label="P/E (Trailing)"
+          value={financials?.peRatio != null ? financials.peRatio.toFixed(2) : "N/A"}
+          isLoading={financialsLoading}
         />
         <MetricCard
           label="Fwd EPS Growth"
@@ -290,11 +301,6 @@ function MetricsGrid({
         <MetricCard
           label="EPS"
           value={financials?.eps != null ? `$${financials.eps.toFixed(2)}` : "N/A"}
-          isLoading={financialsLoading}
-        />
-        <MetricCard
-          label="P/E (TTM)"
-          value={financials?.peRatio != null ? financials.peRatio.toFixed(2) : "N/A"}
           isLoading={financialsLoading}
         />
         <MetricCard

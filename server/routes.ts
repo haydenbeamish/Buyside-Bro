@@ -1221,6 +1221,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         dividendYield: r.dividendYieldTTM || 0,
         roe: m.returnOnEquityTTM || 0,
         debtToEquity: r.debtToEquityRatioTTM || 0,
+        enterpriseValue: m.enterpriseValueTTM || null,
       });
     } catch (error) {
       console.error("Financials error:", error);
