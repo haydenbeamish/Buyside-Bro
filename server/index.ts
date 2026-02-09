@@ -64,16 +64,18 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://s3.tradingview.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       connectSrc: [
         "'self'",
         "https://api.laserbeamcapital.com",
         "https://financialmodelingprep.com",
+        "wss://*.tradingview.com",
+        "https://*.tradingview.com",
       ],
       imgSrc: ["'self'", "data:", "https:"],
-      frameSrc: ["'none'"],
+      frameSrc: ["'self'", "https://*.tradingview.com"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
     },
