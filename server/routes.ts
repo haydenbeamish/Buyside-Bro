@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerPushRoutes, sendMarketSummaryNotification } from "./push";
-import { insertPortfolioHoldingSchema, insertWatchlistSchema, activityLogs } from "@shared/schema";
+import { insertPortfolioHoldingSchema, insertWatchlistSchema, activityLogs, newsFeed } from "@shared/schema";
 import { users, usageLogs } from "@shared/schema";
 import OpenAI from "openai";
 import { isAuthenticated, authStorage } from "./replit_integrations/auth";
@@ -267,8 +267,9 @@ async function checkAndPostMarketCloseSummaries(): Promise<void> {
       const postMinutes = schedule.closeHour * 60 + schedule.closeMinute + schedule.updateOffsetMinutes;
       const currentMinutes = hour * 60 + minute;
 
-      // Check if within 30-min window after post time
-      if (currentMinutes < postMinutes || currentMinutes >= postMinutes + 30) continue;
+      // Post any time after close+offset for the rest of the trading day
+      // (no upper bound - duplicate check prevents re-posting)
+      if (currentMinutes < postMinutes) continue;
 
       // Check if already posted today (DB-based, survives restarts)
       const alreadyPosted = await hasNewsFeedItemForMarketToday(market, 'close');
@@ -281,8 +282,43 @@ async function checkAndPostMarketCloseSummaries(): Promise<void> {
   }
 }
 
+// Catch up on missed summaries (e.g. server was asleep during market close)
+// Checks if any market is missing a close summary from the last trading day
+async function checkMissedMarketCloseSummaries(): Promise<void> {
+  for (const [market, _schedule] of Object.entries(MARKET_SCHEDULES)) {
+    try {
+      // Already have one for today? Skip.
+      const hasToday = await hasNewsFeedItemForMarketToday(market, 'close');
+      if (hasToday) continue;
+
+      // Check if we have ANY close summary in the last 48 hours
+      const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+      const recent = await db.select({ id: newsFeed.id })
+        .from(newsFeed)
+        .where(
+          and(
+            eq(newsFeed.market, market),
+            eq(newsFeed.eventType, 'close'),
+            gte(newsFeed.publishedAt, cutoff)
+          )
+        )
+        .limit(1);
+
+      if (recent.length === 0) {
+        console.log(`[NewsFeed Scheduler] Missed close summary for ${market}, posting catch-up now`);
+        await generateAndPostMarketSummary(market, 'close');
+      }
+    } catch (e) {
+      console.error(`[NewsFeed Scheduler] Error checking missed summary for ${market}:`, e);
+    }
+  }
+}
+
 function startNewsFeedScheduler() {
   console.log("[NewsFeed Scheduler] Started - checking every 60s for market close summaries");
+
+  // Check for missed summaries on startup (handles server sleeping through close window)
+  setTimeout(() => checkMissedMarketCloseSummaries(), 15 * 1000);
 
   // Initial check 30s after server start (handles restarts during posting window)
   setTimeout(() => checkAndPostMarketCloseSummaries(), 30 * 1000);

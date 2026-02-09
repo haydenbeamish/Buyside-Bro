@@ -36,8 +36,8 @@ export function getSession() {
   return session({
     secret: sessionSecret,
     store: sessionStore,
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     cookie: {
       httpOnly: true,
       secure: true,
@@ -79,10 +79,17 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
+    try {
+      const user = {};
+      updateUserSession(user, tokens);
+      await upsertUser(tokens.claims());
+      const claims = tokens.claims();
+      console.log("[Auth] User verified successfully:", (claims as any)?.email || claims?.sub);
+      verified(null, user);
+    } catch (error) {
+      console.error("[Auth] Error in verify function:", error);
+      verified(error as Error);
+    }
   };
 
   // Keep track of registered strategies
@@ -119,9 +126,22 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/callback", (req, res, next) => {
     ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/whats-up",
-      failureRedirect: "/api/login",
+    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any, info: any) => {
+      if (err) {
+        console.error("[Auth Callback] Error during authentication:", err);
+        return res.redirect("/");
+      }
+      if (!user) {
+        console.error("[Auth Callback] Authentication failed - no user returned. Info:", info);
+        return res.redirect("/");
+      }
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          console.error("[Auth Callback] Error during login:", loginErr);
+          return res.redirect("/");
+        }
+        return res.redirect("/whats-up");
+      });
     })(req, res, next);
   });
 
