@@ -52,6 +52,7 @@ Preferred communication style: Simple, everyday language.
   - `/api/markets` — market data (indices, futures, commodities, sectors)
   - `/api/news/market`, `/api/news/portfolio` — news feeds
   - `/api/market-summary` — market summary
+  - `/api/stock/quick-summary/:ticker` — company description, investment case, forward metrics, announcements (response wrapped in `{ data: {...} }`)
   - `/api/fundamental-analysis/analyze`, `/api/fundamental-analysis/jobs` — deep analysis jobs
   - `/api/chat/bro` — AI chat streaming endpoint (SSE, uses Claude Opus 4). Stream ends with `data: [DONE]`
   - `/api/cached-analysis/MSFT` — pre-cached MSFT deep analysis (refreshed daily on that server). Returns `{ loading: true }` if not ready yet

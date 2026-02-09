@@ -1146,7 +1146,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
       const ticker = normalizeTicker(rawTicker);
       const fmpUrl = `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
-      const lbcUrl = `${LASER_BEAM_API}/api/quick-summary/${encodeURIComponent(ticker)}`;
+      const lbcUrl = `${LASER_BEAM_API}/api/stock/quick-summary/${encodeURIComponent(ticker)}`;
 
       const [fmpResponse, lbcResponse] = await Promise.all([
         fetchWithTimeout(fmpUrl, {}, 10000),
@@ -1164,7 +1164,8 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       let investmentCase = "";
       if (lbcResponse && lbcResponse.ok) {
         try {
-          const lbcData = await lbcResponse.json() as any;
+          const lbcRaw = await lbcResponse.json() as any;
+          const lbcData = lbcRaw?.data || lbcRaw;
           lbcDescription = lbcData.companyDescription || "";
           investmentCase = lbcData.investmentCase || "";
         } catch {}
