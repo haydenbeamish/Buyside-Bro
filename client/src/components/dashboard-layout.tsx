@@ -60,8 +60,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-64 bg-black border-r border-zinc-800
+        fixed lg:sticky inset-y-0 left-0 z-50 lg:top-0 lg:h-screen
+        w-64 bg-black border-r border-zinc-800 flex-shrink-0
         transform transition-transform duration-200 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
