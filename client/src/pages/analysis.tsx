@@ -297,7 +297,8 @@ function MetricCard({
   isLoading: boolean;
   colorClass?: string;
 }) {
-  if (!isLoading && (value === "—" || value === "N/A")) return null;
+  const zeroValues = ["—", "N/A", "$0", "$0.00", "0.00", "0.00%", "$0.0", "0.0", "0.0%", "0.00x", "0.0x"];
+  if (!isLoading && (zeroValues.includes(value) || value === "")) return null;
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 sm:p-3">
@@ -336,7 +337,7 @@ function MetricsGrid({
   };
 
   const formatLargeNumber = (value: number | undefined, prefix = "") => {
-    if (value === undefined || value === null) return "N/A";
+    if (value === undefined || value === null || value === 0) return "N/A";
     if (value >= 1e12) return `${prefix}${(value / 1e12).toFixed(2)}T`;
     if (value >= 1e9) return `${prefix}${(value / 1e9).toFixed(2)}B`;
     if (value >= 1e6) return `${prefix}${(value / 1e6).toFixed(2)}M`;
