@@ -374,8 +374,7 @@ function MarkdownSection({ content }: { content: string }) {
         return (
           <div key={idx} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-5">
             {title && (
-              <h3 className="text-lg font-semibold text-amber-400 mb-3 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-amber-500" />
+              <h3 className="text-lg font-semibold text-amber-400 mb-3">
                 {title}
               </h3>
             )}
