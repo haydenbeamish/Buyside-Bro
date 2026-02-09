@@ -78,12 +78,20 @@ function EmailPreferencesSection() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/push/preferences"] });
     },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update email preferences.",
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      if (error?.status === 403) {
+        toast({
+          title: "Pro subscription required",
+          description: "Upgrade to Pro to enable market wrap emails.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update email preferences.",
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -303,6 +311,7 @@ export default function SubscriptionPage() {
     { icon: BriefcaseBusiness, text: "Unlimited portfolio tracking", desc: "Track your holdings with real-time P&L and performance" },
     { icon: TrendingUp, text: "Custom watchlists", desc: "Build and monitor unlimited watchlists with live prices" },
     { icon: Newspaper, text: "Curated market news feed", desc: "Stay on top of what's moving the markets" },
+    { icon: Mail, text: "Daily market wrap emails", desc: "Get the closing bell wrap delivered to your inbox after every US, ASX and European close" },
   ];
 
   const comparisonRows = [
@@ -315,6 +324,7 @@ export default function SubscriptionPage() {
     { feature: "Portfolio tracking", free: false, pro: true },
     { feature: "Custom watchlists", free: false, pro: true },
     { feature: "Priority support", free: false, pro: true },
+    { feature: "Daily market wrap emails", free: false, pro: true },
   ];
 
   return (

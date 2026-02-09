@@ -1,5 +1,5 @@
 import type { Express, Request, Response, NextFunction } from "express";
-import { isAuthenticated } from "../replit_integrations/auth";
+import { isAuthenticated, authStorage } from "../replit_integrations/auth";
 import {
   registerDevice,
   unregisterDevice,
@@ -89,6 +89,16 @@ export function registerPushRoutes(app: Express): void {
       for (const field of allowedFields) {
         if (req.body[field] !== undefined) {
           updates[field] = req.body[field];
+        }
+      }
+
+      // Pro gating: require active subscription to enable email preferences
+      const emailFields = ["emailUsaMarketSummary", "emailAsxMarketSummary", "emailEuropeMarketSummary"];
+      const enablingEmail = emailFields.some((f) => updates[f] === true);
+      if (enablingEmail) {
+        const user = await authStorage.getUser(userId);
+        if (!user || user.subscriptionStatus !== "active") {
+          return res.status(403).json({ error: "Pro subscription required to enable email alerts" });
         }
       }
 

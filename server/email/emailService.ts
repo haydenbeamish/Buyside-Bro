@@ -40,7 +40,7 @@ export async function sendMarketWrapEmails(
     })
     .from(notificationPreferences)
     .innerJoin(users, eq(notificationPreferences.userId, users.id))
-    .where(eq(marketColumn, true));
+    .where(and(eq(marketColumn, true), eq(users.subscriptionStatus, "active")));
 
   if (subscribers.length === 0) {
     console.log(`[Email] No subscribers for ${market} market wrap`);

@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, Sunrise, Sun, Moon, Newspaper, ChevronDown, ChevronUp } from "lucide-react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { ApiError } from "@/lib/queryClient";
+import { MarketWrapEmailCTA } from "@/components/market-wrap-email-cta";
 import DOMPurify from "dompurify";
 
 const ALLOWED_TAGS = ['b', 'strong', 'i', 'em', 'br', 'p', 'ul', 'ol', 'li', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
@@ -229,6 +230,8 @@ export default function WhatsUpPage() {
         </div>
 
         <NewsFeed />
+
+        <MarketWrapEmailCTA />
       </div>
     </div>
   );
