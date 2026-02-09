@@ -77,7 +77,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1">
+          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
             {navItems.map((item) => {
               const isActive = location === item.path;
               return (
@@ -199,14 +199,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   </span>
                 )}
               </div>
-            )}
-
-            {!isAuthenticated && !isLoading && (
-              <a href="/api/login" className="mr-3 hidden lg:block">
-                <Button className="neon-button" data-testid="button-login-header">
-                  Sign In
-                </Button>
-              </a>
             )}
 
             <div className="display-font text-xs tracking-wider hidden sm:block">
