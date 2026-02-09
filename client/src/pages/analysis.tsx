@@ -472,7 +472,7 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
           />
         </div>
         
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 sm:gap-2">
           {loadingStages.map((stage, i) => {
             const isActive = i === currentStage;
             const isComplete = displayProgress >= stage.threshold;

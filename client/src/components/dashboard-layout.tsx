@@ -190,8 +190,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* Bro query status for logged-in users */}
             {isAuthenticated && broStatus && (
-              <div className="flex items-center gap-2 sm:gap-3 mr-2 sm:mr-4">
-                <span className="text-[11px] sm:text-xs text-zinc-400 whitespace-nowrap">
+              <div className="flex items-center gap-2 sm:gap-3 mr-2 sm:mr-4 min-w-0 overflow-hidden">
+                <span className="text-[11px] sm:text-xs text-zinc-400 truncate">
                   <span className="text-amber-400 font-mono">{broStatus.dailyUsed}/{broStatus.dailyLimit}</span> <span className="hidden xs:inline">Bro </span>queries
                 </span>
                 {broStatus.isPro && (

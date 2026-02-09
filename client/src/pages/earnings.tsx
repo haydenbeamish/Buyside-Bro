@@ -484,7 +484,7 @@ function AnalysisLoader({ ticker, mode, progress: apiProgress, message, isComple
         <div className="h-3 bg-zinc-800 rounded-full overflow-hidden mb-6">
           <div className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all duration-150" style={{ width: `${displayProgress}%` }} />
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {loadingStages.map((stage, i) => {
             const isActive = i === currentStage;
             const isDone = displayProgress >= stage.threshold;

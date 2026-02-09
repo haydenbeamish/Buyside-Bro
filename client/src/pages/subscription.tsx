@@ -414,7 +414,7 @@ export default function SubscriptionPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="bg-zinc-800/50 rounded-lg p-3 sm:p-4">
                   <div className="text-zinc-400 text-xs sm:text-sm mb-1">Monthly Included</div>
                   <div className="text-white text-base sm:text-xl font-bold ticker-font">
@@ -455,12 +455,12 @@ export default function SubscriptionPage() {
               {(creditPacksData?.packs?.length || 0) > 0 && (
                 <div>
                   <h4 className="text-zinc-300 font-semibold text-sm mb-3">Buy More Credits</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-4 gap-2">
                     {creditPacksData?.packs.map((pack) => (
                       <Button
                         key={pack.id}
                         variant="outline"
-                        className="border-zinc-700 hover:border-amber-500/50 hover:bg-amber-500/10 flex flex-col py-3 h-auto min-h-[44px]"
+                        className="border-zinc-700 hover:border-amber-500/50 hover:bg-amber-500/10 flex flex-col py-3 h-auto min-h-[44px] whitespace-normal text-center"
                         onClick={() => creditPurchaseMutation.mutate(pack.priceId)}
                         disabled={creditPurchaseMutation.isPending}
                         data-testid={`button-buy-credits-${pack.amount / 100}`}
@@ -552,8 +552,8 @@ export default function SubscriptionPage() {
                     <thead>
                       <tr className="border-b border-zinc-800">
                         <th className="text-left py-3 text-zinc-400 font-medium">Feature</th>
-                        <th className="text-center py-3 text-zinc-400 font-medium w-20 sm:w-28">Free</th>
-                        <th className="text-center py-3 text-amber-500 font-medium w-20 sm:w-28">Pro</th>
+                        <th className="text-center py-3 text-zinc-400 font-medium w-16 sm:w-28">Free</th>
+                        <th className="text-center py-3 text-amber-500 font-medium w-16 sm:w-28">Pro</th>
                       </tr>
                     </thead>
                     <tbody>
