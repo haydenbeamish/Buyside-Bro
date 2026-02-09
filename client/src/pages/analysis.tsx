@@ -42,6 +42,7 @@ interface StockProfile {
   changes: number;
   changesPercentage: number;
   description: string;
+  investmentCase?: string;
 }
 
 interface Financials {
@@ -985,14 +986,24 @@ export default function AnalysisPage() {
               </div>
             ) : null}
 
-            {/* Company Description */}
-            {activeTicker && !profileLoading && profile?.description && (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-                <h3 className="font-semibold text-white flex items-center gap-2 mb-2">
-                  <Building2 className="h-4 w-4 text-amber-500" />
-                  About {profile.companyName}
-                </h3>
-                <p className="text-sm text-zinc-400 leading-relaxed">{profile.description}</p>
+            {/* Company Description & Investment Case */}
+            {activeTicker && !profileLoading && (profile?.description || profile?.investmentCase) && (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
+                {profile?.description && (
+                  <div>
+                    <h3 className="font-semibold text-white flex items-center gap-2 mb-2">
+                      <Building2 className="h-4 w-4 text-amber-500" />
+                      About {profile.companyName}
+                    </h3>
+                    <p className="text-sm text-zinc-400 leading-relaxed">{profile.description}</p>
+                  </div>
+                )}
+                {profile?.investmentCase && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-amber-400 mb-1">Investment Case</h4>
+                    <p className="text-sm text-zinc-300 leading-relaxed">{profile.investmentCase}</p>
+                  </div>
+                )}
               </div>
             )}
 

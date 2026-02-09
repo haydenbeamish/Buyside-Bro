@@ -1161,10 +1161,12 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
 
       let lbcDescription = "";
+      let investmentCase = "";
       if (lbcResponse && lbcResponse.ok) {
         try {
           const lbcData = await lbcResponse.json() as any;
           lbcDescription = lbcData.companyDescription || "";
+          investmentCase = lbcData.investmentCase || "";
         } catch {}
       }
 
@@ -1180,6 +1182,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         changes: profile.change || 0,
         changesPercentage: profile.changePercentage || 0,
         description: lbcDescription || profile.description || "",
+        investmentCase,
       });
     } catch (error) {
       console.error("Profile error:", error);
