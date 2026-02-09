@@ -297,6 +297,8 @@ function MetricCard({
   isLoading: boolean;
   colorClass?: string;
 }) {
+  if (!isLoading && (value === "—" || value === "N/A")) return null;
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 sm:p-3">
       <p className="text-[11px] sm:text-xs text-zinc-500 uppercase tracking-wide mb-1">{label}</p>
