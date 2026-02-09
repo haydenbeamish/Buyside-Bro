@@ -202,9 +202,10 @@ function startMSFTCacheScheduler() {
 async function generateAndPostMarketSummary(market: string, eventType: string): Promise<void> {
   let summaryContent = "";
   try {
-    const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/market-summary`, { headers: LASER_BEAM_HEADERS });
+    const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets/summary`, { headers: LASER_BEAM_HEADERS });
     if (response.ok) {
-      summaryContent = await response.text();
+      const data = await response.json();
+      summaryContent = data.summary || "";
     }
   } catch (e) {
     console.error(`[NewsFeed Scheduler] Failed to fetch market summary for ${market}:`, e);
