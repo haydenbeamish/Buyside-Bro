@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { MarketWrapEmailCTA } from "@/components/market-wrap-email-cta";
 
 type FlashCells = Record<string, "up" | "down">;
 
@@ -600,6 +601,10 @@ export default function MarketsPage() {
             <MarketsTable items={markets?.forex || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
         </Tabs>
+
+        <div className="mt-6">
+          <MarketWrapEmailCTA />
+        </div>
       </div>
     </div>
   );
