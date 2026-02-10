@@ -1066,7 +1066,7 @@ export default function AnalysisPage() {
 
         {!activeTicker ? (
           <div className="bg-zinc-900 border border-zinc-800 border-dashed rounded-lg py-16 text-center">
-            <Search className="h-12 w-12 text-zinc-600 mx-auto mb-4" />
+            <Brain className="h-12 w-12 text-amber-500 mx-auto mb-4 animate-pulse" />
             <h3 className="font-semibold text-white mb-2">
               Search for a stock to analyze
             </h3>
