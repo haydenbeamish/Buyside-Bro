@@ -38,6 +38,7 @@ import { LoginGateModal } from "@/components/login-gate-modal";
 import { useBroStatus } from "@/hooks/use-bro-status";
 import { BroLimitModal } from "@/components/bro-limit-modal";
 import { useAuth } from "@/hooks/use-auth";
+import { Link } from "wouter";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { StockSearch } from "@/components/stock-search";
 
@@ -494,7 +495,7 @@ export default function PortfolioPage() {
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-semibold text-amber-400 text-sm">{holding.ticker}</span>
+                              <Link href={`/analysis?ticker=${encodeURIComponent(holding.ticker)}`} className="font-mono font-semibold text-amber-400 text-sm hover:underline" data-testid={`link-ticker-${holding.ticker}`}>{holding.ticker}</Link>
                               <span className="text-xs text-zinc-500 truncate">{holding.name || holding.ticker}</span>
                             </div>
                             <div className="flex items-center gap-3 mt-1">
@@ -553,7 +554,7 @@ export default function PortfolioPage() {
                           >
                             <td className="px-3 py-2.5 sticky left-0 bg-zinc-900 z-10">
                               <div className="flex flex-col">
-                                <span className="font-mono font-semibold text-amber-400">{holding.ticker}</span>
+                                <Link href={`/analysis?ticker=${encodeURIComponent(holding.ticker)}`} className="font-mono font-semibold text-amber-400 hover:underline" data-testid={`link-ticker-${holding.ticker}`}>{holding.ticker}</Link>
                                 <span className="text-xs text-zinc-500 truncate max-w-[120px]">{holding.name || holding.ticker}</span>
                               </div>
                             </td>

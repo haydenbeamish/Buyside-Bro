@@ -109,8 +109,22 @@ const transformMarketItem = (item: any) => ({
   categoryNotes: item.categoryNotes || '',
 });
 
-// Request deduplication for concurrent market data fetches
+// Request deduplication for concurrent identical fetches (thundering herd protection)
 const pendingRequests = new Map<string, Promise<any>>();
+
+/**
+ * Deduplicates concurrent calls with the same key.
+ * If a request with the given key is already in-flight, returns the same promise.
+ * Otherwise, executes the factory and shares the result with any concurrent callers.
+ */
+function dedup<T>(key: string, factory: () => Promise<T>): Promise<T> {
+  const existing = pendingRequests.get(key);
+  if (existing) return existing;
+  const promise = factory();
+  pendingRequests.set(key, promise);
+  promise.catch(() => {}).finally(() => pendingRequests.delete(key));
+  return promise;
+}
 
 const openrouter = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
@@ -435,25 +449,26 @@ export async function registerRoutes(
         }
       }
 
-      let data: any = null;
-      try {
-        const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS });
-        if (response.ok) {
-          data = await response.json();
-        } else {
+      const result = await dedup("markets_fetch", async () => {
+        try {
+          const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS });
+          if (response.ok) {
+            return await response.json();
+          }
           console.error(`Laser Beam API returned ${response.status}: ${response.statusText}`);
+        } catch (e) {
+          console.error("Failed to fetch from Laser Beam API:", e);
         }
-      } catch (e) {
-        console.error("Failed to fetch from Laser Beam API:", e);
-      }
+        return null;
+      });
 
-      if (data && (data.indices || data.markets)) {
+      if (result && (result.indices || result.markets)) {
         const marketsData = {
-          indices: data.indices || [],
-          futures: data.futures || [],
-          commodities: data.commodities || [],
-          sectors: data.sectors || [],
-          crypto: data.crypto || [],
+          indices: result.indices || [],
+          futures: result.futures || [],
+          commodities: result.commodities || [],
+          sectors: result.sectors || [],
+          crypto: result.crypto || [],
         };
         await storage.setCachedData("markets", marketsData, 5);
         return res.json(marketsData);
@@ -559,19 +574,21 @@ export async function registerRoutes(
         }
       }
 
-      const response = await fetch(`${LASER_BEAM_API}/api/markets/summary`, { headers: LASER_BEAM_HEADERS });
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      const summaryData = {
-        summary: data.summary,
-        generatedAt: data.generatedAt || new Date().toISOString(),
-        cached: data.cached || false,
-      };
+      const summaryData = await dedup("market_summary_fetch", async () => {
+        const response = await fetch(`${LASER_BEAM_API}/api/markets/summary`, { headers: LASER_BEAM_HEADERS });
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data = await response.json();
+        const result = {
+          summary: data.summary,
+          generatedAt: data.generatedAt || new Date().toISOString(),
+          cached: data.cached || false,
+        };
+        await storage.setCachedData("market_summary", result, 5);
+        return result;
+      });
 
-      await storage.setCachedData("market_summary", summaryData, 5);
       res.json(summaryData);
     } catch (error) {
       console.error("Market summary error:", error);
@@ -1152,22 +1169,27 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
       const isASX = ticker.endsWith(".AX");
 
-      const [fmpResponse, lbcResponse] = await Promise.all([
-        fetchWithTimeout(fmpUrl, {}, 10000).catch(() => null),
-        fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 15000).catch(() => null),
-      ]);
+      const profileData = await dedup(`profile_${ticker}`, async () => {
+        const [fmpResponse, lbcResponse] = await Promise.all([
+          fetchWithTimeout(fmpUrl, {}, 10000).catch(() => null),
+          fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 15000).catch(() => null),
+        ]);
 
-      const fmpData: any[] = fmpResponse && fmpResponse.ok ? await fmpResponse.json() as any[] : [];
-      const fmpProfile = fmpData && fmpData.length > 0 ? fmpData[0] : null;
+        const fmpData: any[] = fmpResponse && fmpResponse.ok ? await fmpResponse.json() as any[] : [];
+        const fmpProfile = fmpData && fmpData.length > 0 ? fmpData[0] : null;
 
-      // Parse LBC data
-      let lbcData: any = null;
-      if (lbcResponse && lbcResponse.ok) {
-        try {
-          const lbcRaw = await lbcResponse.json() as any;
-          lbcData = lbcRaw?.data || lbcRaw;
-        } catch {}
-      }
+        let lbcData: any = null;
+        if (lbcResponse && lbcResponse.ok) {
+          try {
+            const lbcRaw = await lbcResponse.json() as any;
+            lbcData = lbcRaw?.data || lbcRaw;
+          } catch {}
+        }
+
+        return { fmpProfile, lbcData };
+      });
+
+      const { fmpProfile, lbcData } = profileData;
 
       // If both sources failed, return appropriate error
       if (!fmpProfile && !lbcData) {
@@ -1240,53 +1262,56 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
       const ticker = normalizeTicker(rawTicker);
       const isASX = ticker.endsWith(".AX");
-      const ratiosUrl = `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
-      const incomeUrl = `https://financialmodelingprep.com/stable/income-statement?symbol=${encodeURIComponent(ticker)}&limit=1&apikey=${process.env.FMP_API_KEY}`;
-      const metricsUrl = `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
-      const lbcUrl = `${LASER_BEAM_API}/api/stock/quick-summary/${encodeURIComponent(ticker)}`;
 
-      const [ratiosRes, incomeRes, metricsRes, lbcResponse] = await Promise.all([
-        fetchWithTimeout(ratiosUrl, {}, 10000),
-        fetchWithTimeout(incomeUrl, {}, 10000),
-        fetchWithTimeout(metricsUrl, {}, 10000),
-        isASX ? fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 15000).catch(() => null) : Promise.resolve(null),
-      ]);
+      const financialsData = await dedup(`financials_${ticker}`, async () => {
+        const ratiosUrl = `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
+        const incomeUrl = `https://financialmodelingprep.com/stable/income-statement?symbol=${encodeURIComponent(ticker)}&limit=1&apikey=${process.env.FMP_API_KEY}`;
+        const metricsUrl = `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
+        const lbcUrl = `${LASER_BEAM_API}/api/stock/quick-summary/${encodeURIComponent(ticker)}`;
 
-      const ratios: any[] = ratiosRes.ok ? await ratiosRes.json() as any[] : [];
-      const income: any[] = incomeRes.ok ? await incomeRes.json() as any[] : [];
-      const metrics: any[] = metricsRes.ok ? await metricsRes.json() as any[] : [];
+        const [ratiosRes, incomeRes, metricsRes, lbcResponse] = await Promise.all([
+          fetchWithTimeout(ratiosUrl, {}, 10000),
+          fetchWithTimeout(incomeUrl, {}, 10000),
+          fetchWithTimeout(metricsUrl, {}, 10000),
+          isASX ? fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 15000).catch(() => null) : Promise.resolve(null),
+        ]);
 
-      const r = ratios[0] || {};
-      const i = income[0] || {};
-      const m = metrics[0] || {};
+        const ratios: any[] = ratiosRes.ok ? await ratiosRes.json() as any[] : [];
+        const income: any[] = incomeRes.ok ? await incomeRes.json() as any[] : [];
+        const metrics: any[] = metricsRes.ok ? await metricsRes.json() as any[] : [];
 
-      const fmpHasData = Object.keys(r).length > 0 || Object.keys(i).length > 0 || Object.keys(m).length > 0;
+        const r = ratios[0] || {};
+        const i = income[0] || {};
+        const m = metrics[0] || {};
 
-      // For ASX stocks where FMP returned no data, fall back to LBC
-      let lbcEV: number | null = null;
-      let lbcEvToEbit: number | null = null;
-      if (!fmpHasData && lbcResponse && lbcResponse.ok) {
-        try {
-          const lbcRaw = await lbcResponse.json() as any;
-          const lbcData = lbcRaw?.data || lbcRaw;
-          lbcEV = typeof lbcData.enterpriseValue === 'number' ? lbcData.enterpriseValue : null;
-          const trailingEvEbit = typeof lbcData.trailingEvEbit === 'number' ? lbcData.trailingEvEbit : null;
-          lbcEvToEbit = trailingEvEbit;
-        } catch {}
-      }
+        const fmpHasData = Object.keys(r).length > 0 || Object.keys(i).length > 0 || Object.keys(m).length > 0;
 
-      res.json({
-        revenue: i.revenue || 0,
-        netIncome: i.netIncome || 0,
-        eps: i.eps || r.netIncomePerShareTTM || 0,
-        peRatio: r.priceToEarningsRatioTTM || 0,
-        pbRatio: r.priceToBookRatioTTM || 0,
-        dividendYield: r.dividendYieldTTM || 0,
-        roe: m.returnOnEquityTTM || 0,
-        debtToEquity: r.debtToEquityRatioTTM || 0,
-        enterpriseValue: m.enterpriseValueTTM || lbcEV || null,
-        evToEbit: m.enterpriseValueTTM && i.operatingIncome ? m.enterpriseValueTTM / i.operatingIncome : (lbcEvToEbit || null),
+        let lbcEV: number | null = null;
+        let lbcEvToEbit: number | null = null;
+        if (!fmpHasData && lbcResponse && lbcResponse.ok) {
+          try {
+            const lbcRaw = await lbcResponse.json() as any;
+            const lbcData = lbcRaw?.data || lbcRaw;
+            lbcEV = typeof lbcData.enterpriseValue === 'number' ? lbcData.enterpriseValue : null;
+            lbcEvToEbit = typeof lbcData.trailingEvEbit === 'number' ? lbcData.trailingEvEbit : null;
+          } catch {}
+        }
+
+        return {
+          revenue: i.revenue || 0,
+          netIncome: i.netIncome || 0,
+          eps: i.eps || r.netIncomePerShareTTM || 0,
+          peRatio: r.priceToEarningsRatioTTM || 0,
+          pbRatio: r.priceToBookRatioTTM || 0,
+          dividendYield: r.dividendYieldTTM || 0,
+          roe: m.returnOnEquityTTM || 0,
+          debtToEquity: r.debtToEquityRatioTTM || 0,
+          enterpriseValue: m.enterpriseValueTTM || lbcEV || null,
+          evToEbit: m.enterpriseValueTTM && i.operatingIncome ? m.enterpriseValueTTM / i.operatingIncome : (lbcEvToEbit || null),
+        };
       });
+
+      res.json(financialsData);
     } catch (error) {
       console.error("Financials error:", error);
       res.status(500).json({ error: "Failed to fetch financials" });
@@ -1301,24 +1326,25 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.status(400).json({ error: "Invalid ticker symbol" });
       }
       const ticker = normalizeTicker(rawTicker);
-      const toDate = new Date().toISOString().split('T')[0];
-      const fromDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const fmpUrl = `https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${encodeURIComponent(ticker)}&from=${fromDate}&to=${toDate}&apikey=${process.env.FMP_API_KEY}`;
+      const historyResult = await dedup(`history_${ticker}`, async () => {
+        const toDate = new Date().toISOString().split('T')[0];
+        const fromDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const fmpUrl = `https://financialmodelingprep.com/stable/historical-price-eod/full?symbol=${encodeURIComponent(ticker)}&from=${fromDate}&to=${toDate}&apikey=${process.env.FMP_API_KEY}`;
 
-      const response = await fetchWithTimeout(fmpUrl, {}, 10000);
-      if (!response.ok) {
-        throw new Error(`FMP API error: ${response.status}`);
-      }
+        const response = await fetchWithTimeout(fmpUrl, {}, 10000);
+        if (!response.ok) {
+          throw new Error(`FMP API error: ${response.status}`);
+        }
 
-      const data = await response.json() as any[];
-      // Stable endpoint returns flat array sorted newest first, reverse for chart
-      const chartData = (data || []).slice(0, 365).reverse().map((d: any) => ({
-        date: d.date,
-        price: d.close,
-        volume: d.volume,
-      }));
+        const data = await response.json() as any[];
+        return (data || []).slice(0, 365).reverse().map((d: any) => ({
+          date: d.date,
+          price: d.close,
+          volume: d.volume,
+        }));
+      });
 
-      res.json({ ticker, data: chartData });
+      res.json({ ticker, data: historyResult });
     } catch (error) {
       console.error("Historical price error:", error);
       res.status(500).json({ error: "Failed to fetch historical data" });

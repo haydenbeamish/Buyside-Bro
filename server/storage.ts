@@ -2,6 +2,7 @@ import { db } from "./db";
 import { portfolioHoldings, watchlist, marketCache } from "@shared/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import type { PortfolioHolding, InsertPortfolioHolding, WatchlistItem, InsertWatchlistItem } from "@shared/schema";
+import { memcache } from "./memcache";
 
 export interface IStorage {
   getPortfolioHoldings(userId: string): Promise<PortfolioHolding[]>;
@@ -69,16 +70,26 @@ class DatabaseStorage implements IStorage {
   }
 
   async getCachedData(key: string): Promise<unknown | null> {
+    // L1: check in-memory cache first (no DB round-trip)
+    const memHit = memcache.get(key);
+    if (memHit !== null) return memHit;
+
+    // L2: fall through to database
     const [cached] = await db.select().from(marketCache).where(eq(marketCache.cacheKey, key));
     if (!cached) return null;
     if (new Date() > cached.expiresAt) {
       await db.delete(marketCache).where(eq(marketCache.cacheKey, key));
       return null;
     }
+    // Promote to L1 for subsequent reads
+    const remainingMinutes = Math.max(1, (cached.expiresAt.getTime() - Date.now()) / 60_000);
+    memcache.set(key, cached.data, remainingMinutes);
     return cached.data;
   }
 
   async setCachedData(key: string, data: unknown, expiresInMinutes: number): Promise<void> {
+    // Write to both L1 and L2
+    memcache.set(key, data, expiresInMinutes);
     const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
     await db.insert(marketCache)
       .values({ cacheKey: key, data, expiresAt })
@@ -89,6 +100,7 @@ class DatabaseStorage implements IStorage {
   }
 
   async deleteCachedData(key: string): Promise<void> {
+    memcache.delete(key);
     await db.delete(marketCache).where(eq(marketCache.cacheKey, key));
   }
 }

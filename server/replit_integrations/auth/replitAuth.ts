@@ -37,8 +37,8 @@ export function getSession() {
   return session({
     secret: sessionSecret,
     store: sessionStore,
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
     cookie: {
       httpOnly: true,
       secure: true,
