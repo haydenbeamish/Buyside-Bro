@@ -490,8 +490,9 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
         const baseProgress = Math.min(apiProgress, 99);
         const timeBasedProgress = Math.min(elapsed * 0.5, 90);
         const newProgress = Math.max(baseProgress, timeBasedProgress, prev);
-        const remaining = 99 - newProgress;
-        const increment = Math.max(remaining * 0.02, 0.01);
+        // Slow start, fast finish: accelerate through the last 20%
+        const speed = newProgress >= 80 ? 0.6 + (newProgress - 80) * 0.04 : 0.05 + newProgress * 0.002;
+        const increment = speed * (0.8 + Math.random() * 0.4);
         return Math.min(newProgress + increment, 99);
       });
     }, 150);
