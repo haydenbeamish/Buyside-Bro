@@ -78,17 +78,19 @@ export function StockSearch({
   }, [query]);
 
   const handleSelect = (stock: StockSearchResult) => {
+    userTypedRef.current = false;
     if (clearOnSelect) {
       setQuery("");
     } else {
       setQuery(stock.symbol);
     }
+    setResults([]);
+    setIsOpen(false);
+    setActiveIndex(-1);
     onSelect(stock.symbol, stock.name);
     if (onSubmit) {
       onSubmit(stock.symbol);
     }
-    setIsOpen(false);
-    setActiveIndex(-1);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -116,9 +118,11 @@ export function StockSearch({
     }
     if (e.key === "Enter" && query.trim() && onSubmit) {
       e.preventDefault();
-      onSubmit(query.toUpperCase().trim());
+      userTypedRef.current = false;
+      setResults([]);
       setIsOpen(false);
       setActiveIndex(-1);
+      onSubmit(query.toUpperCase().trim());
     }
   };
 

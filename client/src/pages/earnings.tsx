@@ -112,6 +112,7 @@ function StockSearchInput({
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const userTypedRef = useRef(false);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -124,6 +125,7 @@ function StockSearchInput({
   }, []);
 
   useEffect(() => {
+    if (!userTypedRef.current) return;
     const searchStocks = async () => {
       if (query.length < 1) {
         setResults([]);
@@ -146,17 +148,21 @@ function StockSearchInput({
   }, [query]);
 
   const handleSelect = (stock: StockSearchResult) => {
+    userTypedRef.current = false;
     setQuery(stock.symbol);
+    setResults([]);
+    setIsOpen(false);
     onSelect(stock.symbol);
     onSubmit(stock.symbol);
-    setIsOpen(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && query.trim()) {
       e.preventDefault();
-      onSubmit(query.toUpperCase().trim());
+      userTypedRef.current = false;
+      setResults([]);
       setIsOpen(false);
+      onSubmit(query.toUpperCase().trim());
     }
   };
 
@@ -169,6 +175,7 @@ function StockSearchInput({
           value={query}
           onChange={(e) => {
             const val = e.target.value.toUpperCase();
+            userTypedRef.current = true;
             setQuery(val);
             onSelect(val);
           }}
@@ -808,7 +815,7 @@ export default function EarningsAnalysisPage() {
             <Brain className="h-8 w-8 sm:h-12 sm:w-12 text-zinc-600 mx-auto mb-4" />
             <h3 className="font-semibold text-white mb-2">Search for a stock to analyze</h3>
             <p className="text-sm text-zinc-500 max-w-md mx-auto mb-2">
-              Enter a ticker symbol, then choose whether you want an earnings preview or review.
+              Enter a ticker symbol, choose earnings preview or review, then hit Analyse.
             </p>
             <p className="text-xs text-zinc-600 max-w-lg mx-auto mb-6">
               <span className="text-blue-400">Preview</span> analyzes what to expect before earnings.{" "}
