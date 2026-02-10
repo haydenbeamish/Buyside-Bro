@@ -75,6 +75,7 @@ app.use(helmet({
       ],
       imgSrc: ["'self'", "data:", "https:"],
       frameSrc: ["'self'", "https://*.tradingview.com"],
+      formAction: ["'self'", "https://replit.com"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
     },
@@ -91,10 +92,10 @@ const apiLimiter = rateLimit({
 });
 app.use("/api/", apiLimiter);
 
-// Stricter rate limiting for sensitive endpoints
+// Stricter rate limiting for login endpoint
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts per window
+  max: 30, // 30 attempts per window
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many attempts, please try again later" },
