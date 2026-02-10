@@ -24,7 +24,6 @@ import {
   Minus,
   Eye,
   FileSearch,
-  Sparkles,
   Building2,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
@@ -726,16 +725,6 @@ export default function EarningsAnalysisPage() {
     hasAutoStarted.current = false;
   };
 
-  const handleModeChange = (newMode: AnalysisMode) => {
-    setMode(newMode);
-  };
-
-  const handleAnalyse = () => {
-    if (activeTicker && !isLoading) {
-      startAnalysis(activeTicker, mode);
-    }
-  };
-
   const isLoading = isStarting || jobStatus?.status === "pending" || jobStatus?.status === "processing";
 
   return (
@@ -772,54 +761,16 @@ export default function EarningsAnalysisPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-6 sm:mb-8">
-          <Button
-            variant={mode === "preview" ? "default" : "outline"}
-            className={mode === "preview"
-              ? "bg-amber-600 hover:bg-amber-700 text-white gap-2"
-              : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 gap-2"
-            }
-            onClick={() => handleModeChange("preview")}
-            disabled={isLoading}
-            data-testid="button-mode-preview"
-          >
-            <Eye className="h-4 w-4" />
-            Earnings Preview
-          </Button>
-          <Button
-            variant={mode === "review" ? "default" : "outline"}
-            className={mode === "review"
-              ? "bg-amber-600 hover:bg-amber-700 text-white gap-2"
-              : "border-zinc-700 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 gap-2"
-            }
-            onClick={() => handleModeChange("review")}
-            disabled={isLoading}
-            data-testid="button-mode-review"
-          >
-            <FileSearch className="h-4 w-4" />
-            Earnings Review
-          </Button>
-          <Button
-            onClick={handleAnalyse}
-            disabled={!activeTicker || isLoading}
-            className="bg-green-600 hover:bg-green-700 text-white gap-2 ml-auto"
-            data-testid="button-analyse"
-          >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            Analyse
-          </Button>
-        </div>
-
         {!activeTicker ? (
           <div className="bg-zinc-900 border border-zinc-800 border-dashed rounded-lg py-10 sm:py-16 px-4 text-center">
             <Brain className="h-8 w-8 sm:h-12 sm:w-12 text-zinc-600 mx-auto mb-4" />
             <h3 className="font-semibold text-white mb-2">Search for a stock to analyze</h3>
             <p className="text-sm text-zinc-500 max-w-md mx-auto mb-2">
-              Enter a ticker symbol, choose earnings preview or review, then hit Analyse.
+              Search for a stock, then choose Earnings Preview or Review to start analysis.
             </p>
             <p className="text-xs text-zinc-600 max-w-lg mx-auto mb-6">
-              <span className="text-blue-400">Preview</span> analyzes what to expect before earnings.{" "}
-              <span className="text-orange-400">Review</span> evaluates results after earnings are reported.
+              <span className="text-amber-400">Preview</span> analyzes what to expect before earnings.{" "}
+              <span className="text-amber-400">Review</span> evaluates results after earnings are reported.
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {["AAPL", "MSFT", "GOOGL", "NVDA", "TSLA"].map((ticker) => (
@@ -893,6 +844,40 @@ export default function EarningsAnalysisPage() {
               </div>
             )}
 
+            {/* Mode action cards — show when stock loaded, not analysing, no result */}
+            {activeTicker && !isLoading && !result && !error && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => { setMode("preview"); startAnalysis(activeTicker, "preview"); }}
+                  className="bg-zinc-900 border border-zinc-800 hover:border-amber-500/50 rounded-lg p-6 cursor-pointer transition-all text-left group hover:shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                  data-testid="card-earnings-preview"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+                      <Eye className="h-5 w-5 text-amber-400" />
+                    </div>
+                    <h3 className="font-semibold text-lg text-white">Earnings Preview</h3>
+                  </div>
+                  <p className="text-sm text-zinc-400">Analyse what to expect before earnings are reported</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setMode("review"); startAnalysis(activeTicker, "review"); }}
+                  className="bg-zinc-900 border border-zinc-800 hover:border-amber-500/50 rounded-lg p-6 cursor-pointer transition-all text-left group hover:shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                  data-testid="card-earnings-review"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+                      <FileSearch className="h-5 w-5 text-amber-400" />
+                    </div>
+                    <h3 className="font-semibold text-lg text-white">Earnings Review</h3>
+                  </div>
+                  <p className="text-sm text-zinc-400">Evaluate results after earnings have been reported</p>
+                </button>
+              </div>
+            )}
+
             {error ? (
               <div className="bg-zinc-900 border border-red-500/30 rounded-lg p-6">
                 <div className="flex items-center gap-3">
@@ -921,7 +906,35 @@ export default function EarningsAnalysisPage() {
                 isComplete={false}
               />
             ) : result ? (
-              <AnalysisResult result={result} />
+              <>
+                <AnalysisResult result={result} />
+                {/* Analyse again row */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 pb-4">
+                  <span className="text-sm text-zinc-500">Want a different perspective?</span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
+                      onClick={() => { setMode("preview"); startAnalysis(activeTicker, "preview"); }}
+                      data-testid="button-reanalyse-preview"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Earnings Preview
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
+                      onClick={() => { setMode("review"); startAnalysis(activeTicker, "review"); }}
+                      data-testid="button-reanalyse-review"
+                    >
+                      <FileSearch className="h-3.5 w-3.5" />
+                      Earnings Review
+                    </Button>
+                  </div>
+                </div>
+              </>
             ) : null}
           </div>
         )}
