@@ -882,7 +882,21 @@ export default function AnalysisPage() {
     },
   });
 
+  const pollStartTimeRef = useRef<number>(Date.now());
+  const POLL_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes max
+
   const pollJobStatus = useCallback(async (jobId: string) => {
+    // Check if we've exceeded the max polling time
+    if (Date.now() - pollStartTimeRef.current > POLL_TIMEOUT_MS) {
+      setDeepError("Analysis is taking longer than expected. Please try again.");
+      setDeepJobStatus(null);
+      if (pollingRef.current) {
+        clearTimeout(pollingRef.current);
+        pollingRef.current = null;
+      }
+      return;
+    }
+
     try {
       const res = await fetch(`/api/analysis/deep/job/${jobId}`);
       if (!res.ok) throw new Error("Job not found");
@@ -936,6 +950,7 @@ export default function AnalysisPage() {
   useEffect(() => {
     if (deepJobId && deepJobStatus?.status !== "completed" && deepJobStatus?.status !== "failed") {
       pollAttemptRef.current = 0;
+      pollStartTimeRef.current = Date.now();
       const INITIAL_DELAY = 1000;
       pollingRef.current = setTimeout(() => pollJobStatus(deepJobId), INITIAL_DELAY);
       return () => {
