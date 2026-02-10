@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -98,82 +98,54 @@ interface ForwardMetrics {
 
 
 function TradingViewChart({ ticker, exchange }: { ticker: string; exchange?: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const initWidget = () => {
-      container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
-
-      let tvSymbol = ticker;
-      if (ticker.endsWith(".AX")) {
-        tvSymbol = `ASX:${ticker.replace(".AX", "")}`;
-      } else if (exchange) {
-        const exchangeMap: Record<string, string> = {
-          NASDAQ: "NASDAQ",
-          NYSE: "NYSE",
-          AMEX: "AMEX",
-          LSE: "LSE",
-          "London Stock Exchange": "LSE",
-          ASX: "ASX",
-          "Australian Securities Exchange": "ASX",
-        };
-        const prefix = exchangeMap[exchange];
-        if (prefix && !ticker.includes(":")) {
-          tvSymbol = `${prefix}:${ticker}`;
-        }
+  const iframeSrc = useMemo(() => {
+    let tvSymbol = ticker;
+    if (ticker.endsWith(".AX")) {
+      tvSymbol = `ASX:${ticker.replace(".AX", "")}`;
+    } else if (exchange) {
+      const exchangeMap: Record<string, string> = {
+        NASDAQ: "NASDAQ",
+        NYSE: "NYSE",
+        AMEX: "AMEX",
+        LSE: "LSE",
+        "London Stock Exchange": "LSE",
+        ASX: "ASX",
+        "Australian Securities Exchange": "ASX",
+      };
+      const prefix = exchangeMap[exchange];
+      if (prefix && !ticker.includes(":")) {
+        tvSymbol = `${prefix}:${ticker}`;
       }
+    }
 
-      const script = document.createElement("script");
-      script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-      script.type = "text/javascript";
-      script.async = true;
-      script.innerHTML = JSON.stringify({
-        allow_symbol_change: false,
-        calendar: false,
-        details: false,
-        hide_side_toolbar: true,
-        hide_top_toolbar: true,
-        hide_legend: true,
-        hide_volume: false,
-        hotlist: false,
-        interval: "D",
-        locale: "en",
-        save_image: false,
-        style: "1",
-        symbol: tvSymbol,
-        theme: "dark",
-        timezone: "Etc/UTC",
-        backgroundColor: "#09090b",
-        gridColor: "rgba(242, 242, 242, 0.06)",
-        watchlist: [],
-        withdateranges: false,
-        compareSymbols: [],
-        studies: [],
-        autosize: true,
-        width: "100%",
-        height: "100%",
-      });
-      container.appendChild(script);
-    };
+    const params = new URLSearchParams({
+      symbol: tvSymbol,
+      interval: "D",
+      theme: "dark",
+      style: "1",
+      locale: "en",
+      hide_top_toolbar: "1",
+      hide_side_toolbar: "1",
+      hide_legend: "1",
+      allow_symbol_change: "0",
+      save_image: "0",
+      calendar: "0",
+      hide_volume: "0",
+      backgroundColor: "rgba(9, 9, 11, 1)",
+      gridColor: "rgba(242, 242, 242, 0.06)",
+    });
 
-    const timer = setTimeout(initWidget, 100);
-
-    return () => {
-      clearTimeout(timer);
-      container.innerHTML = "";
-    };
+    return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
   }, [ticker, exchange]);
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden h-[350px] sm:h-[500px] lg:h-[600px]">
-      <style>{`.tradingview-widget-container, .tradingview-widget-container > div, .tradingview-widget-container iframe { height: 100% !important; width: 100% !important; }`}</style>
-      <div
-        className="tradingview-widget-container"
-        ref={containerRef}
-        style={{ height: "100%", width: "100%" }}
+      <iframe
+        src={iframeSrc}
+        style={{ width: "100%", height: "100%", border: "none" }}
+        allowFullScreen
+        loading="lazy"
+        data-testid="chart-tradingview"
       />
     </div>
   );
