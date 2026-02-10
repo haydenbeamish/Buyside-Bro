@@ -130,6 +130,17 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/login", (req, res, next) => {
     ensureStrategy(req.hostname);
+    // Wrap res.redirect so the OIDC state stored in the session by
+    // Passport is flushed to the DB before the 302 is sent. Without
+    // this, a fast OIDC provider (user already logged into Replit)
+    // can redirect back before the session row is committed, causing
+    // the callback to lose the state and silently fail authentication.
+    const origRedirect = res.redirect.bind(res);
+    res.redirect = function (this: any, ...args: any[]) {
+      req.session.save(() => {
+        origRedirect.apply(this, args as any);
+      });
+    } as any;
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
