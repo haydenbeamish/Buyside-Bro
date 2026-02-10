@@ -1014,7 +1014,7 @@ function PositionSizeCalculator() {
 // ─── Main Page ────────────────────────────────────────────────────
 
 export default function TradeTrackerPage() {
-  useDocumentTitle("Trade Tracker");
+  useDocumentTitle("Trade Tools");
   const { isAuthenticated } = useAuth();
   const { isPro } = useBroStatus();
   const { gate, showLoginModal, closeLoginModal } = useLoginGate();
@@ -1023,7 +1023,7 @@ export default function TradeTrackerPage() {
       <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white">TRADE TRACKER</h1>
+            <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white">TRADE TOOLS</h1>
             <p className="text-zinc-500 text-sm mt-1">Log trades, track performance, find your edge</p>
           </div>
         </div>

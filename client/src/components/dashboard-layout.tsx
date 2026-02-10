@@ -20,7 +20,7 @@ const navItems = [
   { path: "/analysis", label: "Company", icon: Building2 },
   { path: "/watchlist", label: "Watchlist", icon: Eye },
   { path: "/portfolio", label: "Portfolio", icon: Briefcase },
-  { path: "/trades", label: "Trade Tracker", icon: TrendingUp },
+  { path: "/trades", label: "Trade Tools", icon: TrendingUp },
   { path: "/earnings", label: "Earnings", icon: Brain },
   { path: "/chat", label: "Ask Bro", icon: MessageSquare },
 ];
