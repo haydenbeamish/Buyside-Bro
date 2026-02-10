@@ -811,8 +811,8 @@ export async function registerRoutes(
 
         const shares = Number(holding.shares);
         const avgCost = Number(holding.avgCost);
-        const currentPrice = quote.price || profile.price || Number(holding.currentPrice || avgCost);
-        const dayChangePercent = quote.changePercentage || profile.changePercentage || 0;
+        const currentPrice = quote.price ?? profile.price ?? Number(holding.currentPrice ?? avgCost);
+        const dayChangePercent = quote.changePercentage ?? profile.changePercentage ?? 0;
         const previousClose = quote.previousClose || (currentPrice - (quote.change || 0));
         const dayPnL = shares * (currentPrice - previousClose);
         const totalPnL = shares * (currentPrice - avgCost);
@@ -831,7 +831,7 @@ export async function registerRoutes(
           dayPnL,
           totalPnL,
           pnlPercent,
-          marketCap: quote.marketCap || profile.marketCap || null,
+          marketCap: quote.marketCap ?? profile.marketCap ?? null,
           pe,
           epsGrowth: null,
           nextEarnings: null,
@@ -2204,7 +2204,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
           addedAt: new Date(),
           price,
           dayChangePercent,
-          marketCap: quote.marketCap || profile.marketCap || null,
+          marketCap: quote.marketCap ?? profile.marketCap ?? null,
           pe,
           yearHigh: quote.yearHigh ?? null,
           yearLow: quote.yearLow ?? null,
@@ -2342,7 +2342,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
           price,
           name: profile.companyName || item.name || item.ticker,
           dayChangePercent,
-          marketCap: quote.marketCap || profile.marketCap || null,
+          marketCap: quote.marketCap ?? profile.marketCap ?? null,
           pe,
           yearHigh: quote.yearHigh ?? null,
           yearLow: quote.yearLow ?? null,

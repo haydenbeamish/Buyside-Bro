@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -24,6 +26,9 @@ import {
   Target,
   AlertTriangle,
   CheckCircle,
+  ChevronUp,
+  ChevronDown,
+  RefreshCw,
 } from "lucide-react";
 import type { PortfolioHolding } from "@shared/schema";
 import logoImg from "@assets/image_1770442846290.png";
@@ -149,7 +154,11 @@ export default function PortfolioPage() {
   const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
   const [showBroLimit, setShowBroLimit] = useState(false);
 
-  const { data: holdings, isLoading: holdingsLoading } = useQuery<EnrichedHolding[]>({
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; ticker: string } | null>(null);
+  const [sortKey, setSortKey] = useState<string>("ticker");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const { data: holdings, isLoading: holdingsLoading, isError: holdingsError, refetch: refetchHoldings } = useQuery<EnrichedHolding[]>({
     queryKey: ["/api/portfolio/enriched"],
     enabled: isAuthenticated, refetchInterval: 60000,
   });
@@ -170,6 +179,41 @@ export default function PortfolioPage() {
     return { totalValue, totalGain, totalGainPercent, dayChange, dayChangePercent };
   })() : undefined;
   const statsLoading = holdingsLoading;
+
+  const sortedHoldings = useMemo(() => {
+    if (!holdings) return [];
+    return [...holdings].sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+      switch (sortKey) {
+        case "ticker": aVal = a.ticker.toLowerCase(); bVal = b.ticker.toLowerCase(); break;
+        case "currentPrice": aVal = Number(a.currentPrice ?? 0); bVal = Number(b.currentPrice ?? 0); break;
+        case "pnlPercent": aVal = a.pnlPercent ?? 0; bVal = b.pnlPercent ?? 0; break;
+        case "dayChangePercent": aVal = a.dayChangePercent ?? 0; bVal = b.dayChangePercent ?? 0; break;
+        case "value": aVal = a.value ?? 0; bVal = b.value ?? 0; break;
+        case "dayPnL": aVal = a.dayPnL ?? 0; bVal = b.dayPnL ?? 0; break;
+        case "totalPnL": aVal = a.totalPnL ?? 0; bVal = b.totalPnL ?? 0; break;
+        default: aVal = a.ticker.toLowerCase(); bVal = b.ticker.toLowerCase();
+      }
+      if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [holdings, sortKey, sortDir]);
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(prev => prev === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortKey !== columnKey) return null;
+    return sortDir === "asc" ? <ChevronUp className="inline w-3 h-3 ml-0.5" /> : <ChevronDown className="inline w-3 h-3 ml-0.5" />;
+  };
 
   const { data: analysis } = useQuery<{ analysis: string }>({
     queryKey: ["/api/portfolio/analysis"],
@@ -269,6 +313,19 @@ export default function PortfolioPage() {
     e.preventDefault();
     if (!gate()) return;
     if (!newHolding.ticker || !newHolding.shares || !newHolding.avgCost) return;
+
+    const duplicate = holdings?.find(
+      (h) => h.ticker.toUpperCase() === newHolding.ticker.toUpperCase()
+    );
+    if (duplicate) {
+      toast({
+        title: "Duplicate ticker",
+        description: `You already have ${newHolding.ticker.toUpperCase()} in your portfolio`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     addMutation.mutate(newHolding);
   };
 
@@ -409,11 +466,25 @@ export default function PortfolioPage() {
                     <Skeleton key={i} className="h-10 w-full bg-zinc-800" />
                   ))}
                 </div>
-              ) : holdings && holdings.length > 0 ? (
+              ) : holdingsError && !holdings ? (
+                <div className="text-center py-12">
+                  <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-3" />
+                  <p className="text-red-400 mb-2 font-medium">Failed to load portfolio data</p>
+                  <p className="text-zinc-500 text-sm mb-4">Something went wrong while fetching your holdings.</p>
+                  <Button
+                    onClick={() => refetchHoldings()}
+                    variant="outline"
+                    className="border-zinc-800 bg-zinc-800 hover:bg-zinc-700 hover:border-amber-500/50"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Retry
+                  </Button>
+                </div>
+              ) : sortedHoldings.length > 0 ? (
                 <>
                   {/* Mobile card view */}
                   <div className="sm:hidden divide-y divide-zinc-800/50" data-testid="holdings-mobile">
-                    {holdings.map((holding) => {
+                    {sortedHoldings.map((holding) => {
                       const currentPrice = Number(holding.currentPrice || holding.avgCost);
                       return (
                         <div
@@ -439,7 +510,7 @@ export default function PortfolioPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleDelete(holding.id, holding.ticker)}
+                              onClick={() => setDeleteTarget({ id: holding.id, ticker: holding.ticker })}
                               className="text-zinc-500 hover:text-red-500 min-h-[44px] min-w-[44px]"
                               data-testid={`button-delete-${holding.ticker}`}
                             >
@@ -452,24 +523,24 @@ export default function PortfolioPage() {
                   </div>
                   {/* Desktop table */}
                   <table className="hidden sm:table w-full text-sm" data-testid="holdings-table">
-                    <thead>
+                    <thead className="sticky top-0 z-20 bg-zinc-900">
                       <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase">
-                        <th className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-10 min-w-[100px]">Ticker</th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Price</th>
+                        <th className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-30 min-w-[100px] cursor-pointer select-none" onClick={() => handleSort("ticker")}>Ticker<SortIcon columnKey="ticker" /></th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("currentPrice")}>Price<SortIcon columnKey="currentPrice" /></th>
                         <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Cost</th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">% P&L</th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Day %</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("pnlPercent")}>% P&L<SortIcon columnKey="pnlPercent" /></th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("dayChangePercent")}>Day %<SortIcon columnKey="dayChangePercent" /></th>
                         <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Qty</th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Value</th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Day P&L</th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Total P&L</th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("value")}>Value<SortIcon columnKey="value" /></th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("dayPnL")}>Day P&L<SortIcon columnKey="dayPnL" /></th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("totalPnL")}>Total P&L<SortIcon columnKey="totalPnL" /></th>
                         <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Mkt Cap</th>
                         <th className="px-3 py-3 text-right font-medium whitespace-nowrap">P/E</th>
                         <th className="px-3 py-3 w-10"></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {holdings.map((holding) => {
+                      {sortedHoldings.map((holding) => {
                         const currentPrice = Number(holding.currentPrice || holding.avgCost);
                         const avgCost = Number(holding.avgCost);
                         const shares = Number(holding.shares);
@@ -524,7 +595,7 @@ export default function PortfolioPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleDelete(holding.id, holding.ticker)}
+                                onClick={() => setDeleteTarget({ id: holding.id, ticker: holding.ticker })}
                                   className="text-zinc-500 hover:text-red-500 min-h-[44px] min-w-[44px]"
                                 data-testid={`button-delete-${holding.ticker}`}
                               >
@@ -540,7 +611,7 @@ export default function PortfolioPage() {
               ) : (
                 <div className="text-center py-12">
                   <p className="text-zinc-500 mb-4">No holdings yet</p>
-                  <Button 
+                  <Button
                     onClick={() => setIsAddOpen(true)}
                     variant="outline"
                     className="border-zinc-800 bg-zinc-800 hover:bg-zinc-700 hover:border-amber-500/50"
@@ -555,6 +626,7 @@ export default function PortfolioPage() {
         </div>
 
         {/* Bro's Analysis Section */}
+        {holdings && holdings.length > 0 && (
         <div ref={broSectionRef} className="bg-zinc-900 border border-amber-500/30 rounded-lg shadow-[0_0_20px_rgba(255,215,0,0.1)]">
           <div className="flex items-center justify-between p-4 border-b border-zinc-800">
             <div className="flex items-center gap-3">
@@ -648,7 +720,37 @@ export default function PortfolioPage() {
             )}
           </div>
         </div>
+        )}
       </div>
+
+        {/* Delete confirmation dialog */}
+        <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+          <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
+            <DialogHeader>
+              <DialogTitle>Remove position</DialogTitle>
+              <DialogDescription className="text-zinc-400">
+                Remove {deleteTarget?.ticker} from portfolio?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" className="border-zinc-700 hover:bg-zinc-800" onClick={() => setDeleteTarget(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (deleteTarget) {
+                    handleDelete(deleteTarget.id, deleteTarget.ticker);
+                    setDeleteTarget(null);
+                  }
+                }}
+              >
+                Remove
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <LoginGateModal open={showLoginModal} onClose={closeLoginModal} />
         <BroLimitModal open={showBroLimit} onClose={() => setShowBroLimit(false)} />
     </div>
