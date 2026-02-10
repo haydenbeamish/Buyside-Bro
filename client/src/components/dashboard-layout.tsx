@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef } from "react";
 import { LayoutGrid, Briefcase, Newspaper, MessageSquare, Menu, X, Sparkles, CreditCard, LogOut, User, Eye, Shield, Brain, Building2, Loader2, Bug, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import * as Sentry from "@sentry/react";
@@ -85,6 +85,70 @@ function BetaFeedbackWidget() {
   );
 }
 
+interface TickerMarketItem {
+  name: string;
+  price: number;
+  change1D: number;
+}
+
+type TickerFlashCells = Record<string, "up" | "down">;
+
+function TickerTape({ items, flashCells }: { items: TickerMarketItem[]; flashCells: TickerFlashCells }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const itemsRef = useRef<TickerMarketItem[]>(items);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    const scrollContainer = scrollRef.current;
+    if (!scrollContainer) return;
+
+    let animationId: number;
+    let scrollPos = scrollContainer.scrollLeft || 0;
+
+    const scroll = () => {
+      scrollPos += 1.5;
+      if (scrollPos >= scrollContainer.scrollWidth / 2) {
+        scrollPos = 0;
+      }
+      scrollContainer.scrollLeft = scrollPos;
+      animationId = requestAnimationFrame(scroll);
+    };
+
+    animationId = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(animationId);
+  }, []);
+
+  const duplicatedItems = [...items, ...items];
+
+  return (
+    <div className="bg-black border-b border-zinc-800 overflow-hidden">
+      <div
+        ref={scrollRef}
+        className="flex whitespace-nowrap py-2 overflow-x-hidden"
+        style={{ scrollBehavior: 'auto' }}
+      >
+        {duplicatedItems.map((item, idx) => (
+          <div
+            key={`${item.name}-${idx}`}
+            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 border-r border-zinc-800"
+          >
+            <span className="text-zinc-400 text-xs sm:text-sm ticker-font">{item.name}</span>
+            <span className="text-zinc-200 text-xs sm:text-sm ticker-font">
+              {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className={`text-xs sm:text-sm ticker-font ${item.change1D >= 0 ? 'text-green-500' : 'text-red-500'} ${flashCells[`${item.name}:change1D`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:change1D`] === 'down' ? 'cell-flash-down' : ''}`}>
+              {item.change1D >= 0 ? '+' : ''}{item.change1D.toFixed(1)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -95,6 +159,45 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     enabled: isAuthenticated,
   });
   const isAdmin = adminCheck?.isAdmin ?? false;
+
+  // Ticker tape data
+  const { data: tickerData } = useQuery<{ globalMarkets: TickerMarketItem[] }>({
+    queryKey: ["/api/markets/full"],
+    refetchInterval: 30000,
+  });
+  const tickerItems = tickerData?.globalMarkets || [];
+  const prevTickerRef = useRef<Record<string, number>>({});
+  const tickerLoadedOnce = useRef(false);
+  const [tickerFlash, setTickerFlash] = useState<TickerFlashCells>({});
+
+  useEffect(() => {
+    if (tickerItems.length === 0) return;
+    if (tickerLoadedOnce.current) {
+      const flashes: TickerFlashCells = {};
+      for (const item of tickerItems) {
+        const prev = prevTickerRef.current[item.name];
+        if (prev !== undefined && prev !== item.change1D) {
+          flashes[`${item.name}:change1D`] = item.change1D > prev ? 'up' : 'down';
+        }
+      }
+      if (Object.keys(flashes).length > 0) {
+        setTickerFlash(flashes);
+      }
+    } else {
+      tickerLoadedOnce.current = true;
+    }
+    const newRef: Record<string, number> = {};
+    for (const item of tickerItems) {
+      newRef[item.name] = item.change1D;
+    }
+    prevTickerRef.current = newRef;
+  }, [tickerItems]);
+
+  useEffect(() => {
+    if (Object.keys(tickerFlash).length === 0) return;
+    const timer = setTimeout(() => setTickerFlash({}), 700);
+    return () => clearTimeout(timer);
+  }, [tickerFlash]);
 
   if (isLoading) {
     return (
@@ -270,6 +373,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </div>
         </header>
+
+        {/* Scrolling ticker tape */}
+        {tickerItems.length > 0 && (
+          <TickerTape items={tickerItems} flashCells={tickerFlash} />
+        )}
 
         {/* Page content */}
         <main id="main-content" className="flex-1 overflow-auto">

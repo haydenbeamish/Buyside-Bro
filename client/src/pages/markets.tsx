@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
-import { MarketWrapEmailCTA } from "@/components/market-wrap-email-cta";
+
 
 type FlashCells = Record<string, "up" | "down">;
 
@@ -31,65 +31,6 @@ interface MarketsData {
   asxSectors: MarketItem[];
   forex: MarketItem[];
   lastUpdated: string;
-}
-
-
-function TickerTape({ items, flashCells }: { items: MarketItem[]; flashCells: FlashCells }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const itemsRef = useRef<MarketItem[]>(items);
-  
-  // Update ref when items change without restarting animation
-  useEffect(() => {
-    itemsRef.current = items;
-  }, [items]);
-  
-  // Animation effect runs once on mount, doesn't restart when data refreshes
-  useEffect(() => {
-    const scrollContainer = scrollRef.current;
-    if (!scrollContainer) return;
-    
-    let animationId: number;
-    let scrollPos = scrollContainer.scrollLeft || 0;
-    
-    const scroll = () => {
-      scrollPos += 1.5;
-      if (scrollPos >= scrollContainer.scrollWidth / 2) {
-        scrollPos = 0;
-      }
-      scrollContainer.scrollLeft = scrollPos;
-      animationId = requestAnimationFrame(scroll);
-    };
-    
-    animationId = requestAnimationFrame(scroll);
-    return () => cancelAnimationFrame(animationId);
-  }, []);
-
-  const duplicatedItems = [...items, ...items];
-
-  return (
-    <div className="bg-black border-b border-zinc-800 overflow-hidden">
-      <div 
-        ref={scrollRef}
-        className="flex whitespace-nowrap py-2 overflow-x-hidden"
-        style={{ scrollBehavior: 'auto' }}
-      >
-        {duplicatedItems.map((item, idx) => (
-          <div 
-            key={`${item.name}-${idx}`}
-            className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 border-r border-zinc-800"
-          >
-            <span className="text-zinc-400 text-xs sm:text-sm ticker-font">{item.name}</span>
-            <span className="text-zinc-200 text-xs sm:text-sm ticker-font">
-              {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
-            <span className={`text-xs sm:text-sm ticker-font ${item.change1D >= 0 ? 'text-green-500' : 'text-red-500'} ${flashCells[`${item.name}:change1D`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:change1D`] === 'down' ? 'cell-flash-down' : ''}`}>
-              {item.change1D >= 0 ? '+' : ''}{item.change1D.toFixed(1)}%
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function PercentCell({ value, compact = false, flash }: { value: number | undefined; compact?: boolean; flash?: "up" | "down" }) {
@@ -541,12 +482,8 @@ export default function MarketsPage() {
     return () => clearTimeout(timeoutId);
   }, [hasSimData]);
 
-  const tickerItems = markets?.globalMarkets || [];
-
   return (
     <div className="min-h-screen bg-black">
-      <TickerTape items={tickerItems} flashCells={flashCells} />
-      
       <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-4 sm:mb-6 px-1">
           <h1 className="text-xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle">
@@ -658,9 +595,6 @@ export default function MarketsPage() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-6">
-          <MarketWrapEmailCTA />
-        </div>
       </div>
     </div>
   );
