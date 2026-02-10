@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { ReactNode } from "react";
-import { LayoutGrid, Briefcase, Newspaper, MessageSquare, Menu, X, Sparkles, CreditCard, LogOut, User, Eye, Shield, Brain, Building2, Loader2, Bug } from "lucide-react";
+import { LayoutGrid, Briefcase, Newspaper, MessageSquare, Menu, X, Sparkles, CreditCard, LogOut, User, Eye, Shield, Brain, Building2, Loader2, Bug, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import * as Sentry from "@sentry/react";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,6 +20,7 @@ const navItems = [
   { path: "/analysis", label: "Company", icon: Building2 },
   { path: "/watchlist", label: "Watchlist", icon: Eye },
   { path: "/portfolio", label: "Portfolio", icon: Briefcase },
+  { path: "/trades", label: "Trades", icon: TrendingUp },
   { path: "/earnings", label: "Earnings", icon: Brain },
   { path: "/chat", label: "Ask Bro", icon: MessageSquare },
 ];

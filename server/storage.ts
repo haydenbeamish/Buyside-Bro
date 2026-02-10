@@ -1,7 +1,7 @@
 import { db } from "./db";
-import { portfolioHoldings, watchlist, marketCache } from "@shared/schema";
+import { portfolioHoldings, watchlist, marketCache, trades } from "@shared/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
-import type { PortfolioHolding, InsertPortfolioHolding, WatchlistItem, InsertWatchlistItem } from "@shared/schema";
+import type { PortfolioHolding, InsertPortfolioHolding, WatchlistItem, InsertWatchlistItem, Trade, InsertTrade } from "@shared/schema";
 import { memcache } from "./memcache";
 
 export interface IStorage {
@@ -16,6 +16,15 @@ export interface IStorage {
   removeFromWatchlist(userId: string, id: number): Promise<void>;
   updateWatchlistNotes(userId: string, id: number, notes: string): Promise<WatchlistItem | undefined>;
   
+  getTrades(userId: string): Promise<Trade[]>;
+  getTrade(userId: string, id: number): Promise<Trade | undefined>;
+  createTrade(userId: string, trade: InsertTrade): Promise<Trade>;
+  updateTrade(userId: string, id: number, trade: Partial<InsertTrade>): Promise<Trade | undefined>;
+  deleteTrade(userId: string, id: number): Promise<void>;
+  getDistinctStrategyTags(userId: string): Promise<string[]>;
+  getDistinctSetupTypes(userId: string): Promise<string[]>;
+  getDistinctIdeaSources(userId: string): Promise<string[]>;
+
   getCachedData(key: string): Promise<unknown | null>;
   setCachedData(key: string, data: unknown, expiresInMinutes: number): Promise<void>;
   deleteCachedData(key: string): Promise<void>;
@@ -67,6 +76,53 @@ class DatabaseStorage implements IStorage {
       .where(and(eq(watchlist.id, id), eq(watchlist.userId, userId)))
       .returning();
     return updated;
+  }
+
+  async getTrades(userId: string): Promise<Trade[]> {
+    return db.select().from(trades).where(eq(trades.userId, userId)).orderBy(desc(trades.tradedAt));
+  }
+
+  async getTrade(userId: string, id: number): Promise<Trade | undefined> {
+    const [trade] = await db.select().from(trades).where(and(eq(trades.id, id), eq(trades.userId, userId)));
+    return trade;
+  }
+
+  async createTrade(userId: string, trade: InsertTrade): Promise<Trade> {
+    const [newTrade] = await db.insert(trades).values({ ...trade, userId }).returning();
+    return newTrade;
+  }
+
+  async updateTrade(userId: string, id: number, trade: Partial<InsertTrade>): Promise<Trade | undefined> {
+    const [updated] = await db.update(trades)
+      .set({ ...trade, updatedAt: new Date() })
+      .where(and(eq(trades.id, id), eq(trades.userId, userId)))
+      .returning();
+    return updated;
+  }
+
+  async deleteTrade(userId: string, id: number): Promise<void> {
+    await db.delete(trades).where(and(eq(trades.id, id), eq(trades.userId, userId)));
+  }
+
+  async getDistinctStrategyTags(userId: string): Promise<string[]> {
+    const rows = await db.selectDistinct({ val: trades.strategyTag })
+      .from(trades)
+      .where(and(eq(trades.userId, userId), sql`${trades.strategyTag} IS NOT NULL AND ${trades.strategyTag} != ''`));
+    return rows.map(r => r.val!);
+  }
+
+  async getDistinctSetupTypes(userId: string): Promise<string[]> {
+    const rows = await db.selectDistinct({ val: trades.setupType })
+      .from(trades)
+      .where(and(eq(trades.userId, userId), sql`${trades.setupType} IS NOT NULL AND ${trades.setupType} != ''`));
+    return rows.map(r => r.val!);
+  }
+
+  async getDistinctIdeaSources(userId: string): Promise<string[]> {
+    const rows = await db.selectDistinct({ val: trades.ideaSource })
+      .from(trades)
+      .where(and(eq(trades.userId, userId), sql`${trades.ideaSource} IS NOT NULL AND ${trades.ideaSource} != ''`));
+    return rows.map(r => r.val!);
   }
 
   async getCachedData(key: string): Promise<unknown | null> {

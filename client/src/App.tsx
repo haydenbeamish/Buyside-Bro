@@ -19,6 +19,7 @@ import ChatPage from "@/pages/chat";
 import SubscriptionPage from "@/pages/subscription";
 import WatchlistPage from "@/pages/watchlist";
 import AdminPage from "@/pages/admin";
+import TradeTrackerPage from "@/pages/trade-tracker";
 
 function ErrorFallback() {
   return (
@@ -38,6 +39,7 @@ function DashboardRoutes() {
         <Route path="/subscription" component={SubscriptionPage} />
         <Route path="/dashboard" component={MarketsPage} />
         <Route path="/portfolio" component={PortfolioPage} />
+        <Route path="/trades" component={TradeTrackerPage} />
         <Route path="/watchlist" component={WatchlistPage} />
         <Route path="/analysis" component={AnalysisPage} />
         <Route path="/earnings" component={EarningsPage} />
