@@ -390,14 +390,21 @@ function RecentFilings({ ticker }: { ticker: string }) {
     return <Badge className={`${color} text-[10px] px-1.5 py-0 shrink-0`}>{form}</Badge>;
   };
 
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    } catch {
-      return dateStr;
-    }
+  const isValidDate = (dateStr: string) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    return !isNaN(d.getTime());
   };
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
+  // If any announcement has an invalid date, hide dates on all of them
+  const hasAnyInvalidDate = filings.announcements.some(f => !isValidDate(f.date));
+  const showDates = !hasAnyInvalidDate;
 
   return (
     <div className="space-y-3">
@@ -424,7 +431,7 @@ function RecentFilings({ ticker }: { ticker: string }) {
                 <span className={`text-sm text-zinc-200 flex-1 ${isExpanded ? "" : "truncate"}`}>
                   {filing.title}
                 </span>
-                <span className="text-xs text-zinc-500 shrink-0">{formatDate(filing.date)}</span>
+                {showDates && formatDate(filing.date) && <span className="text-xs text-zinc-500 shrink-0">{formatDate(filing.date)}</span>}
                 {isExpanded ? (
                   <ChevronUp className="h-4 w-4 text-zinc-500 shrink-0" />
                 ) : (
@@ -442,7 +449,7 @@ function RecentFilings({ ticker }: { ticker: string }) {
                   ) : null}
                   <div className="flex items-center gap-3 text-xs text-zinc-500 flex-wrap">
                     <span>Source: {filings.source === "sec_edgar" ? "SEC EDGAR" : "ASX"}</span>
-                    {filing.reportDate && <span>Report date: {formatDate(filing.reportDate)}</span>}
+                    {showDates && filing.reportDate && formatDate(filing.reportDate) && <span>Report date: {formatDate(filing.reportDate)}</span>}
                     {filing.pages && <span>{filing.pages} pages</span>}
                     {filing.fileSize && <span>{filing.fileSize}</span>}
                   </div>
