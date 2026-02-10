@@ -1285,9 +1285,9 @@ export default function TradeTrackerPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-amber-400" />
-              Trade Tracker
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-amber-400" />
+              TRADE TRACKER
             </h1>
             <p className="text-zinc-500 text-sm mt-1">Log trades, track performance, find your edge</p>
           </div>
