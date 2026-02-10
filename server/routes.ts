@@ -1349,8 +1349,17 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       if (!response.ok) {
         return res.json({ ticker, source: "unknown", announcements: [] });
       }
-      const data = await response.json();
-      res.json(data);
+      const json = await response.json() as any;
+      const filings = json.data || json;
+      // Normalize items/itemDescriptions from comma-separated strings to arrays
+      if (filings.announcements) {
+        filings.announcements = filings.announcements.map((a: any) => ({
+          ...a,
+          items: typeof a.items === "string" ? a.items.split(",").map((s: string) => s.trim()) : a.items,
+          itemDescriptions: typeof a.itemDescriptions === "string" ? a.itemDescriptions.split(";").map((s: string) => s.trim()) : a.itemDescriptions,
+        }));
+      }
+      res.json(filings);
     } catch (error) {
       console.error("Filings error:", error);
       res.json({ ticker: req.params.ticker, source: "unknown", announcements: [] });
