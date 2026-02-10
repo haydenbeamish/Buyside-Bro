@@ -2040,9 +2040,10 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       );
 
       res.json({ url: session.url });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating checkout session:", error);
-      res.status(500).json({ error: "Failed to create checkout session" });
+      const message = error?.message || "Failed to create checkout session";
+      res.status(500).json({ error: message });
     }
   });
 
