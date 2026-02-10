@@ -722,7 +722,9 @@ function PositionSizeCalculator() {
   const allFilled = ps > 0 && ep > 0 && sl > 0 && tp > 0 && sl !== ep;
 
   const dollarRiskPerShare = Math.abs(ep - sl);
-  const riskAmount = ps * (riskPercent / 100);
+  const maxRiskPercent = ep > 0 && dollarRiskPerShare > 0 ? Math.round(((dollarRiskPerShare / ep) * 100) * 10) / 10 : 100;
+  const clampedRiskPercent = Math.min(riskPercent, maxRiskPercent);
+  const riskAmount = ps * (clampedRiskPercent / 100);
   const positionSize = dollarRiskPerShare > 0 ? Math.floor(riskAmount / dollarRiskPerShare) : 0;
   const positionValue = positionSize * ep;
   const pctOfPortfolio = ps > 0 ? (positionValue / ps) * 100 : 0;
@@ -863,29 +865,29 @@ function PositionSizeCalculator() {
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <Label className="text-zinc-400 text-xs flex items-center gap-1"><Percent className="w-3 h-3" /> Portfolio Risk %</Label>
-            <Input
-              type="number"
-              step="0.1"
-              min="0.1"
-              max="100"
-              value={riskPercent}
-              onChange={(e) => setRiskPercent(Math.min(100, Math.max(0.1, parseFloat(e.target.value) || 0.1)))}
-              className="bg-zinc-800 border-zinc-700 text-white w-20 text-sm text-center"
-              data-testid="input-risk-percent"
-            />
-          </div>
+          <Label className="text-zinc-400 text-xs flex items-center gap-1 mb-1"><Percent className="w-3 h-3" /> Portfolio Risk % <span className="text-zinc-500">(Suggested: 0.5% - 2%)</span></Label>
           <input
             type="range"
             min="0.1"
-            max="100"
+            max={maxRiskPercent}
             step="0.1"
-            value={riskPercent}
+            value={clampedRiskPercent}
             onChange={(e) => setRiskPercent(parseFloat(e.target.value))}
             className="w-full accent-amber-500"
           />
-          <p className="text-xs text-zinc-500 mt-1">Suggested: 0.5% - 2%</p>
+          <Input
+            type="number"
+            step="0.1"
+            min="0.1"
+            max={maxRiskPercent}
+            value={clampedRiskPercent}
+            onChange={(e) => setRiskPercent(Math.min(maxRiskPercent, Math.max(0.1, parseFloat(e.target.value) || 0.1)))}
+            className="bg-zinc-800 border-zinc-700 text-white w-full text-sm text-center mt-1"
+            data-testid="input-risk-percent"
+          />
+          {clampedRiskPercent >= maxRiskPercent && (
+            <p className="text-xs text-amber-400 mt-1 font-semibold">This equals your total portfolio value</p>
+          )}
         </div>
       </div>
 
@@ -971,18 +973,25 @@ function PositionSizeCalculator() {
             </div>
           )}
 
-          {isAuthenticated && hasUserAnalytics && userWinRate !== null && (
+          {isAuthenticated && (
             <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
               <h4 className="text-sm font-semibold text-white flex items-center gap-2"><Target className="w-4 h-4 text-amber-400" /> Your Stats</h4>
-              <div className="space-y-2 text-sm">
-                <p className="text-zinc-300">Your Win Rate: <span className="font-mono font-bold text-amber-400">{userWinRate.toFixed(1)}%</span></p>
-                {requiredRR !== null && (
-                  <p className="text-zinc-400">Based on your {userWinRate.toFixed(1)}% win rate, you need at least <span className="font-mono font-semibold text-white">{requiredRR.toFixed(2)}:1</span> risk/reward to be profitable</p>
-                )}
-                {kellyPct !== null && (
-                  <p className="text-zinc-400">Optimal position size (Kelly): <span className="font-mono font-semibold text-white">{Math.max(0, kellyPct).toFixed(1)}%</span> of portfolio</p>
-                )}
-              </div>
+              {hasUserAnalytics && userWinRate !== null ? (
+                <div className="space-y-2 text-sm">
+                  <p className="text-zinc-300">Your Win Rate: <span className="font-mono font-bold text-amber-400">{userWinRate.toFixed(1)}%</span></p>
+                  {requiredRR !== null && (
+                    <p className="text-zinc-400">Based on your {userWinRate.toFixed(1)}% win rate, you need at least <span className="font-mono font-semibold text-white">{requiredRR.toFixed(2)}:1</span> risk/reward to be profitable</p>
+                  )}
+                  {kellyPct !== null && (
+                    <p className="text-zinc-400">Optimal position size (Kelly): <span className="font-mono font-semibold text-white">{Math.max(0, kellyPct).toFixed(1)}%</span> of portfolio</p>
+                  )}
+                  <p className="text-xs text-zinc-500">Your win rate updates automatically from the trade journal over time</p>
+                </div>
+              ) : (
+                <div className="space-y-2 text-sm">
+                  <p className="text-zinc-400">Your win rate will update automatically from the trade journal over time</p>
+                </div>
+              )}
             </div>
           )}
 
