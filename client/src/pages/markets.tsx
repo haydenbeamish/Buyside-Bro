@@ -146,29 +146,32 @@ function GroupedSection({ title, items, flashCells, note }: { title: string; ite
         {note && <p className="text-zinc-500 text-xs mt-0.5">{note}</p>}
       </div>
       {/* Mobile view */}
-      <div className="sm:hidden">
-        <div className="flex items-center px-1 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800">
-          <span className="mr-auto">Name</span>
-          <span className="w-[72px] text-right">Price</span>
-          <span className="w-[44px] text-right">1D%</span>
-          <span className="w-[44px] text-right">1M%</span>
-        </div>
-        {items.map((item) => (
-          <div
-            key={item.name}
-            className="flex items-center px-1 py-2 border-b border-zinc-800/50 text-xs"
-          >
-            <span className="text-zinc-200 mr-auto">{item.name}</span>
-            <span className={`w-[72px] text-right font-mono text-zinc-300 ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
-              {item.price >= 10000
-                ? item.price.toLocaleString(undefined, { maximumFractionDigits: 0 })
-                : item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-              }
-            </span>
-            <span className="w-[44px] text-right"><MobilePercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} /></span>
-            <span className="w-[44px] text-right"><MobilePercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} /></span>
-          </div>
-        ))}
+      <div className="sm:hidden overflow-x-auto">
+        <table className="w-full text-xs" style={{ tableLayout: 'auto' }}>
+          <thead>
+            <tr className="text-[11px] text-zinc-500 uppercase border-b border-zinc-800">
+              <th className="px-2 py-2 text-left font-medium whitespace-nowrap">Name</th>
+              <th className="px-2 py-2 text-right font-medium whitespace-nowrap">Price</th>
+              <th className="px-2 py-2 text-right font-medium whitespace-nowrap">1D%</th>
+              <th className="px-2 py-2 text-right font-medium whitespace-nowrap">1M%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.name} className="border-b border-zinc-800/50">
+                <td className="px-2 py-1.5 text-zinc-200 font-medium whitespace-nowrap" style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</td>
+                <td className={`px-2 py-1.5 text-right font-mono text-zinc-300 whitespace-nowrap ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
+                  {item.price >= 10000
+                    ? item.price.toLocaleString(undefined, { maximumFractionDigits: 0 })
+                    : item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  }
+                </td>
+                <td className="px-2 py-1.5 text-right whitespace-nowrap"><MobilePercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} /></td>
+                <td className="px-2 py-1.5 text-right whitespace-nowrap"><MobilePercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
       {/* Desktop view */}
       <table className="hidden sm:table w-full text-sm">
@@ -276,43 +279,37 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
 
   return (
     <>
-      {/* Mobile view - compact 4-column layout */}
-      <div className="sm:hidden">
-        <div className="flex items-center px-1 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800 sticky top-0 bg-black z-10">
-          <span className="font-medium mr-auto">NAME</span>
-          <span className="w-[72px] text-right font-medium">PRICE</span>
-          <button
-            onClick={() => handleSort('change1D')}
-            className="w-[44px] text-right font-medium flex items-center justify-end gap-0.5 min-h-[44px]"
-          >
-            1D% <SortIndicator field="change1D" />
-          </button>
-          <button
-            onClick={() => handleSort('change1M')}
-            className="w-[44px] text-right font-medium flex items-center justify-end gap-0.5 min-h-[44px]"
-          >
-            1M% <SortIndicator field="change1M" />
-          </button>
-        </div>
-        <div className="divide-y divide-zinc-800/50">
-          {sortedItems.map((item, idx) => (
-            <div
-              key={item.name}
-              className="flex items-center px-1 py-2 text-xs"
-              data-testid={`market-row-mobile-${idx}`}
-            >
-              <span className="text-zinc-200 mr-auto">{item.name}</span>
-              <span className={`w-[72px] text-right font-mono text-zinc-300 ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
-                {item.price >= 10000
-                  ? item.price.toLocaleString(undefined, { maximumFractionDigits: 0 })
-                  : item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                }
-              </span>
-              <span className="w-[44px] text-right"><MobilePercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} /></span>
-              <span className="w-[44px] text-right"><MobilePercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} /></span>
-            </div>
-          ))}
-        </div>
+      {/* Mobile view - compact table layout */}
+      <div className="sm:hidden overflow-x-auto">
+        <table className="w-full text-xs" style={{ tableLayout: 'auto' }}>
+          <thead>
+            <tr className="text-[11px] text-zinc-500 uppercase border-b border-zinc-800 sticky top-0 bg-black z-10">
+              <th className="px-2 py-2 text-left font-medium whitespace-nowrap">NAME</th>
+              <th className="px-2 py-2 text-right font-medium whitespace-nowrap">PRICE</th>
+              <th className="px-2 py-2 text-right font-medium whitespace-nowrap cursor-pointer" onClick={() => handleSort('change1D')}>
+                1D% <SortIndicator field="change1D" />
+              </th>
+              <th className="px-2 py-2 text-right font-medium whitespace-nowrap cursor-pointer" onClick={() => handleSort('change1M')}>
+                1M% <SortIndicator field="change1M" />
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedItems.map((item, idx) => (
+              <tr key={item.name} className="border-b border-zinc-800/50" data-testid={`market-row-mobile-${idx}`}>
+                <td className="px-2 py-1.5 text-zinc-200 font-medium whitespace-nowrap" style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.name}</td>
+                <td className={`px-2 py-1.5 text-right font-mono text-zinc-300 whitespace-nowrap ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
+                  {item.price >= 10000
+                    ? item.price.toLocaleString(undefined, { maximumFractionDigits: 0 })
+                    : item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                  }
+                </td>
+                <td className="px-2 py-1.5 text-right whitespace-nowrap"><MobilePercentCell value={item.change1D} flash={flashCells[`${item.name}:change1D`]} /></td>
+                <td className="px-2 py-1.5 text-right whitespace-nowrap"><MobilePercentCell value={item.change1M} flash={flashCells[`${item.name}:change1M`]} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* Desktop view - full table */}

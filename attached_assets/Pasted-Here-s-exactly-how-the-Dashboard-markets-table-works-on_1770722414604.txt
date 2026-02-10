@@ -1,0 +1,37 @@
+Here's exactly how the Dashboard markets table works on mobile:
+
+It's a standard HTML <table>, not flexbox or CSS grid.
+
+JSX structure for a market row:
+
+<table className="markets-table futures-table">
+  <thead>
+    <tr>
+      <th className="sortable-header">NAME</th>
+      <th className="sortable-header">PRICE</th>
+      <th className="sortable-header">1D%</th>
+      <th className="sortable-header">1M%</th>
+      ...
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td className="name-cell">{item.name}</td>
+      <td>{formatNumber(item.lastPrice)}</td>
+      <td className="positive/negative">{formatPercent(item.chgDay)}</td>
+      <td className="positive/negative">{formatPercent(item.chgMonth)}</td>
+      ...
+    </tr>
+  </tbody>
+</table>
+Key CSS that makes the name column fit tightly:
+
+table-layout: auto (from .markets-table at line 3830) — this is the crucial one. The browser sizes each column to its content rather than distributing space equally. The name column only takes as much width as the longest name needs.
+.name-cell styles (line 3869-3874):
+font-weight: 500; color: #fff;
+max-width: 140px; overflow: hidden; text-overflow: ellipsis; — caps it at 140px so very long names get truncated with "..."
+white-space: nowrap (inherited from td at line 3862) — prevents wrapping
+The futures table uses table-layout: fixed with an explicit width: 180px on .futures-table .col-name — but the Dashboard futures table rows use className="name-cell" (not col-name), so they actually get the table-layout: auto behavior with the 140px max-width cap.
+Compact padding: padding: 6px 8px on all cells (line 3858) keeps gaps tight.
+The wrapper (.markets-table-wrapper) has overflow-x: auto so on mobile if the table is wider than the screen, it scrolls horizontally rather than breaking layout.
+In short: table-layout: auto + white-space: nowrap + max-width: 140px on the name cell = name fits its content tightly, truncates if too long, and the numeric columns pack in beside it with minimal gaps.
