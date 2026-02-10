@@ -7,6 +7,7 @@ import { useBroStatus } from "@/hooks/use-bro-status";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { LoginGateModal } from "@/components/login-gate-modal";
 import { StockSearch } from "@/components/stock-search";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ import {
   TrendingUp, Loader2, ChevronDown, ChevronUp,
   Trophy, Target, BarChart3, ArrowUpRight, ArrowDownRight, Trash2,
   AlertTriangle, Lock, Plus, Building2, X,
+  Calculator, Percent, Scale, CheckCircle2, Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Trade } from "@shared/schema";
@@ -254,77 +256,73 @@ function TradingViewChart({ ticker, exchange, height = "h-[350px] sm:h-[450px]" 
 // ─── Analytics Dashboard ──────────────────────────────────────────
 
 function AnalyticsDashboard({ analytics, isDemo }: { analytics: Analytics; isDemo: boolean }) {
-  const [expanded, setExpanded] = useState(true);
   return (
     <div className="space-y-4">
-      <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-amber-400 transition-colors">
+      <div className="flex items-center gap-2 text-sm text-zinc-400">
         <BarChart3 className="w-4 h-4" /><span className="font-medium">Analytics Dashboard</span>
-        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-      </button>
-      {expanded && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <AnalyticsMetricCard label="Win Rate" value={`${analytics.winRate.toFixed(1)}%`} color={analytics.winRate >= 50 ? "text-green-400" : "text-red-400"} />
-            <AnalyticsMetricCard label="Profit Factor" value={analytics.profitFactor === Infinity ? "---" : analytics.profitFactor.toFixed(2)} color={analytics.profitFactor >= 1 ? "text-green-400" : "text-red-400"} />
-            <AnalyticsMetricCard label="Expectancy" value={formatPnL(analytics.expectancy)} color={analytics.expectancy >= 0 ? "text-green-400" : "text-red-400"} />
-            <AnalyticsMetricCard label="Total P&L" value={formatPnL(analytics.totalPnL)} color={analytics.totalPnL >= 0 ? "text-green-400" : "text-red-400"} />
-            <AnalyticsMetricCard label="Avg Win" value={formatPnL(analytics.avgWin)} color="text-green-400" />
-            <AnalyticsMetricCard label="Avg Loss" value={formatPnL(analytics.avgLoss)} color="text-red-400" />
-            <AnalyticsMetricCard label="Sharpe Ratio" value={analytics.sharpeRatio.toFixed(2)} color={analytics.sharpeRatio >= 1 ? "text-green-400" : analytics.sharpeRatio >= 0 ? "text-amber-400" : "text-red-400"} />
-            <AnalyticsMetricCard label="Max Drawdown" value={formatCurrency(analytics.maxDrawdown)} color="text-red-400" />
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <AnalyticsMetricCard label="Win Streak" value={`${analytics.winStreak}`} color="text-green-400" />
-            <AnalyticsMetricCard label="Loss Streak" value={`${analytics.lossStreak}`} color="text-red-400" />
-            <AnalyticsMetricCard label="Current" value={`${analytics.currentStreak} ${analytics.currentStreakType || ""}`} color={analytics.currentStreakType === "win" ? "text-green-400" : analytics.currentStreakType === "loss" ? "text-red-400" : "text-zinc-400"} />
-          </div>
-          {analytics.ideaSourceBreakdown.length > 0 && (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3"><Trophy className="w-4 h-4 text-amber-400" /><h3 className="text-sm font-semibold text-white">Who Made You The Most Money?</h3></div>
-              <div className="space-y-2">
-                {analytics.ideaSourceBreakdown.map((src, i) => (
-                  <div key={src.source} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-5 text-center font-bold ${i === 0 ? "text-amber-400" : i === 1 ? "text-zinc-300" : i === 2 ? "text-orange-400" : "text-zinc-500"}`}>{i === 0 ? "\ud83c\udfc6" : `#${i + 1}`}</span>
-                      <span className="text-zinc-300">{src.source}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-zinc-500 text-xs">{src.count} trades</span>
-                      <span className="text-zinc-500 text-xs">{src.winRate.toFixed(0)}% win</span>
-                      <span className={`font-mono font-semibold ${src.totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>{formatPnL(src.totalPnL)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {analytics.strategyBreakdown.length > 0 && (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-white mb-3">Strategy Breakdown</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm"><thead><tr className="text-zinc-500 text-xs border-b border-zinc-800"><th className="text-left py-2">Strategy</th><th className="text-right py-2">Trades</th><th className="text-right py-2">Win Rate</th><th className="text-right py-2">P&L</th><th className="text-right py-2">Expectancy</th></tr></thead>
-                <tbody>{analytics.strategyBreakdown.map(s => (<tr key={s.strategy} className="border-b border-zinc-800/50"><td className="py-2 text-zinc-300 capitalize">{s.strategy}</td><td className="py-2 text-right text-zinc-400">{s.count}</td><td className={`py-2 text-right ${s.winRate >= 50 ? "text-green-400" : "text-red-400"}`}>{s.winRate.toFixed(0)}%</td><td className={`py-2 text-right font-mono ${s.totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>{formatPnL(s.totalPnL)}</td><td className={`py-2 text-right font-mono ${s.expectancy >= 0 ? "text-green-400" : "text-red-400"}`}>{formatPnL(s.expectancy)}</td></tr>))}</tbody></table>
-              </div>
-            </div>
-          )}
-          {analytics.dayOfWeekPerformance.length > 0 && (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-white mb-3">Day of Week Performance</h3>
-              <div className="flex items-end gap-2 h-24">
-                {analytics.dayOfWeekPerformance.map(d => { const maxAbs = Math.max(...analytics.dayOfWeekPerformance.map(x => Math.abs(x.avgPnL))); const barH = maxAbs > 0 ? (Math.abs(d.avgPnL) / maxAbs) * 80 : 0; return (<div key={d.day} className="flex-1 flex flex-col items-center gap-1"><div className="flex-1 flex items-end w-full"><div className={`w-full rounded-t ${d.avgPnL >= 0 ? "bg-green-500/60" : "bg-red-500/60"}`} style={{ height: `${Math.max(barH, 4)}px` }} /></div><span className="text-[10px] text-zinc-500">{d.day.slice(0, 3)}</span></div>); })}
-              </div>
-            </div>
-          )}
-          {analytics.holdingPeriodAnalysis.length > 0 && (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-white mb-3">Holding Period Analysis</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {analytics.holdingPeriodAnalysis.filter(h => h.count > 0).map(h => (<div key={h.period} className="bg-zinc-800/50 rounded p-2"><p className="text-xs text-zinc-500">{h.period}</p><p className={`text-sm font-mono font-semibold ${h.totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>{formatPnL(h.totalPnL)}</p><p className="text-xs text-zinc-500">{h.count} trades | {h.winRate.toFixed(0)}% win</p></div>))}
-              </div>
-            </div>
-          )}
+      </div>
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <AnalyticsMetricCard label="Win Rate" value={`${analytics.winRate.toFixed(1)}%`} color={analytics.winRate >= 50 ? "text-green-400" : "text-red-400"} />
+          <AnalyticsMetricCard label="Profit Factor" value={analytics.profitFactor === Infinity ? "---" : analytics.profitFactor.toFixed(2)} color={analytics.profitFactor >= 1 ? "text-green-400" : "text-red-400"} />
+          <AnalyticsMetricCard label="Expectancy" value={formatPnL(analytics.expectancy)} color={analytics.expectancy >= 0 ? "text-green-400" : "text-red-400"} />
+          <AnalyticsMetricCard label="Total P&L" value={formatPnL(analytics.totalPnL)} color={analytics.totalPnL >= 0 ? "text-green-400" : "text-red-400"} />
+          <AnalyticsMetricCard label="Avg Win" value={formatPnL(analytics.avgWin)} color="text-green-400" />
+          <AnalyticsMetricCard label="Avg Loss" value={formatPnL(analytics.avgLoss)} color="text-red-400" />
+          <AnalyticsMetricCard label="Sharpe Ratio" value={analytics.sharpeRatio.toFixed(2)} color={analytics.sharpeRatio >= 1 ? "text-green-400" : analytics.sharpeRatio >= 0 ? "text-amber-400" : "text-red-400"} />
+          <AnalyticsMetricCard label="Max Drawdown" value={formatCurrency(analytics.maxDrawdown)} color="text-red-400" />
         </div>
-      )}
+        <div className="grid grid-cols-3 gap-3">
+          <AnalyticsMetricCard label="Win Streak" value={`${analytics.winStreak}`} color="text-green-400" />
+          <AnalyticsMetricCard label="Loss Streak" value={`${analytics.lossStreak}`} color="text-red-400" />
+          <AnalyticsMetricCard label="Current" value={`${analytics.currentStreak} ${analytics.currentStreakType || ""}`} color={analytics.currentStreakType === "win" ? "text-green-400" : analytics.currentStreakType === "loss" ? "text-red-400" : "text-zinc-400"} />
+        </div>
+        {analytics.ideaSourceBreakdown.length > 0 && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3"><Trophy className="w-4 h-4 text-amber-400" /><h3 className="text-sm font-semibold text-white">Who Made You The Most Money?</h3></div>
+            <div className="space-y-2">
+              {analytics.ideaSourceBreakdown.map((src, i) => (
+                <div key={src.source} className="flex items-center justify-between gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-5 text-center font-bold ${i === 0 ? "text-amber-400" : i === 1 ? "text-zinc-300" : i === 2 ? "text-orange-400" : "text-zinc-500"}`}>{i === 0 ? "\ud83c\udfc6" : `#${i + 1}`}</span>
+                    <span className="text-zinc-300">{src.source}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-zinc-500 text-xs">{src.count} trades</span>
+                    <span className="text-zinc-500 text-xs">{src.winRate.toFixed(0)}% win</span>
+                    <span className={`font-mono font-semibold ${src.totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>{formatPnL(src.totalPnL)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {analytics.strategyBreakdown.length > 0 && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-white mb-3">Strategy Breakdown</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm"><thead><tr className="text-zinc-500 text-xs border-b border-zinc-800"><th className="text-left py-2">Strategy</th><th className="text-right py-2">Trades</th><th className="text-right py-2">Win Rate</th><th className="text-right py-2">P&L</th><th className="text-right py-2">Expectancy</th></tr></thead>
+              <tbody>{analytics.strategyBreakdown.map(s => (<tr key={s.strategy} className="border-b border-zinc-800/50"><td className="py-2 text-zinc-300 capitalize">{s.strategy}</td><td className="py-2 text-right text-zinc-400">{s.count}</td><td className={`py-2 text-right ${s.winRate >= 50 ? "text-green-400" : "text-red-400"}`}>{s.winRate.toFixed(0)}%</td><td className={`py-2 text-right font-mono ${s.totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>{formatPnL(s.totalPnL)}</td><td className={`py-2 text-right font-mono ${s.expectancy >= 0 ? "text-green-400" : "text-red-400"}`}>{formatPnL(s.expectancy)}</td></tr>))}</tbody></table>
+            </div>
+          </div>
+        )}
+        {analytics.dayOfWeekPerformance.length > 0 && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-white mb-3">Day of Week Performance</h3>
+            <div className="flex items-end gap-2 h-24">
+              {analytics.dayOfWeekPerformance.map(d => { const maxAbs = Math.max(...analytics.dayOfWeekPerformance.map(x => Math.abs(x.avgPnL))); const barH = maxAbs > 0 ? (Math.abs(d.avgPnL) / maxAbs) * 80 : 0; return (<div key={d.day} className="flex-1 flex flex-col items-center gap-1"><div className="flex-1 flex items-end w-full"><div className={`w-full rounded-t ${d.avgPnL >= 0 ? "bg-green-500/60" : "bg-red-500/60"}`} style={{ height: `${Math.max(barH, 4)}px` }} /></div><span className="text-[10px] text-zinc-500">{d.day.slice(0, 3)}</span></div>); })}
+            </div>
+          </div>
+        )}
+        {analytics.holdingPeriodAnalysis.length > 0 && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-white mb-3">Holding Period Analysis</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {analytics.holdingPeriodAnalysis.filter(h => h.count > 0).map(h => (<div key={h.period} className="bg-zinc-800/50 rounded p-2"><p className="text-xs text-zinc-500">{h.period}</p><p className={`text-sm font-mono font-semibold ${h.totalPnL >= 0 ? "text-green-400" : "text-red-400"}`}>{formatPnL(h.totalPnL)}</p><p className="text-xs text-zinc-500">{h.count} trades | {h.winRate.toFixed(0)}% win</p></div>))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -390,10 +388,69 @@ function TradeCard({ trade, onDelete, isDemo }: { trade: any; onDelete?: (id: nu
   );
 }
 
-// ─── Demo Trade Tracker ───────────────────────────────────────────
+// ─── Analytics Tab Content ────────────────────────────────────────
 
-function DemoTradeTracker() {
-  const analytics = useMemo(() => computeDemoAnalytics(), []);
+function AnalyticsTabContent() {
+  const { isAuthenticated } = useAuth();
+  const { isPro } = useBroStatus();
+  const demoAnalytics = useMemo(() => computeDemoAnalytics(), []);
+
+  const { data: trades = [] } = useQuery<Trade[]>({
+    queryKey: ["/api/trades"],
+    enabled: isAuthenticated && isPro,
+  });
+  const { data: realAnalytics, isLoading: analyticsLoading } = useQuery<Analytics>({
+    queryKey: ["/api/trades/analytics"],
+    enabled: isAuthenticated && isPro,
+  });
+
+  const hasEnoughTrades = trades.length >= 10;
+
+  if (!isAuthenticated || !isPro) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-amber-900/20 border border-amber-800/50 rounded-lg p-4 flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+          <div className="flex-1"><p className="text-amber-400 font-medium text-sm">This is sample data</p><p className="text-zinc-400 text-xs mt-0.5">Upgrade to Pro to track your real trades and unlock full analytics.</p></div>
+          <a href="/subscription"><Button size="sm" className="neon-button shrink-0"><Lock className="w-3 h-3 mr-1" /> Upgrade</Button></a>
+        </div>
+        <AnalyticsDashboard analytics={demoAnalytics} isDemo={true} />
+      </div>
+    );
+  }
+
+  if (!hasEnoughTrades) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-blue-900/20 border border-blue-800/50 rounded-lg p-4 flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-blue-400 shrink-0" />
+          <div className="flex-1"><p className="text-blue-400 font-medium text-sm">Sample data shown below</p><p className="text-zinc-400 text-xs mt-0.5">Log at least 10 trades in the Trade Journal to see your real analytics.</p></div>
+        </div>
+        <AnalyticsDashboard analytics={demoAnalytics} isDemo={true} />
+      </div>
+    );
+  }
+
+  if (analyticsLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[1,2,3,4,5,6,7,8].map(i => <Skeleton key={i} className="h-20 bg-zinc-800 rounded-lg" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (realAnalytics && realAnalytics.totalTrades > 0) {
+    return <AnalyticsDashboard analytics={realAnalytics} isDemo={false} />;
+  }
+
+  return <AnalyticsDashboard analytics={demoAnalytics} isDemo={true} />;
+}
+
+// ─── Trade Journal Tab Content ────────────────────────────────────
+
+function DemoTradeJournal() {
   const [filterTicker, setFilterTicker] = useState("");
   const [filterStrategy, setFilterStrategy] = useState("");
   const [filterAction, setFilterAction] = useState("");
@@ -407,9 +464,8 @@ function DemoTradeTracker() {
         <div className="flex-1"><p className="text-amber-400 font-medium text-sm">This is sample data</p><p className="text-zinc-400 text-xs mt-0.5">Upgrade to Pro to track your real trades and unlock full analytics.</p></div>
         <a href="/subscription"><Button size="sm" className="neon-button shrink-0"><Lock className="w-3 h-3 mr-1" /> Upgrade</Button></a>
       </div>
-      <AnalyticsDashboard analytics={analytics} isDemo={true} />
       <div className="flex flex-wrap gap-2">
-        <Input placeholder="Filter by ticker..." value={filterTicker} onChange={(e) => setFilterTicker(e.target.value.toUpperCase())} className="bg-zinc-800 border-zinc-700 text-white w-40 text-sm" />
+        <Input placeholder="Filter by ticker..." value={filterTicker} onChange={(e) => setFilterTicker(e.target.value.toUpperCase())} className="bg-zinc-800 border-zinc-700 text-white w-40 text-sm" data-testid="input-filter-ticker" />
         <select value={filterStrategy} onChange={(e) => setFilterStrategy(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"><option value="">All strategies</option><option value="momentum">Momentum</option><option value="growth">Growth</option><option value="contrarian">Contrarian</option><option value="value">Value</option><option value="swing">Swing</option></select>
         <select value={filterAction} onChange={(e) => setFilterAction(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"><option value="">All actions</option><option value="buy">Buys</option><option value="sell">Sells</option></select>
       </div>
@@ -418,9 +474,7 @@ function DemoTradeTracker() {
   );
 }
 
-// ─── Real Trade Tracker ───────────────────────────────────────────
-
-function RealTradeTracker() {
+function RealTradeJournal() {
   const { toast } = useToast();
   const [selectedTicker, setSelectedTicker] = useState("");
   const [selectedName, setSelectedName] = useState("");
@@ -441,7 +495,6 @@ function RealTradeTracker() {
   const [showMoreDetails, setShowMoreDetails] = useState(false);
 
   const { data: trades = [], isLoading: tradesLoading } = useQuery<Trade[]>({ queryKey: ["/api/trades"] });
-  const { data: analytics } = useQuery<Analytics>({ queryKey: ["/api/trades/analytics"] });
   const { data: strategies = [] } = useQuery<string[]>({ queryKey: ["/api/trades/labels/strategies"] });
   const { data: setups = [] } = useQuery<string[]>({ queryKey: ["/api/trades/labels/setups"] });
   const { data: sources = [] } = useQuery<string[]>({ queryKey: ["/api/trades/labels/sources"] });
@@ -450,7 +503,6 @@ function RealTradeTracker() {
   const { data: historyRaw } = useQuery<any>({ queryKey: ["/api/analysis/history/" + selectedTicker], enabled: !!selectedTicker });
   const { data: forwardMetrics, isLoading: metricsLoading } = useQuery<ForwardMetrics>({ queryKey: ["/api/analysis/forward/" + selectedTicker], enabled: !!selectedTicker });
 
-  // API returns { ticker, data: [...] } — extract the array
   const chartData = useMemo(() => {
     const arr = historyRaw?.data || historyRaw;
     if (!arr || !Array.isArray(arr)) return [];
@@ -506,17 +558,14 @@ function RealTradeTracker() {
 
   return (
     <div className="space-y-6">
-      {analytics && analytics.totalTrades > 0 && (<AnalyticsDashboard analytics={analytics} isDemo={false} />)}
-
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-4">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2"><Plus className="w-4 h-4 text-amber-400" /> Log a Trade</h3>
+        <h3 className="text-sm font-semibold text-white flex items-center gap-2"><Plus className="w-4 h-4 text-amber-400" /> Trade Journal</h3>
         <StockSearch onSelect={handleSelectTicker} placeholder="Search for a stock to trade..." clearOnSelect={false} />
 
         {selectedTicker && !profile && profileLoading && (<div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-amber-500" /></div>)}
 
         {selectedTicker && profile && (
           <div className="space-y-4">
-            {/* Stock Header */}
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -535,13 +584,11 @@ function RealTradeTracker() {
               </div>
             </div>
 
-            {/* BUY / SELL */}
             <div className="flex gap-3">
               <Button onClick={() => setTradeAction(tradeAction === "buy" ? null : "buy")} className={`flex-1 font-semibold text-lg py-5 ${tradeAction === "buy" ? "bg-green-600 hover:bg-green-500 text-white ring-2 ring-green-400" : "bg-green-900/30 hover:bg-green-800/50 text-green-400 border border-green-800"}`}><ArrowUpRight className="w-5 h-5 mr-1" /> BUY</Button>
               <Button onClick={() => setTradeAction(tradeAction === "sell" ? null : "sell")} className={`flex-1 font-semibold text-lg py-5 ${tradeAction === "sell" ? "bg-red-600 hover:bg-red-500 text-white ring-2 ring-red-400" : "bg-red-900/30 hover:bg-red-800/50 text-red-400 border border-red-800"}`}><ArrowDownRight className="w-5 h-5 mr-1" /> SELL</Button>
             </div>
 
-            {/* Inline Form */}
             {tradeAction && (
               <div className="space-y-4 border-t border-zinc-800 pt-4">
                 <div className="grid grid-cols-2 gap-3">
@@ -573,16 +620,12 @@ function RealTradeTracker() {
               </div>
             )}
 
-            {/* Key Metrics Grid — same as Company page */}
             <MetricsGrid profile={profile} financials={financials} forwardMetrics={forwardMetrics} profileLoading={profileLoading} financialsLoading={financialsLoading} metricsLoading={metricsLoading} />
-
-            {/* TradingView Chart */}
             <TradingViewChart ticker={selectedTicker} exchange={profile.exchange} />
           </div>
         )}
       </div>
 
-      {/* Trade Feed */}
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-white">Trade History</h3>
         {trades.length > 0 && (
@@ -604,6 +647,250 @@ function RealTradeTracker() {
   );
 }
 
+function TradeJournalTabContent() {
+  const { isAuthenticated } = useAuth();
+  const { isPro } = useBroStatus();
+
+  if (isAuthenticated && isPro) {
+    return <RealTradeJournal />;
+  }
+  return <DemoTradeJournal />;
+}
+
+// ─── Position Size Calculator ─────────────────────────────────────
+
+function PositionSizeCalculator() {
+  const { isAuthenticated } = useAuth();
+  const { isPro } = useBroStatus();
+
+  const { data: portfolioData } = useQuery<any[]>({
+    queryKey: ["/api/portfolio/enriched"],
+    enabled: isAuthenticated === true,
+  });
+
+  const { data: analytics } = useQuery<Analytics>({
+    queryKey: ["/api/trades/analytics"],
+    enabled: isAuthenticated && isPro,
+  });
+
+  const computedPortfolioValue = useMemo(() => {
+    if (!portfolioData || !Array.isArray(portfolioData)) return 0;
+    return portfolioData.reduce((sum: number, item: any) => {
+      const cp = item.currentPrice || 0;
+      const sh = parseFloat(item.shares) || 0;
+      return sum + cp * sh;
+    }, 0);
+  }, [portfolioData]);
+
+  const [portfolioSize, setPortfolioSize] = useState("");
+  const [entryPrice, setEntryPrice] = useState("");
+  const [stopLoss, setStopLoss] = useState("");
+  const [targetPrice, setTargetPrice] = useState("");
+  const [riskPercent, setRiskPercent] = useState(1);
+
+  useEffect(() => {
+    if (computedPortfolioValue > 0 && !portfolioSize) {
+      setPortfolioSize(computedPortfolioValue.toFixed(2));
+    }
+  }, [computedPortfolioValue]);
+
+  const ps = parseFloat(portfolioSize) || 0;
+  const ep = parseFloat(entryPrice) || 0;
+  const sl = parseFloat(stopLoss) || 0;
+  const tp = parseFloat(targetPrice) || 0;
+
+  const allFilled = ps > 0 && ep > 0 && sl > 0 && tp > 0 && sl !== ep;
+
+  const dollarRiskPerShare = Math.abs(ep - sl);
+  const riskAmount = ps * (riskPercent / 100);
+  const positionSize = dollarRiskPerShare > 0 ? Math.floor(riskAmount / dollarRiskPerShare) : 0;
+  const positionValue = positionSize * ep;
+  const pctOfPortfolio = ps > 0 ? (positionValue / ps) * 100 : 0;
+  const riskRewardRatio = dollarRiskPerShare > 0 ? (tp - ep) / (ep - sl) : 0;
+
+  const rrFeedback = useMemo(() => {
+    if (!allFilled) return null;
+    const rr = Math.abs(riskRewardRatio);
+    if (rr >= 5) return { color: "bg-green-900/30 border-green-800 text-green-400", icon: <Sparkles className="w-4 h-4" />, message: "Excellent risk/reward! Even with a 20% win rate you'd be profitable." };
+    if (rr >= 2) return { color: "bg-green-900/30 border-green-800 text-green-400", icon: <CheckCircle2 className="w-4 h-4" />, message: "Good risk/reward. Bro approves." };
+    if (rr >= 1) return { color: "bg-amber-900/30 border-amber-800 text-amber-400", icon: <Scale className="w-4 h-4" />, message: "Decent. At 1:1 you need 50% win rate, at 2:1 you only need 34%." };
+    return { color: "bg-red-900/30 border-red-800 text-red-400", icon: <AlertTriangle className="w-4 h-4" />, message: "Below average risk/reward. At 1:1 you need to win >50% of trades just to break even." };
+  }, [allFilled, riskRewardRatio]);
+
+  const winRateRef = [
+    { rate: "30%", rr: "2.33:1" },
+    { rate: "40%", rr: "1.50:1" },
+    { rate: "50%", rr: "1.00:1" },
+    { rate: "60%", rr: "0.67:1" },
+    { rate: "70%", rr: "0.43:1" },
+    { rate: "80%", rr: "0.25:1" },
+  ];
+
+  const hasUserAnalytics = analytics && analytics.totalTrades > 0;
+  const userWinRate = hasUserAnalytics ? analytics.winRate : null;
+  const userWinRateDecimal = userWinRate !== null ? userWinRate / 100 : null;
+  const requiredRR = userWinRateDecimal !== null && userWinRateDecimal > 0 ? (1 - userWinRateDecimal) / userWinRateDecimal : null;
+  const avgRR = hasUserAnalytics && analytics.avgLoss !== 0 ? analytics.avgWin / Math.abs(analytics.avgLoss) : null;
+  const kellyPct = userWinRateDecimal !== null && avgRR !== null && avgRR > 0 ? (userWinRateDecimal - ((1 - userWinRateDecimal) / avgRR)) * 100 : null;
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+          <Calculator className="w-4 h-4 text-amber-400" /> Position Size Calculator
+        </h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <Label className="text-zinc-400 text-xs">Portfolio Size</Label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">$</span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="100000"
+                value={portfolioSize}
+                onChange={(e) => setPortfolioSize(e.target.value)}
+                className="bg-zinc-800 border-zinc-700 text-white pl-7"
+                data-testid="input-portfolio-size"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-zinc-400 text-xs">Entry Price</Label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="150.00"
+              value={entryPrice}
+              onChange={(e) => setEntryPrice(e.target.value)}
+              className="bg-zinc-800 border-zinc-700 text-white mt-1"
+              data-testid="input-entry-price"
+            />
+          </div>
+          <div>
+            <Label className="text-zinc-400 text-xs">Stop Loss Price</Label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="140.00"
+              value={stopLoss}
+              onChange={(e) => setStopLoss(e.target.value)}
+              className="bg-zinc-800 border-zinc-700 text-white mt-1"
+              data-testid="input-stop-loss"
+            />
+          </div>
+          <div>
+            <Label className="text-zinc-400 text-xs">Target Price</Label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="180.00"
+              value={targetPrice}
+              onChange={(e) => setTargetPrice(e.target.value)}
+              className="bg-zinc-800 border-zinc-700 text-white mt-1"
+              data-testid="input-target-price"
+            />
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <Label className="text-zinc-400 text-xs flex items-center gap-1"><Percent className="w-3 h-3" /> Portfolio Risk %</Label>
+            <Input
+              type="number"
+              step="0.1"
+              min="0.1"
+              max="5"
+              value={riskPercent}
+              onChange={(e) => setRiskPercent(Math.min(5, Math.max(0.1, parseFloat(e.target.value) || 0.1)))}
+              className="bg-zinc-800 border-zinc-700 text-white w-20 text-sm text-center"
+              data-testid="input-risk-percent"
+            />
+          </div>
+          <input
+            type="range"
+            min="0.1"
+            max="5"
+            step="0.1"
+            value={riskPercent}
+            onChange={(e) => setRiskPercent(parseFloat(e.target.value))}
+            className="w-full accent-amber-500"
+          />
+          <p className="text-xs text-zinc-500 mt-1">Suggested: 0.5% - 2%</p>
+        </div>
+      </div>
+
+      {allFilled && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <AnalyticsMetricCard label="Position Size" value={`${positionSize.toLocaleString()} shares`} color="text-amber-400" />
+            <AnalyticsMetricCard label="Position Value" value={`$${positionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} color="text-white" />
+            <AnalyticsMetricCard label="% of Portfolio" value={`${pctOfPortfolio.toFixed(1)}%`} color={pctOfPortfolio > 25 ? "text-red-400" : pctOfPortfolio > 10 ? "text-amber-400" : "text-green-400"} />
+            <AnalyticsMetricCard label="Risk Amount" value={`$${riskAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} color="text-red-400" />
+            <AnalyticsMetricCard label="Dollar Risk/Share" value={`$${dollarRiskPerShare.toFixed(2)}`} color="text-zinc-300" />
+            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3" data-testid="text-risk-reward">
+              <p className="text-xs text-zinc-500 mb-1">Risk/Reward</p>
+              <p className={`text-lg font-bold font-mono ${riskRewardRatio >= 2 ? "text-green-400" : riskRewardRatio >= 1 ? "text-amber-400" : "text-red-400"}`}>
+                {Math.abs(riskRewardRatio).toFixed(2)}:1
+              </p>
+            </div>
+          </div>
+          <div data-testid="text-position-size" className="sr-only">{positionSize}</div>
+
+          {rrFeedback && (
+            <div className={`border rounded-lg p-4 flex items-start gap-3 ${rrFeedback.color}`}>
+              {rrFeedback.icon}
+              <p className="text-sm">{rrFeedback.message}</p>
+            </div>
+          )}
+
+          {isAuthenticated && hasUserAnalytics && userWinRate !== null && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
+              <h4 className="text-sm font-semibold text-white flex items-center gap-2"><Target className="w-4 h-4 text-amber-400" /> Your Stats</h4>
+              <div className="space-y-2 text-sm">
+                <p className="text-zinc-300">Your Win Rate: <span className="font-mono font-bold text-amber-400">{userWinRate.toFixed(1)}%</span></p>
+                {requiredRR !== null && (
+                  <p className="text-zinc-400">Based on your {userWinRate.toFixed(1)}% win rate, you need at least <span className="font-mono font-semibold text-white">{requiredRR.toFixed(2)}:1</span> risk/reward to be profitable</p>
+                )}
+                {kellyPct !== null && (
+                  <p className="text-zinc-400">Optimal position size (Kelly): <span className="font-mono font-semibold text-white">{Math.max(0, kellyPct).toFixed(1)}%</span> of portfolio</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-white mb-3">Win Rate vs Required Risk/Reward</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-zinc-500 text-xs border-b border-zinc-800">
+                    <th className="text-left py-2 pr-4">Win Rate</th>
+                    <th className="text-right py-2">Min R:R to Break Even</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {winRateRef.map(row => (
+                    <tr key={row.rate} className="border-b border-zinc-800/50">
+                      <td className="py-2 text-zinc-300 font-mono">{row.rate}</td>
+                      <td className="py-2 text-right text-zinc-300 font-mono">{row.rr}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────
 
 export default function TradeTrackerPage() {
@@ -620,7 +907,49 @@ export default function TradeTrackerPage() {
             <p className="text-zinc-500 text-sm mt-1">Log trades, track performance, find your edge</p>
           </div>
         </div>
-        {isAuthenticated && isPro ? <RealTradeTracker /> : <DemoTradeTracker />}
+
+        <Tabs defaultValue="analytics" className="w-full">
+          <div className="overflow-x-auto scrollbar-hide -mx-2 px-2 sm:mx-0 sm:px-0">
+            <TabsList className="bg-zinc-900 border border-zinc-800 rounded-lg p-1 mb-4 sm:mb-6 inline-flex min-w-max gap-1">
+              <TabsTrigger
+                value="analytics"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                data-testid="tab-analytics"
+              >
+                <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+                Analytics
+              </TabsTrigger>
+              <TabsTrigger
+                value="journal"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                data-testid="tab-trade-journal"
+              >
+                <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
+                Trade Journal
+              </TabsTrigger>
+              <TabsTrigger
+                value="sizer"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                data-testid="tab-position-sizer"
+              >
+                <Calculator className="w-3.5 h-3.5 mr-1.5" />
+                Position Sizer
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="analytics">
+            <AnalyticsTabContent />
+          </TabsContent>
+
+          <TabsContent value="journal">
+            <TradeJournalTabContent />
+          </TabsContent>
+
+          <TabsContent value="sizer">
+            <PositionSizeCalculator />
+          </TabsContent>
+        </Tabs>
       </div>
       <LoginGateModal open={showLoginModal} onClose={closeLoginModal} />
     </div>
