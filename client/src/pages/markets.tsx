@@ -39,7 +39,7 @@ function PercentCell({ value, compact = false, flash }: { value: number | undefi
       <td className={`${compact ? 'px-1 py-1.5' : 'px-3 py-2'} text-zinc-600 ticker-font text-right`}>-</td>
     );
   }
-  const color = value >= 0 ? 'text-green-500' : 'text-red-500';
+  const color = value >= 0 ? 'text-gain' : 'text-loss';
   const flashClass = flash === 'up' ? 'cell-flash-up' : flash === 'down' ? 'cell-flash-down' : '';
   return (
     <td className={`${compact ? 'px-1 py-1.5 text-xs' : 'px-3 py-2 text-sm'} text-right ticker-font ${color} ${flashClass}`}>
@@ -52,7 +52,7 @@ function MobilePercentCell({ value, flash }: { value: number | undefined; flash?
   if (value === undefined || value === null) {
     return <span className="text-zinc-600 ticker-font">-</span>;
   }
-  const color = value >= 0 ? 'text-green-500' : 'text-red-500';
+  const color = value >= 0 ? 'text-gain' : 'text-loss';
   const flashClass = flash === 'up' ? 'cell-flash-up' : flash === 'down' ? 'cell-flash-down' : '';
   return (
     <span className={`ticker-font ${color} ${flashClass}`}>
@@ -76,26 +76,26 @@ function MarketBreadthStrip({ items }: { items: MarketItem[] }) {
   return (
     <>
       {/* Mobile: single compact row */}
-      <div className="sm:hidden flex items-center gap-3 text-[11px] px-1 py-2 mb-3 border-b border-zinc-800/50 overflow-x-auto scrollbar-hide">
+      <div className="sm:hidden flex items-center gap-3 text-xs px-1 py-2 mb-3 border-b border-zinc-800/50 overflow-x-auto scrollbar-hide">
         <span className="flex items-center gap-1 whitespace-nowrap">
           <span className="text-zinc-500">A/D</span>
-          <span className="text-green-500 ticker-font">{advancers}</span>
+          <span className="text-gain ticker-font">{advancers}</span>
           <span className="text-zinc-600">/</span>
-          <span className="text-red-500 ticker-font">{decliners}</span>
+          <span className="text-loss ticker-font">{decliners}</span>
         </span>
         <span className="text-zinc-800">|</span>
         <span className="flex items-center gap-1 whitespace-nowrap">
           <span className="text-zinc-500">Avg</span>
-          <span className={`ticker-font ${avg1D >= 0 ? 'text-green-500' : 'text-red-500'}`}>{avg1D >= 0 ? '+' : ''}{avg1D.toFixed(2)}%</span>
+          <span className={`ticker-font ${avg1D >= 0 ? 'text-gain' : 'text-loss'}`}>{avg1D >= 0 ? '+' : ''}{avg1D.toFixed(2)}%</span>
         </span>
         <span className="text-zinc-800">|</span>
         <span className="flex items-center gap-1 whitespace-nowrap">
-          <span className="text-green-500 ticker-font">+{best.change1D.toFixed(1)}%</span>
+          <span className="text-gain ticker-font">+{best.change1D.toFixed(1)}%</span>
           <span className="text-zinc-400 truncate max-w-[60px]">{best.name}</span>
         </span>
         <span className="text-zinc-800">|</span>
         <span className="flex items-center gap-1 whitespace-nowrap">
-          <span className="text-red-500 ticker-font">{worst.change1D.toFixed(1)}%</span>
+          <span className="text-loss ticker-font">{worst.change1D.toFixed(1)}%</span>
           <span className="text-zinc-400 truncate max-w-[60px]">{worst.name}</span>
         </span>
       </div>
@@ -116,7 +116,7 @@ function MarketBreadthStrip({ items }: { items: MarketItem[] }) {
 
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
           <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Avg 1D Change</div>
-          <div className={`text-lg ticker-font font-medium ${avg1D >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+          <div className={`text-lg ticker-font font-medium ${avg1D >= 0 ? 'text-gain' : 'text-loss'}`}>
             {avg1D >= 0 ? '+' : ''}{avg1D.toFixed(2)}%
           </div>
         </div>
@@ -124,13 +124,13 @@ function MarketBreadthStrip({ items }: { items: MarketItem[] }) {
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
           <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Best Performer</div>
           <div className="text-zinc-200 text-sm truncate">{best.name}</div>
-          <div className="text-green-500 text-sm ticker-font">+{best.change1D.toFixed(1)}%</div>
+          <div className="text-gain text-sm ticker-font">+{best.change1D.toFixed(1)}%</div>
         </div>
 
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
           <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Worst Performer</div>
           <div className="text-zinc-200 text-sm truncate">{worst.name}</div>
-          <div className="text-red-500 text-sm ticker-font">{worst.change1D.toFixed(1)}%</div>
+          <div className="text-loss text-sm ticker-font">{worst.change1D.toFixed(1)}%</div>
         </div>
       </div>
     </>

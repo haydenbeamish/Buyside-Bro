@@ -19,7 +19,7 @@ export function BroLimitModal({ open, onClose }: BroLimitModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-md">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-amber-400 text-xl">Want more Bro help?</DialogTitle>
           <DialogDescription className="text-zinc-400 text-base pt-2">

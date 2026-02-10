@@ -19,9 +19,6 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  ThumbsUp,
-  ThumbsDown,
-  Minus,
   Building2,
   FileText,
   ChevronDown,
@@ -35,6 +32,9 @@ import { useBroStatus } from "@/hooks/use-bro-status";
 import { BroLimitModal } from "@/components/bro-limit-modal";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { StockSearch } from "@/components/stock-search";
+import { PercentDisplay } from "@/components/percent-display";
+import { RecommendationBadge } from "@/components/recommendation-badge";
+import { MarkdownSection } from "@/components/markdown-section";
 
 interface StockProfile {
   symbol: string;
@@ -193,7 +193,7 @@ function MetricCard({
   if (!isLoading && (zeroValues.includes(value) || value === "")) return null;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 sm:p-3">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 sm:p-4">
       <p className="text-[11px] sm:text-xs text-zinc-500 uppercase tracking-wide mb-1">{label}</p>
       {isLoading ? (
         <Skeleton className="h-6 w-20 bg-zinc-800" />
@@ -237,8 +237,8 @@ function MetricsGrid({
   };
 
   const isASX = profile?.symbol?.endsWith(".AX") || false;
-  const dayChangeColor = (profile?.changesPercentage ?? 0) >= 0 ? "text-green-500" : "text-red-500";
-  const epsGrowthColor = (forwardMetrics?.forwardEpsGrowth ?? 0) >= 0 ? "text-green-500" : "text-red-500";
+  const dayChangeColor = (profile?.changesPercentage ?? 0) >= 0 ? "text-gain" : "text-loss";
+  const epsGrowthColor = (forwardMetrics?.forwardEpsGrowth ?? 0) >= 0 ? "text-gain" : "text-loss";
 
   return (
     <div className="space-y-3">
@@ -474,80 +474,6 @@ function RecentFilings({ ticker }: { ticker: string }) {
   );
 }
 
-function RecommendationBadge({ action, confidence }: { action: string; confidence: number }) {
-  const actionLower = action?.toLowerCase() || "hold";
-  let bgColor = "bg-zinc-700";
-  let textColor = "text-zinc-300";
-  let Icon = Minus;
-  
-  if (actionLower === "buy" || actionLower === "strong buy") {
-    bgColor = "bg-green-600";
-    textColor = "text-white";
-    Icon = ThumbsUp;
-  } else if (actionLower === "sell" || actionLower === "strong sell") {
-    bgColor = "bg-red-600";
-    textColor = "text-white";
-    Icon = ThumbsDown;
-  }
-  
-  return (
-    <div className="flex items-center gap-3">
-      <div className={`${bgColor} ${textColor} px-4 py-2 rounded-lg flex items-center gap-2 font-bold text-lg`}>
-        <Icon className="h-5 w-5" />
-        {action?.toUpperCase() || "HOLD"}
-      </div>
-      <div className="text-sm text-zinc-400">
-        <span className="font-mono text-white">{confidence}%</span> confidence
-      </div>
-    </div>
-  );
-}
-
-function MarkdownSection({ content }: { content: string }) {
-  const sections = content.split(/(?=^## )/m);
-  
-  return (
-    <div className="space-y-6 prose prose-invert max-w-none">
-      {sections.map((section, idx) => {
-        const lines = section.trim().split('\n');
-        const titleMatch = lines[0]?.match(/^## (.+)/);
-        const title = titleMatch ? titleMatch[1].replace(/\*\*/g, '') : null;
-        const body = title ? lines.slice(1).join('\n').trim() : section.trim();
-        
-        if (!body && !title) return null;
-        
-        return (
-          <div key={idx} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-5">
-            {title && (
-              <h3 className="text-lg font-semibold text-amber-400 mb-3">
-                {title}
-              </h3>
-            )}
-            <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
-              {body.split('\n').map((line, i) => {
-                const clean = line.replace(/\*\*/g, '');
-                if (line.startsWith('- ') || line.startsWith('* ')) {
-                  return (
-                    <div key={i} className="flex items-start gap-2 mb-1">
-                      <span className="text-amber-500 mt-1">•</span>
-                      <span>{clean.substring(2)}</span>
-                    </div>
-                  );
-                }
-                if (line.startsWith('**') && line.endsWith('**')) {
-                  return <p key={i} className="font-semibold text-white mb-2">{clean}</p>;
-                }
-                if (line.trim() === '') return <br key={i} />;
-                return <p key={i} className="mb-1">{clean}</p>;
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete }: { ticker: string; progress: number; message: string; isComplete?: boolean }) {
   const [animatedProgress, setAnimatedProgress] = useState(0);
   const [startTime] = useState(() => Date.now());
@@ -691,7 +617,7 @@ function DeepAnalysisResult({ result }: { result: DeepAnalysisResult }) {
             </div>
             <div>
               <p className="text-xs text-zinc-500 uppercase tracking-wide">Upside</p>
-              <p className={`text-2xl font-bold font-mono ${!isNaN(upside) && upside >= 0 ? "text-green-500" : "text-red-500"}`}>
+              <p className={`text-2xl font-bold font-mono ${!isNaN(upside) && upside >= 0 ? "text-gain" : "text-loss"}`}>
                 {!isNaN(upside) ? `${upside >= 0 ? "+" : ""}${upside.toFixed(1)}%` : "—"}
               </p>
             </div>
@@ -716,15 +642,6 @@ function DeepAnalysisResult({ result }: { result: DeepAnalysisResult }) {
         <MarkdownSection content={analysisText} />
       )}
     </div>
-  );
-}
-
-function PercentDisplay({ value }: { value: number }) {
-  const color = value >= 0 ? "text-green-500" : "text-red-500";
-  return (
-    <span className={`font-mono ${color}`}>
-      {value >= 0 ? "+" : ""}{value.toFixed(2)}%
-    </span>
   );
 }
 
@@ -1042,7 +959,7 @@ export default function AnalysisPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="page-container">
         <div className="mb-4 sm:mb-6">
           <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white mb-1 sm:mb-2">
             COMPANY
@@ -1247,7 +1164,8 @@ export default function AnalysisPage() {
                   Get a comprehensive AI-powered fundamental analysis with buy/hold/sell recommendation for {activeTicker}.
                 </p>
                 <Button
-                  className="bg-amber-600 text-black font-bold uppercase tracking-wider"
+                  variant="terminal"
+                  className="uppercase tracking-wider"
                   onClick={() => {
                     if (!gate()) return;
                     if (isAtLimit) {

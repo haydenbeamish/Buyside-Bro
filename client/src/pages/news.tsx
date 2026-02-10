@@ -131,7 +131,7 @@ export default function NewsPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="page-container">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white mb-2">

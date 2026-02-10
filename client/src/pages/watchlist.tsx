@@ -22,6 +22,7 @@ import { LoginGateModal } from "@/components/login-gate-modal";
 import { useAuth } from "@/hooks/use-auth";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { StockSearch } from "@/components/stock-search";
+import { PercentDisplay } from "@/components/percent-display";
 
 interface EnrichedWatchlistItem extends WatchlistItem {
   price: number | null;
@@ -50,21 +51,12 @@ function formatVolume(value: number | null): string {
   return value.toLocaleString();
 }
 
-function PercentDisplay({ value }: { value: number }) {
-  const color = value >= 0 ? "text-green-500" : "text-red-500";
-  return (
-    <span className={`font-mono ${color}`}>
-      {value >= 0 ? "+" : ""}{value.toFixed(2)}%
-    </span>
-  );
-}
-
 function FiftyTwoWeekBar({ price, low, high }: { price: number | null; low: number | null; high: number | null }) {
   if (!price || !low || !high || high === low) {
     return <span className="text-zinc-600 text-xs">-</span>;
   }
   const pct = Math.max(0, Math.min(100, ((price - low) / (high - low)) * 100));
-  const color = pct >= 66 ? "bg-green-500" : pct >= 33 ? "bg-yellow-500" : "bg-red-500";
+  const color = pct >= 66 ? "bg-amber-400" : pct >= 33 ? "bg-amber-600" : "bg-amber-800";
 
   return (
     <div className="flex flex-col gap-0.5 min-w-[80px]">
@@ -290,7 +282,7 @@ export default function WatchlistPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="page-container">
         <div className="flex items-center justify-between mb-4 sm:mb-6 flex-wrap gap-3">
           <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white" data-testid="text-watchlist-title">
             WATCHLIST
@@ -304,7 +296,7 @@ export default function WatchlistPage() {
                     Add Stock
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
+                <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Add to Watchlist</DialogTitle>
                   </DialogHeader>

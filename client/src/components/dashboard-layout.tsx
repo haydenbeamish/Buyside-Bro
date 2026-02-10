@@ -26,9 +26,17 @@ const navItems = [
 ];
 
 function BetaFeedbackWidget() {
+  const [dismissed, setDismissed] = useState(() => sessionStorage.getItem("feedback-dismissed") === "1");
   const [open, setOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  if (dismissed) return null;
+
+  const handleDismiss = () => {
+    sessionStorage.setItem("feedback-dismissed", "1");
+    setDismissed(true);
+  };
 
   const handleSubmit = () => {
     if (!feedback.trim()) return;
@@ -40,13 +48,14 @@ function BetaFeedbackWidget() {
     setTimeout(() => {
       setSubmitted(false);
       setOpen(false);
+      handleDismiss();
     }, 2000);
   };
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
       {open && (
-        <div className="mb-2 w-72 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl p-4 space-y-3">
+        <div className="mb-2 w-72 max-w-[calc(100vw-2rem)] bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-zinc-200">Beta Feedback</span>
             <button onClick={() => setOpen(false)} className="text-zinc-500 hover:text-zinc-300">
@@ -139,7 +148,7 @@ function TickerTape({ items, flashCells }: { items: TickerMarketItem[]; flashCel
             <span className="text-zinc-200 text-xs sm:text-sm ticker-font">
               {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className={`text-xs sm:text-sm ticker-font ${item.change1D >= 0 ? 'text-green-500' : 'text-red-500'} ${flashCells[`${item.name}:change1D`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:change1D`] === 'down' ? 'cell-flash-down' : ''}`}>
+            <span className={`text-xs sm:text-sm ticker-font ${item.change1D >= 0 ? 'text-gain' : 'text-loss'} ${flashCells[`${item.name}:change1D`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:change1D`] === 'down' ? 'cell-flash-down' : ''}`}>
               {item.change1D >= 0 ? '+' : ''}{item.change1D.toFixed(1)}%
             </span>
           </div>

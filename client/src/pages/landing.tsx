@@ -294,7 +294,7 @@ function FeatureShowcase() {
 
 function PricingBadges() {
   return (
-    <section className="py-16 px-4 border-t border-zinc-800 bg-zinc-950/30">
+    <section className="py-20 px-4 border-t border-zinc-800 bg-zinc-950/30">
       <div className="max-w-4xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
           <div className="flex flex-col items-center gap-3">
@@ -439,7 +439,7 @@ export default function LandingPage() {
   useDocumentTitle();
 
   return (
-    <div className="min-h-screen bg-black scanline">
+    <div className="min-h-screen bg-black scanline pb-14">
       <TopNav />
       <main>
         <HeroSection />

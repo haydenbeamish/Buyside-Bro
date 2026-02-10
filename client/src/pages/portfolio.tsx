@@ -41,6 +41,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { StockSearch } from "@/components/stock-search";
+import { PercentDisplay } from "@/components/percent-display";
+import { ThinkingLoader } from "@/components/thinking-loader";
 
 interface PortfolioStats {
   totalValue: number;
@@ -75,70 +77,6 @@ function formatEarningsDate(date: string | null): string {
   if (!date) return "-";
   const d = new Date(date);
   return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
-}
-
-function PercentDisplay({ value }: { value: number }) {
-  const color = value >= 0 ? "text-green-500" : "text-red-500";
-  return (
-    <span className={`font-mono ${color}`}>
-      {value >= 0 ? "+" : ""}{value.toFixed(2)}%
-    </span>
-  );
-}
-
-function ThinkingLoader() {
-  const [statusIndex, setStatusIndex] = useState(0);
-  const statuses = [
-    "Analyzing your positions...",
-    "Reviewing sector allocation...",
-    "Checking risk exposure...",
-    "Evaluating diversification...",
-    "Researching your holdings...",
-    "Preparing recommendations...",
-  ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStatusIndex((prev) => (prev + 1) % statuses.length);
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="flex flex-col items-center justify-center py-12">
-      <div className="relative mb-6">
-        <img 
-          src={logoImg} 
-          alt="Loading" 
-          className="w-20 h-20 object-contain animate-pulse drop-shadow-[0_0_20px_rgba(255,215,0,0.5)]" 
-        />
-        <Loader2 className="absolute -bottom-2 -right-2 w-6 h-6 text-amber-500 animate-spin" />
-      </div>
-      <p className="text-lg text-amber-400 font-medium mb-2">Bro is thinking...</p>
-      <p className="text-sm text-zinc-400 animate-pulse">{statuses[statusIndex]}</p>
-      
-      <div className="flex items-center gap-4 sm:gap-8 mt-8">
-        {[
-          { icon: BarChart3, label: "Analysis" },
-          { icon: Target, label: "Targets" },
-          { icon: AlertTriangle, label: "Risks" },
-          { icon: CheckCircle, label: "Actions" },
-        ].map((item, idx) => (
-          <div key={item.label} className="flex flex-col items-center gap-2">
-            <div className={`p-3 rounded-full bg-zinc-800 border border-zinc-800 ${idx <= statusIndex % 4 ? 'border-amber-500/50' : ''}`}>
-              <item.icon className={`w-5 h-5 ${idx <= statusIndex % 4 ? 'text-amber-500' : 'text-zinc-600'}`} />
-            </div>
-            <span className={`text-xs ${idx <= statusIndex % 4 ? 'text-amber-400' : 'text-zinc-600'}`}>{item.label}</span>
-          </div>
-        ))}
-      </div>
-      
-      <div className="w-64 h-1 bg-zinc-800 rounded-full mt-8 overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full animate-[loading_2s_ease-in-out_infinite]" 
-             style={{ width: '60%' }} />
-      </div>
-    </div>
-  );
 }
 
 export default function PortfolioPage() {
@@ -332,7 +270,7 @@ export default function PortfolioPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="page-container">
         <div className="flex items-center justify-between mb-4 sm:mb-6 flex-wrap gap-3">
           <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white">
             PORTFOLIO
@@ -345,7 +283,7 @@ export default function PortfolioPage() {
                   Add Position
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
+              <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add New Position</DialogTitle>
                 </DialogHeader>
@@ -390,7 +328,8 @@ export default function PortfolioPage() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-amber-600 hover:bg-amber-500 text-black font-semibold"
+                    variant="terminal"
+                    className="w-full"
                     disabled={addMutation.isPending}
                     data-testid="button-submit-position"
                   >
@@ -433,9 +372,9 @@ export default function PortfolioPage() {
             ) : (
               <div className="flex items-center gap-2">
                 {(stats?.dayChange || 0) >= 0 ? (
-                  <TrendingUp className="h-5 w-5 text-green-500" />
+                  <TrendingUp className="h-5 w-5 text-gain" />
                 ) : (
-                  <TrendingDown className="h-5 w-5 text-red-500" />
+                  <TrendingDown className="h-5 w-5 text-loss" />
                 )}
                 <div>
                   <p className="text-base sm:text-2xl font-bold font-mono text-white truncate">
@@ -526,15 +465,15 @@ export default function PortfolioPage() {
                   <table className="hidden sm:table w-full text-sm" data-testid="holdings-table">
                     <thead className="sticky top-0 z-20 bg-zinc-900">
                       <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase">
-                        <th className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-30 min-w-[100px] cursor-pointer select-none" onClick={() => handleSort("ticker")}>Ticker<SortIcon columnKey="ticker" /></th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("currentPrice")}>Price<SortIcon columnKey="currentPrice" /></th>
+                        <th className="px-3 py-3 text-left font-medium sticky left-0 bg-zinc-900 z-30 min-w-[100px] cursor-pointer select-none" role="button" tabIndex={0} aria-label="Sort by ticker" onClick={() => handleSort("ticker")} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort("ticker"); } }}>Ticker<SortIcon columnKey="ticker" /></th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" role="button" tabIndex={0} aria-label="Sort by price" onClick={() => handleSort("currentPrice")} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort("currentPrice"); } }}>Price<SortIcon columnKey="currentPrice" /></th>
                         <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Cost</th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("pnlPercent")}>% P&L<SortIcon columnKey="pnlPercent" /></th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("dayChangePercent")}>Day %<SortIcon columnKey="dayChangePercent" /></th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" role="button" tabIndex={0} aria-label="Sort by P&L percent" onClick={() => handleSort("pnlPercent")} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort("pnlPercent"); } }}>% P&L<SortIcon columnKey="pnlPercent" /></th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" role="button" tabIndex={0} aria-label="Sort by day change" onClick={() => handleSort("dayChangePercent")} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort("dayChangePercent"); } }}>Day %<SortIcon columnKey="dayChangePercent" /></th>
                         <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Qty</th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("value")}>Value<SortIcon columnKey="value" /></th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("dayPnL")}>Day P&L<SortIcon columnKey="dayPnL" /></th>
-                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" onClick={() => handleSort("totalPnL")}>Total P&L<SortIcon columnKey="totalPnL" /></th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" role="button" tabIndex={0} aria-label="Sort by value" onClick={() => handleSort("value")} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort("value"); } }}>Value<SortIcon columnKey="value" /></th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" role="button" tabIndex={0} aria-label="Sort by day P&L" onClick={() => handleSort("dayPnL")} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort("dayPnL"); } }}>Day P&L<SortIcon columnKey="dayPnL" /></th>
+                        <th className="px-3 py-3 text-right font-medium whitespace-nowrap cursor-pointer select-none" role="button" tabIndex={0} aria-label="Sort by total P&L" onClick={() => handleSort("totalPnL")} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSort("totalPnL"); } }}>Total P&L<SortIcon columnKey="totalPnL" /></th>
                         <th className="px-3 py-3 text-right font-medium whitespace-nowrap">Mkt Cap</th>
                         <th className="px-3 py-3 text-right font-medium whitespace-nowrap">P/E</th>
                         <th className="px-3 py-3 w-10"></th>
@@ -577,12 +516,12 @@ export default function PortfolioPage() {
                               ${(holding.value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                             </td>
                             <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                              <span className={`font-mono text-sm ${(holding.dayPnL || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                              <span className={`font-mono text-sm ${(holding.dayPnL || 0) >= 0 ? "text-gain" : "text-loss"}`}>
                                 {(holding.dayPnL || 0) >= 0 ? "+" : ""}${Math.abs(holding.dayPnL || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                               </span>
                             </td>
                             <td className="px-3 py-2.5 text-right whitespace-nowrap">
-                              <span className={`font-mono text-sm ${(holding.totalPnL || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                              <span className={`font-mono text-sm ${(holding.totalPnL || 0) >= 0 ? "text-gain" : "text-loss"}`}>
                                 {(holding.totalPnL || 0) >= 0 ? "+" : ""}${Math.abs(holding.totalPnL || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                               </span>
                             </td>
@@ -726,7 +665,7 @@ export default function PortfolioPage() {
 
         {/* Delete confirmation dialog */}
         <Dialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
-          <DialogContent className="bg-zinc-900 border-zinc-800 text-white">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Remove position</DialogTitle>
               <DialogDescription className="text-zinc-400">

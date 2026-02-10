@@ -48,9 +48,9 @@ function NewsFeedItemCard({ item, defaultExpanded }: { item: NewsFeedItem; defau
 
   const getMarketBadgeColor = (market: string) => {
     switch (market) {
-      case 'ASX': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'USA': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'Europe': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'ASX': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+      case 'USA': return 'bg-amber-700/20 text-amber-300 border-amber-700/30';
+      case 'Europe': return 'bg-amber-900/20 text-amber-500 border-amber-900/30';
       default: return 'bg-zinc-500/20 text-zinc-400 border-zinc-500/30';
     }
   };
@@ -201,7 +201,7 @@ export default function WhatsUpPage() {
   });
 
   return (
-    <div className="px-3 sm:px-4 py-4 sm:py-6">
+    <div className="page-container">
       <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white mb-6 sm:mb-8 uppercase" data-testid="text-whats-up-title">
         WHAT'S UP?
       </h1>

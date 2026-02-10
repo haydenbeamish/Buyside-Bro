@@ -47,7 +47,7 @@ function FormattedMessage({ content }: { content: string }) {
             </a>
           ),
           code: ({ children }) => (
-            <code className="bg-zinc-800 px-1 py-0.5 rounded text-xs text-amber-400">{children}</code>
+            <code className="bg-zinc-800/80 border border-zinc-700 px-1 py-0.5 rounded text-xs text-amber-400">{children}</code>
           ),
         }}
       >

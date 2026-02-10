@@ -223,7 +223,40 @@
   }
 
   .price-down {
-    color: #ff4444;
+    color: hsl(var(--destructive));
+  }
+
+  /* Semantic gain/loss colors */
+  .text-gain {
+    color: hsl(var(--success));
+  }
+  .text-loss {
+    color: hsl(var(--destructive));
+  }
+
+  /* Unified page container */
+  .page-container {
+    max-width: 80rem; /* max-w-7xl */
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+  @media (min-width: 640px) {
+    .page-container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+      padding-top: 1.5rem;
+      padding-bottom: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .page-container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
   }
 
   .ticker-font {
@@ -339,6 +372,23 @@
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Accessibility: reduce motion */
+  @media (prefers-reduced-motion: reduce) {
+    .ticker-scroll {
+      animation: none;
+    }
+    .glow-pulse {
+      animation: none;
+    }
+    .cell-flash-up,
+    .cell-flash-down {
+      animation: none;
+    }
+    .neon-button:hover {
+      transform: none;
+    }
   }
 
   /* Horizontal scroll fade indicator — only visible on narrow viewports where tables overflow */

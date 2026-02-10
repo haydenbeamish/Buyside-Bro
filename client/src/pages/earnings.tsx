@@ -19,9 +19,6 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  ThumbsUp,
-  ThumbsDown,
-  Minus,
   Eye,
   FileSearch,
   Building2,
@@ -32,6 +29,9 @@ import { LoginGateModal } from "@/components/login-gate-modal";
 import { useBroStatus } from "@/hooks/use-bro-status";
 import { BroLimitModal } from "@/components/bro-limit-modal";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { PercentDisplay } from "@/components/percent-display";
+import { RecommendationBadge } from "@/components/recommendation-badge";
+import { MarkdownSection } from "@/components/markdown-section";
 
 interface StockSearchResult {
   symbol: string;
@@ -212,15 +212,6 @@ function StockSearchInput({
   );
 }
 
-function PercentDisplay({ value }: { value: number }) {
-  const color = value >= 0 ? "text-green-500" : "text-red-500";
-  return (
-    <span className={`font-mono ${color}`}>
-      {value >= 0 ? "+" : ""}{value.toFixed(2)}%
-    </span>
-  );
-}
-
 function StockChart({ data, isLoading }: { data?: HistoricalData; isLoading: boolean }) {
   if (isLoading) {
     return (
@@ -251,7 +242,7 @@ function StockChart({ data, isLoading }: { data?: HistoricalData; isLoading: boo
         <h3 className="font-semibold text-white">1 Year Price Chart</h3>
         <div className="flex items-center gap-2">
           <span className="text-sm text-zinc-400">1Y Return:</span>
-          <span className={`font-mono font-semibold ${isPositive ? "text-green-500" : "text-red-500"}`}>
+          <span className={`font-mono font-semibold ${isPositive ? "text-gain" : "text-loss"}`}>
             {isPositive ? "+" : ""}{percentChange.toFixed(1)}%
           </span>
         </div>
@@ -335,7 +326,7 @@ function KeyInfoCard({
         <div>
           <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Forward EPS Growth</p>
           {metricsLoading ? <Skeleton className="h-6 w-16 bg-zinc-800" /> : (
-            <p className={`font-mono font-bold ${(forwardMetrics?.forwardEpsGrowth ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+            <p className={`font-mono font-bold ${(forwardMetrics?.forwardEpsGrowth ?? 0) >= 0 ? "text-gain" : "text-loss"}`}>
               {forwardMetrics?.forwardEpsGrowth != null ? `${forwardMetrics.forwardEpsGrowth >= 0 ? "+" : ""}${forwardMetrics.forwardEpsGrowth.toFixed(1)}%` : "\u2014"}
             </p>
           )}
@@ -355,75 +346,6 @@ function KeyInfoCard({
           <p className="text-sm text-zinc-400 leading-relaxed line-clamp-4">{profile.description}</p>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function RecommendationBadge({ action, confidence }: { action: string; confidence: number }) {
-  const actionLower = action?.toLowerCase() || "hold";
-  let bgColor = "bg-zinc-700";
-  let textColor = "text-zinc-300";
-  let Icon = Minus;
-  if (actionLower === "buy" || actionLower === "strong buy") {
-    bgColor = "bg-green-600";
-    textColor = "text-white";
-    Icon = ThumbsUp;
-  } else if (actionLower === "sell" || actionLower === "strong sell") {
-    bgColor = "bg-red-600";
-    textColor = "text-white";
-    Icon = ThumbsDown;
-  }
-  return (
-    <div className="flex items-center gap-3">
-      <div className={`${bgColor} ${textColor} px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 font-bold text-base sm:text-lg`}>
-        <Icon className="h-5 w-5" />
-        {action?.toUpperCase() || "HOLD"}
-      </div>
-      <div className="text-sm text-zinc-400">
-        <span className="font-mono text-white">{confidence}%</span> confidence
-      </div>
-    </div>
-  );
-}
-
-function MarkdownSection({ content }: { content: string }) {
-  const sections = content.split(/(?=^## )/m);
-  return (
-    <div className="space-y-6 prose prose-invert max-w-none">
-      {sections.map((section, idx) => {
-        const lines = section.trim().split("\n");
-        const titleMatch = lines[0]?.match(/^## (.+)/);
-        const title = titleMatch ? titleMatch[1] : null;
-        const body = title ? lines.slice(1).join("\n").trim() : section.trim();
-        if (!body && !title) return null;
-        return (
-          <div key={idx} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-5">
-            {title && (
-              <h3 className="text-lg font-semibold text-amber-400 mb-3 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-amber-500" />
-                {title}
-              </h3>
-            )}
-            <div className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
-              {body.split("\n").map((line, i) => {
-                if (line.startsWith("- ") || line.startsWith("* ")) {
-                  return (
-                    <div key={i} className="flex items-start gap-2 mb-1">
-                      <span className="text-amber-500 mt-1">&bull;</span>
-                      <span>{line.substring(2)}</span>
-                    </div>
-                  );
-                }
-                if (line.startsWith("**") && line.endsWith("**")) {
-                  return <p key={i} className="font-semibold text-white mb-2">{line.replace(/\*\*/g, "")}</p>;
-                }
-                if (line.trim() === "") return <br key={i} />;
-                return <p key={i} className="mb-1">{line}</p>;
-              })}
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
@@ -537,7 +459,7 @@ function AnalysisResult({ result }: { result: DeepAnalysisResultData }) {
             </div>
             <div>
               <p className="text-xs text-zinc-500 uppercase tracking-wide">Upside</p>
-              <p className={`text-xl sm:text-2xl font-bold font-mono ${(rec?.upside || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+              <p className={`text-xl sm:text-2xl font-bold font-mono ${(rec?.upside || 0) >= 0 ? "text-gain" : "text-loss"}`}>
                 {(rec?.upside || 0) >= 0 ? "+" : ""}{rec?.upside?.toFixed(1) || 0}%
               </p>
             </div>
@@ -729,7 +651,7 @@ export default function EarningsAnalysisPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <div className="page-container">
         <div className="mb-6">
           <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white mb-2" data-testid="text-page-title">
             EARNINGS
