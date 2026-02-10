@@ -1036,7 +1036,7 @@ export default function AnalysisPage() {
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle mb-1 sm:mb-2">
+          <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white mb-1 sm:mb-2">
             COMPANY
           </h1>
           <p className="text-zinc-500 text-sm sm:text-base">

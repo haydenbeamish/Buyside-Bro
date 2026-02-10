@@ -334,7 +334,7 @@ export default function PortfolioPage() {
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-4 sm:mb-6 flex-wrap gap-3">
-          <h1 className="text-xl sm:text-3xl md:text-4xl font-bold tracking-tight display-font neon-green-subtle">
+          <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white">
             PORTFOLIO
           </h1>
           <div className="flex items-center gap-3">

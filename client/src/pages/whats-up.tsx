@@ -191,8 +191,8 @@ export default function WhatsUpPage() {
 
   return (
     <div className="px-3 sm:px-4 py-4 sm:py-6">
-      <h1 className="display-font text-xl sm:text-3xl tracking-wider neon-green mb-6 sm:mb-8 uppercase" data-testid="text-whats-up-title">
-        What's Up?
+      <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white mb-6 sm:mb-8 uppercase" data-testid="text-whats-up-title">
+        WHAT'S UP?
       </h1>
 
       <div className="space-y-6">
