@@ -211,7 +211,8 @@ function startMSFTCacheScheduler() {
 async function generateAndPostMarketSummary(market: string, eventType: string): Promise<void> {
   let summaryContent = "";
   try {
-    const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets/summary`, { headers: LASER_BEAM_HEADERS });
+    const marketParam = market !== 'USA' ? `?market=${encodeURIComponent(market)}` : '';
+    const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets/summary${marketParam}`, { headers: LASER_BEAM_HEADERS });
     if (response.ok) {
       const data = await response.json();
       summaryContent = data.summary || "";
