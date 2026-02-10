@@ -887,7 +887,7 @@ export default function AnalysisPage() {
             COMPANY
           </h1>
           <p className="text-zinc-500 text-sm sm:text-base">
-            Deep dive into company fundamentals with Bro-powered insights
+            Deep dive into company fundamentals with Bro Powered insights
           </p>
         </div>
 
@@ -919,7 +919,7 @@ export default function AnalysisPage() {
             </h3>
             <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
               Enter a ticker symbol above to see company profile, financial metrics,
-              and Bro-powered analysis.
+              and Bro Powered analysis.
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {["AAPL", "MSFT", "GOOGL", "NVDA", "TSLA"].map((ticker) => (

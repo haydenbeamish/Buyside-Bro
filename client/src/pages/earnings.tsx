@@ -738,7 +738,7 @@ export default function EarningsAnalysisPage() {
             </h1>
           </div>
           <p className="text-zinc-500 text-sm sm:text-base">
-            Bro-powered earnings analysis — preview what's ahead or review what just happened
+            Bro Powered earnings analysis — preview what's ahead or review what just happened
           </p>
         </div>
 

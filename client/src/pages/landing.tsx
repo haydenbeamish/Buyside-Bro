@@ -211,7 +211,7 @@ const featureShowcase = [
     image: screenshotPortfolio,
     icon: Briefcase,
     title: "PORTFOLIO TRACKER",
-    subtitle: "Manage your holdings with Bro-powered insights",
+    subtitle: "Manage your holdings with Bro Powered insights",
     description: "Track total value, gain/loss, and day changes at a glance. Add positions from any global exchange, see cost basis and P&L per holding, and view your allocation breakdown. Hit \"Get Your Bro's Opinion\" for a full Bro portfolio review.",
   },
   {
@@ -233,7 +233,7 @@ const featureShowcase = [
     icon: Brain,
     title: "EARNINGS ANALYSIS",
     subtitle: "Preview upcoming and review past earnings",
-    description: "See upcoming earnings dates with EPS and revenue estimates. Run Bro-powered earnings previews before the announcement or post-earnings reviews after — complete with price targets and actionable recommendations.",
+    description: "See upcoming earnings dates with EPS and revenue estimates. Run Bro Powered earnings previews before the announcement or post-earnings reviews after — complete with price targets and actionable recommendations.",
   },
   {
     image: screenshotAskBro,
