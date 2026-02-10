@@ -316,12 +316,9 @@ export default function WatchlistPage() {
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-4 sm:mb-6 flex-wrap gap-3">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Eye className="h-6 w-6 sm:h-8 sm:w-8 text-amber-400" />
-            <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white" data-testid="text-watchlist-title">
-              WATCHLIST
-            </h1>
-          </div>
+          <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white" data-testid="text-watchlist-title">
+            WATCHLIST
+          </h1>
           <div className="flex items-center gap-2">
             {items && items.length > 0 && (
               <Button

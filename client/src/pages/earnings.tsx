@@ -731,12 +731,9 @@ export default function EarningsAnalysisPage() {
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
         <div className="mb-6">
-          <div className="flex items-center gap-2 sm:gap-3 mb-2">
-            <Brain className="h-6 w-6 sm:h-8 sm:w-8 text-amber-400" />
-            <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white" data-testid="text-page-title">
-              EARNINGS
-            </h1>
-          </div>
+          <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white mb-2" data-testid="text-page-title">
+            EARNINGS
+          </h1>
           <p className="text-zinc-500 text-sm sm:text-base">
             Bro Powered earnings analysis — preview what's ahead or review what just happened
           </p>
