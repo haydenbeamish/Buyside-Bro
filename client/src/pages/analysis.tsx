@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import {
   Search,
   ArrowRight,
@@ -334,11 +335,13 @@ function MetricsGrid({
 
 function RecentFilings({ ticker }: { ticker: string }) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [importantOnly, setImportantOnly] = useState(false);
 
   const { data: filings, isLoading } = useQuery<FilingsResponse>({
-    queryKey: ["/api/analysis/filings", ticker],
+    queryKey: ["/api/analysis/filings", ticker, importantOnly],
     queryFn: async () => {
-      const res = await apiRequest("GET", `/api/analysis/filings/${encodeURIComponent(ticker)}`);
+      const params = importantOnly ? "?material=true" : "";
+      const res = await apiRequest("GET", `/api/analysis/filings/${encodeURIComponent(ticker)}${params}`);
       return res.json();
     },
     enabled: !!ticker,
@@ -350,7 +353,7 @@ function RecentFilings({ ticker }: { ticker: string }) {
       <div className="space-y-3">
         <h3 className="font-semibold text-white flex items-center gap-2">
           <FileText className="h-4 w-4 text-amber-500" />
-          Recent Filings
+          Recent Announcements
         </h3>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
@@ -391,10 +394,16 @@ function RecentFilings({ ticker }: { ticker: string }) {
 
   return (
     <div className="space-y-3">
-      <h3 className="font-semibold text-white flex items-center gap-2">
-        <FileText className="h-4 w-4 text-amber-500" />
-        Recent Filings
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-white flex items-center gap-2">
+          <FileText className="h-4 w-4 text-amber-500" />
+          Recent Announcements
+        </h3>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <span className="text-xs text-zinc-400">Important only</span>
+          <Switch checked={importantOnly} onCheckedChange={setImportantOnly} />
+        </label>
+      </div>
       <div className="space-y-2">
         {filings.announcements.map((filing, idx) => {
           const isExpanded = expandedIndex === idx;

@@ -1349,8 +1349,9 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.status(400).json({ error: "Invalid ticker symbol" });
       }
       const ticker = normalizeTicker(rawTicker);
+      const material = req.query.material === "true";
       const response = await fetchWithTimeout(
-        `${LASER_BEAM_API}/api/news/${encodeURIComponent(ticker)}?limit=5`,
+        `${LASER_BEAM_API}/api/news/${encodeURIComponent(ticker)}?limit=${material ? 20 : 5}`,
         { headers: LASER_BEAM_HEADERS },
         10000
       );
@@ -1366,6 +1367,18 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
           items: typeof a.items === "string" ? a.items.split(",").map((s: string) => s.trim()) : a.items,
           itemDescriptions: typeof a.itemDescriptions === "string" ? a.itemDescriptions.split(";").map((s: string) => s.trim()) : a.itemDescriptions,
         }));
+        // Filter to important/material announcements only
+        if (material) {
+          const materialFormTypes = new Set(["8-K", "10-K", "10-Q"]);
+          filings.announcements = filings.announcements.filter((a: any) => {
+            if (filings.source === "asx") {
+              return a.priceSensitive === true;
+            }
+            // SEC: filter to key form types
+            return materialFormTypes.has(a.form);
+          });
+          filings.announcements = filings.announcements.slice(0, 5);
+        }
       }
       res.json(filings);
     } catch (error) {
