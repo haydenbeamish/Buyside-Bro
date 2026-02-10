@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { queryClient, apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
-import { Plus, Trash2, Eye, ArrowUp, ArrowDown, Download } from "lucide-react";
+import { Plus, Trash2, Eye, ArrowUp, ArrowDown } from "lucide-react";
 import { Link } from "wouter";
 import type { WatchlistItem } from "@shared/schema";
 import { useLoginGate } from "@/hooks/use-login-gate";
@@ -124,30 +124,6 @@ function InlineNoteEditor({ itemId, initialNote }: { itemId: number; initialNote
       {value || <span className="italic text-zinc-600">Add note...</span>}
     </span>
   );
-}
-
-function downloadCSV(items: EnrichedWatchlistItem[]) {
-  const headers = ["Ticker", "Name", "Price", "Day %", "Volume", "Market Cap", "P/E", "52W Low", "52W High", "Notes"];
-  const rows = items.map((item) => [
-    item.ticker,
-    (item.name || "").replace(/,/g, ""),
-    item.price != null ? item.price.toFixed(2) : "",
-    item.dayChangePercent != null ? item.dayChangePercent.toFixed(2) : "",
-    item.volume != null ? item.volume.toString() : "",
-    item.marketCap != null ? item.marketCap.toString() : "",
-    item.pe != null ? item.pe.toFixed(2) : "",
-    item.yearLow != null ? item.yearLow.toFixed(2) : "",
-    item.yearHigh != null ? item.yearHigh.toFixed(2) : "",
-    (item.notes || "").replace(/,/g, " "),
-  ]);
-  const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `watchlist-${new Date().toISOString().split("T")[0]}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 type SortKey = "ticker" | "price" | "dayChangePercent" | "volume" | "marketCap" | "pe";
@@ -320,16 +296,6 @@ export default function WatchlistPage() {
             WATCHLIST
           </h1>
           <div className="flex items-center gap-2">
-            {items && items.length > 0 && (
-              <Button
-                variant="outline"
-                className="border-zinc-700 bg-zinc-900"
-                onClick={() => downloadCSV(items)}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-            )}
             {isAuthenticated && (
               <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                 <DialogTrigger asChild>
