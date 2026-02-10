@@ -2035,8 +2035,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         customerId,
         priceId,
         `${baseUrl}/subscription?success=true`,
-        `${baseUrl}/subscription?canceled=true`,
-        0
+        `${baseUrl}/subscription?canceled=true`
       );
 
       res.json({ url: session.url });

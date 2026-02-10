@@ -20,17 +20,22 @@ export class StripeService {
     trialDays: number = 0
   ) {
     const stripe = await getUncachableStripeClient();
-    return await stripe.checkout.sessions.create({
+    const sessionConfig: any = {
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
-      subscription_data: {
-        trial_period_days: trialDays,
-      },
       success_url: successUrl,
       cancel_url: cancelUrl,
-    });
+    };
+
+    if (trialDays >= 1) {
+      sessionConfig.subscription_data = {
+        trial_period_days: trialDays,
+      };
+    }
+
+    return await stripe.checkout.sessions.create(sessionConfig);
   }
 
   async createCustomerPortalSession(customerId: string, returnUrl: string) {

@@ -26,7 +26,6 @@ function validateEnvVars(): void {
     { name: "API_KEY", reason: "external market data will not work" },
     { name: "OPENROUTER_API_KEY", reason: "AI chat features will not work" },
     { name: "INTERNAL_API_KEY", reason: "internal API authentication will not work" },
-    { name: "STRIPE_SECRET_KEY", reason: "Stripe payment processing will not work" },
     { name: "ADMIN_EMAILS", reason: "admin access will fall back to default" },
   ];
 
