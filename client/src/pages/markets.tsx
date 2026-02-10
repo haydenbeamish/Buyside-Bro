@@ -74,7 +74,7 @@ function MarketBreadthStrip({ items }: { items: MarketItem[] }) {
   const worst = items.reduce((a, b) => (b.change1D < a.change1D ? b : a), items[0]);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+    <div className="hidden sm:grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
         <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Advancers / Decliners</div>
         <div className="flex items-center gap-2 text-sm ticker-font">
@@ -119,7 +119,7 @@ function GroupedSection({ title, items, flashCells, note }: { title: string; ite
       </div>
       {/* Mobile view */}
       <div className="sm:hidden">
-        <div className="grid grid-cols-[minmax(0,1fr)_60px_48px_48px] sm:grid-cols-[minmax(0,1fr)_70px_52px_52px] gap-1 px-2 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800 items-center">
+        <div className="grid grid-cols-[80px_1fr_44px_44px] sm:grid-cols-[minmax(0,1fr)_70px_52px_52px] gap-1 px-1 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800 items-center">
           <span>Name</span>
           <span className="text-right">Price</span>
           <span className="text-right">1D%</span>
@@ -128,7 +128,7 @@ function GroupedSection({ title, items, flashCells, note }: { title: string; ite
         {items.map((item) => (
           <div
             key={item.name}
-            className="grid grid-cols-[minmax(0,1fr)_60px_48px_48px] sm:grid-cols-[minmax(0,1fr)_70px_52px_52px] gap-1 px-2 py-2.5 border-b border-zinc-800/50 text-xs"
+            className="grid grid-cols-[80px_1fr_44px_44px] sm:grid-cols-[minmax(0,1fr)_70px_52px_52px] gap-1 px-1 py-2 border-b border-zinc-800/50 text-xs"
           >
             <span className="text-zinc-200 truncate">{item.name}</span>
             <span className={`text-right font-mono text-zinc-300 ${flashCells[`${item.name}:price`] === 'up' ? 'cell-flash-up' : flashCells[`${item.name}:price`] === 'down' ? 'cell-flash-down' : ''}`}>
@@ -250,7 +250,7 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
     <>
       {/* Mobile view - compact 4-column layout */}
       <div className="sm:hidden">
-        <div className="grid grid-cols-[minmax(0,1fr)_60px_48px_48px] sm:grid-cols-[minmax(0,1fr)_70px_52px_52px] gap-1 px-2 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800 sticky top-0 bg-black z-10 items-center">
+        <div className="grid grid-cols-[80px_1fr_44px_44px] gap-1 px-1 py-2 text-[11px] text-zinc-500 uppercase border-b border-zinc-800 sticky top-0 bg-black z-10 items-center">
           <span className="font-medium">NAME</span>
           <span className="text-right font-medium">PRICE</span>
           <button
@@ -270,7 +270,7 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
           {sortedItems.map((item, idx) => (
             <div
               key={item.name}
-              className="grid grid-cols-[minmax(0,1fr)_60px_48px_48px] sm:grid-cols-[minmax(0,1fr)_70px_52px_52px] gap-1 px-2 py-3 text-xs"
+              className="grid grid-cols-[80px_1fr_44px_44px] gap-1 px-1 py-2 text-xs"
               data-testid={`market-row-mobile-${idx}`}
             >
               <span className="text-zinc-200 truncate pr-1">{item.name}</span>
