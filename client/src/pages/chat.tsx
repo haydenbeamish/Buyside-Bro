@@ -274,23 +274,39 @@ export default function ChatPage() {
     <div className="flex h-[calc(100dvh-56px)] sm:h-[calc(100vh-64px)] max-h-[calc(100dvh-56px)] sm:max-h-[calc(100vh-64px)] bg-black overflow-hidden">
       <div className="flex-1 flex flex-col bg-black overflow-hidden">
         {messages.length === 0 && !isStreaming ? (
-          <div className="flex-1 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-            <div className="w-full max-w-md text-center space-y-4 sm:space-y-6 px-2">
-              <div className="flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/30 mx-auto">
-                <span className="text-2xl sm:text-3xl font-bold text-amber-500 display-font">AB</span>
-              </div>
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 display-font tracking-wide">
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+              <div className="mb-4 sm:mb-6">
+                <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white mb-1 sm:mb-2">
                   ASK BRO
-                </h2>
-                <p className="text-amber-400 text-xs sm:text-sm uppercase tracking-wider sm:tracking-widest mb-3 break-words">
-                  Autonomous Financial Research Agent
-                </p>
-                <p className="text-zinc-500 text-xs sm:text-sm px-2">
-                  Ask complex financial questions. Your bro thinks, plans, and researches using real-time market data to give you data-backed answers.
+                </h1>
+                <p className="text-zinc-500 text-sm sm:text-base">
+                  Autonomous Financial Research Agent — ask complex financial questions and get data-backed answers
                 </p>
               </div>
-              <div className="space-y-2">
+
+              <div className="max-w-3xl flex gap-2 mb-6 sm:mb-8">
+                <Textarea
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask me anything about finance..."
+                  className="min-h-[44px] max-h-32 resize-none bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500"
+                  disabled={isStreaming}
+                  data-testid="input-chat-message-empty"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isStreaming}
+                  size="icon"
+                  className="bg-amber-500 hover:bg-amber-400 text-black min-h-[44px] min-w-[44px]"
+                  data-testid="button-send-message-empty"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="max-w-3xl space-y-2">
                 <p className="text-xs text-zinc-500 uppercase tracking-wide">Try asking:</p>
                 <div className="flex flex-col gap-2">
                   {suggestedQuestions.map((q, i) => (
@@ -422,31 +438,6 @@ export default function ChatPage() {
           </>
         )}
 
-        {/* Input at bottom when no messages */}
-        {messages.length === 0 && !isStreaming && (
-          <div className="border-t border-zinc-800 p-4">
-            <div className="max-w-3xl mx-auto flex gap-2">
-              <Textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask me anything about finance..."
-                className="min-h-[44px] max-h-32 resize-none bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500"
-                disabled={isStreaming}
-                data-testid="input-chat-message-empty"
-              />
-              <Button
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isStreaming}
-                size="icon"
-                className="bg-amber-500 hover:bg-amber-400 text-black"
-                data-testid="button-send-message-empty"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
       <LoginGateModal open={showLoginModal} onClose={closeLoginModal} />
       <BroLimitModal open={showBroLimit} onClose={() => setShowBroLimit(false)} />
