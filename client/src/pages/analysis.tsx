@@ -839,7 +839,8 @@ export default function AnalysisPage() {
         // Fetch result BEFORE updating status so the loader stays visible
         const resultRes = await fetch(`/api/analysis/deep/result/${jobId}`);
         if (resultRes.ok) {
-          const result = await resultRes.json();
+          const raw = await resultRes.json();
+          const result = raw?.data || raw;
           setDeepResult(result);
           if (activeTicker) {
             deepResultCache.current[activeTicker] = result;

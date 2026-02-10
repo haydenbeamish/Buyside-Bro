@@ -1710,7 +1710,8 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.status(404).json({ error: "Result not ready" });
       }
       
-      const data = await response.json();
+      const raw = await response.json() as any;
+      const data = raw?.data || raw;
       res.json(data);
     } catch (error) {
       console.error("Job result error:", error);

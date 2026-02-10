@@ -596,7 +596,8 @@ export default function EarningsAnalysisPage() {
       if (status.status === "completed") {
         const resultRes = await fetch(`/api/analysis/deep/result/${currentJobId}`);
         if (resultRes.ok) {
-          const resultData = await resultRes.json();
+          const raw = await resultRes.json();
+          const resultData = raw?.data || raw;
           setResult(resultData);
         }
         if (pollingRef.current) {
