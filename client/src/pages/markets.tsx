@@ -4,6 +4,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { MarketWrapEmailCTA } from "@/components/market-wrap-email-cta";
+import {
+  ScatterChart, Scatter, XAxis, YAxis, ZAxis,
+  Tooltip, ResponsiveContainer, ReferenceLine, Cell
+} from "recharts";
 
 type FlashCells = Record<string, "up" | "down">;
 
@@ -117,6 +121,226 @@ function MobilePercentCell({ value, flash }: { value: number | undefined; flash?
     <span className={`ticker-font ${color} ${flashClass}`}>
       {value >= 0 ? '+' : ''}{value.toFixed(1)}%
     </span>
+  );
+}
+
+function getHeatColor(value: number | undefined): string {
+  if (value === undefined || value === null) return "rgba(39,39,42,0.8)"; // zinc-800
+  const clamped = Math.max(-20, Math.min(20, value));
+  const intensity = Math.abs(clamped) / 20;
+  if (value > 0) return `rgba(34,197,94,${0.15 + intensity * 0.55})`; // green
+  if (value < 0) return `rgba(239,68,68,${0.15 + intensity * 0.55})`; // red
+  return "rgba(39,39,42,0.5)";
+}
+
+function RotationHeatmap({ items }: { items: MarketItem[] }) {
+  if (items.length === 0) return null;
+
+  const columns: { key: keyof MarketItem; label: string }[] = [
+    { key: "change1D", label: "1D" },
+    { key: "change1M", label: "1M" },
+    { key: "change1Q", label: "1Q" },
+    { key: "change1Y", label: "1Y" },
+  ];
+
+  // Filter out columns where ALL items have undefined values
+  const activeColumns = columns.filter((col) =>
+    items.some((item) => item[col.key] !== undefined && item[col.key] !== null)
+  );
+
+  if (activeColumns.length === 0) return null;
+
+  return (
+    <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-4">
+      <h3 className="text-zinc-400 text-xs uppercase tracking-wide mb-3 font-medium">Performance Heatmap</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr>
+              <th className="text-left text-zinc-500 font-medium py-1 pr-3 sticky left-0 bg-zinc-900/50 min-w-[100px]">Name</th>
+              {activeColumns.map((col) => (
+                <th key={col.key} className="text-center text-zinc-500 font-medium py-1 px-2 min-w-[52px]">{col.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.name}>
+                <td className="text-zinc-300 py-1 pr-3 sticky left-0 bg-zinc-900/50 truncate max-w-[140px]">{item.name}</td>
+                {activeColumns.map((col) => {
+                  const val = item[col.key] as number | undefined;
+                  return (
+                    <td key={col.key} className="py-1 px-1">
+                      <div
+                        className="rounded text-center py-1 px-1 text-[11px] font-mono"
+                        style={{ backgroundColor: getHeatColor(val) }}
+                      >
+                        <span className={val === undefined || val === null ? "text-zinc-600" : "text-zinc-100"}>
+                          {val === undefined || val === null ? "-" : `${val >= 0 ? "+" : ""}${val.toFixed(1)}%`}
+                        </span>
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+const DOT_COLORS = [
+  "#22c55e", "#3b82f6", "#f59e0b", "#ef4444", "#a855f7",
+  "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#6366f1",
+  "#14b8a6", "#e879f9", "#facc15", "#fb923c", "#34d399",
+];
+
+interface RRGPoint {
+  name: string;
+  x: number;
+  y: number;
+}
+
+function RotationGraph({ items }: { items: MarketItem[] }) {
+  if (items.length === 0) return null;
+
+  // Determine which data fields are available
+  const has1Q = items.some((i) => i.change1Q !== undefined && i.change1Q !== null);
+  const has1M = items.some((i) => i.change1M !== undefined && i.change1M !== null);
+
+  if (!has1M && !has1Q) return null;
+
+  const points: RRGPoint[] = items
+    .map((item) => {
+      let x: number | undefined;
+      let y: number | undefined;
+
+      if (has1Q && item.change1Q !== undefined && item.change1Q !== null) {
+        x = item.change1Q;
+        y = (item.change1M ?? 0) - item.change1Q / 3;
+      } else if (has1M && item.change1M !== undefined && item.change1M !== null) {
+        x = item.change1M;
+        y = (item.change1D ?? 0) - item.change1M / 22;
+      } else {
+        return null;
+      }
+
+      return { name: item.name, x, y };
+    })
+    .filter((p): p is RRGPoint => p !== null);
+
+  if (points.length === 0) return null;
+
+  // Compute axis ranges with padding
+  const allX = points.map((p) => p.x);
+  const allY = points.map((p) => p.y);
+  const xMin = Math.min(...allX, 0);
+  const xMax = Math.max(...allX, 0);
+  const yMin = Math.min(...allY, 0);
+  const yMax = Math.max(...allY, 0);
+  const xPad = Math.max((xMax - xMin) * 0.15, 1);
+  const yPad = Math.max((yMax - yMin) * 0.15, 0.5);
+
+  const xAxisLabel = has1Q ? "Quarterly Momentum %" : "Monthly Momentum %";
+  const yAxisLabel = "Momentum Change";
+
+  return (
+    <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 sm:p-4">
+      <h3 className="text-zinc-400 text-xs uppercase tracking-wide mb-3 font-medium">Relative Rotation</h3>
+      <ResponsiveContainer width="100%" height={320}>
+        <ScatterChart margin={{ top: 20, right: 20, bottom: 30, left: 10 }}>
+          <XAxis
+            type="number"
+            dataKey="x"
+            domain={[xMin - xPad, xMax + xPad]}
+            tick={{ fill: "#71717a", fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: "#3f3f46" }}
+            label={{ value: xAxisLabel, position: "bottom", offset: 10, fill: "#71717a", fontSize: 11 }}
+          />
+          <YAxis
+            type="number"
+            dataKey="y"
+            domain={[yMin - yPad, yMax + yPad]}
+            tick={{ fill: "#71717a", fontSize: 11 }}
+            tickLine={false}
+            axisLine={{ stroke: "#3f3f46" }}
+            label={{ value: yAxisLabel, angle: -90, position: "insideLeft", offset: 0, fill: "#71717a", fontSize: 11 }}
+          />
+          <ZAxis range={[60, 60]} />
+
+          {/* Crosshairs at origin */}
+          <ReferenceLine x={0} stroke="#52525b" strokeDasharray="4 4" />
+          <ReferenceLine y={0} stroke="#52525b" strokeDasharray="4 4" />
+
+          <Tooltip
+            cursor={false}
+            content={({ payload }) => {
+              if (!payload || payload.length === 0) return null;
+              const data = payload[0].payload as RRGPoint;
+              return (
+                <div className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-xs shadow-lg">
+                  <div className="text-zinc-200 font-medium mb-1">{data.name}</div>
+                  <div className="text-zinc-400">
+                    {xAxisLabel}: <span className={data.x >= 0 ? "text-green-400" : "text-red-400"}>{data.x >= 0 ? "+" : ""}{data.x.toFixed(2)}%</span>
+                  </div>
+                  <div className="text-zinc-400">
+                    {yAxisLabel}: <span className={data.y >= 0 ? "text-green-400" : "text-red-400"}>{data.y >= 0 ? "+" : ""}{data.y.toFixed(2)}</span>
+                  </div>
+                </div>
+              );
+            }}
+          />
+
+          <Scatter data={points} shape="circle">
+            {points.map((_, idx) => (
+              <Cell key={idx} fill={DOT_COLORS[idx % DOT_COLORS.length]} />
+            ))}
+          </Scatter>
+
+          {/* Quadrant labels as reference lines with labels */}
+          <ReferenceLine
+            x={(xMax + xPad) * 0.6}
+            y={(yMax + yPad) * 0.85}
+            ifOverflow="extendDomain"
+            stroke="transparent"
+            label={{ value: "Leading", fill: "rgba(34,197,94,0.5)", fontSize: 11 }}
+          />
+          <ReferenceLine
+            x={(xMax + xPad) * 0.6}
+            y={(yMin - yPad) * 0.85}
+            ifOverflow="extendDomain"
+            stroke="transparent"
+            label={{ value: "Weakening", fill: "rgba(234,179,8,0.5)", fontSize: 11 }}
+          />
+          <ReferenceLine
+            x={(xMin - xPad) * 0.6}
+            y={(yMin - yPad) * 0.85}
+            ifOverflow="extendDomain"
+            stroke="transparent"
+            label={{ value: "Lagging", fill: "rgba(239,68,68,0.5)", fontSize: 11 }}
+          />
+          <ReferenceLine
+            x={(xMin - xPad) * 0.6}
+            y={(yMax + yPad) * 0.85}
+            ifOverflow="extendDomain"
+            stroke="transparent"
+            label={{ value: "Improving", fill: "rgba(59,130,246,0.5)", fontSize: 11 }}
+          />
+        </ScatterChart>
+      </ResponsiveContainer>
+      {/* Legend */}
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 px-1">
+        {points.map((p, idx) => (
+          <div key={p.name} className="flex items-center gap-1.5 text-[10px] text-zinc-400">
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: DOT_COLORS[idx % DOT_COLORS.length] }} />
+            <span className="truncate max-w-[100px]">{p.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -573,9 +797,19 @@ export default function MarketsPage() {
           </div>
 
           <TabsContent value="global">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <RotationHeatmap items={markets?.globalMarkets || []} />
+              <RotationGraph items={markets?.globalMarkets || []} />
+            </div>
             <MarketsTable items={markets?.globalMarkets || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="futures">
+            {(() => { const futuresItems = simulatedFutures.length > 0 ? simulatedFutures : (markets?.futures || []); return (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                <RotationHeatmap items={futuresItems} />
+                <RotationGraph items={futuresItems} />
+              </div>
+            ); })()}
             <FuturesGroupedView
               futures={simulatedFutures.length > 0 ? simulatedFutures : (markets?.futures || [])}
               isLoading={isLoading && simulatedFutures.length === 0}
@@ -583,21 +817,45 @@ export default function MarketsPage() {
             />
           </TabsContent>
           <TabsContent value="commodities">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <RotationHeatmap items={markets?.commodities || []} />
+              <RotationGraph items={markets?.commodities || []} />
+            </div>
             <MarketsTable items={markets?.commodities || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="usa-thematics">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <RotationHeatmap items={markets?.usaThematics || []} />
+              <RotationGraph items={markets?.usaThematics || []} />
+            </div>
             <MarketsTable items={markets?.usaThematics || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="usa-sectors">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <RotationHeatmap items={markets?.usaSectors || []} />
+              <RotationGraph items={markets?.usaSectors || []} />
+            </div>
             <MarketsTable items={markets?.usaSectors || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="usa-equal">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <RotationHeatmap items={markets?.usaEqualWeight || []} />
+              <RotationGraph items={markets?.usaEqualWeight || []} />
+            </div>
             <MarketsTable items={markets?.usaEqualWeight || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="asx-sectors">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <RotationHeatmap items={markets?.asxSectors || []} />
+              <RotationGraph items={markets?.asxSectors || []} />
+            </div>
             <MarketsTable items={markets?.asxSectors || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="forex">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <RotationHeatmap items={markets?.forex || []} />
+              <RotationGraph items={markets?.forex || []} />
+            </div>
             <MarketsTable items={markets?.forex || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
         </Tabs>
