@@ -600,12 +600,18 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
         </div>
         
         <div className="h-3 bg-zinc-800 rounded-full overflow-hidden mb-6">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all duration-150"
             style={{ width: `${displayProgress}%` }}
           />
         </div>
-        
+
+        {displayProgress >= 80 && !isComplete && (
+          <p className="text-sm text-amber-400/80 text-center mb-4 animate-pulse">
+            Hang tight — still crunching the numbers. This can take up to a minute for complex stocks.
+          </p>
+        )}
+
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 sm:gap-2">
           {loadingStages.map((stage, i) => {
             const isActive = i === currentStage;
