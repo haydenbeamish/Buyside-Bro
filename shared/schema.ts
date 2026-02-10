@@ -67,7 +67,9 @@ export const messages = pgTable("messages", {
   role: text("role").notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
-});
+}, (table) => ({
+  conversationIdIdx: index("messages_conversation_id_idx").on(table.conversationId),
+}));
 
 export const insertConversationSchema = createInsertSchema(conversations).omit({
   id: true,
@@ -131,6 +133,8 @@ export const newsFeed = pgTable("news_feed", {
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => ({
   publishedAtIdx: index("news_feed_published_at_idx").on(table.publishedAt),
+  marketIdx: index("news_feed_market_idx").on(table.market),
+  marketEventTypeIdx: index("news_feed_market_event_type_idx").on(table.market, table.eventType),
 }));
 
 export const insertNewsFeedSchema = createInsertSchema(newsFeed).omit({
@@ -153,6 +157,7 @@ export const activityLogs = pgTable("activity_logs", {
   userIdIdx: index("activity_logs_user_id_idx").on(table.userId),
   createdAtIdx: index("activity_logs_created_at_idx").on(table.createdAt),
   actionIdx: index("activity_logs_action_idx").on(table.action),
+  userCreatedAtIdx: index("activity_logs_user_created_at_idx").on(table.userId, table.createdAt),
 }));
 
 export type ActivityLog = typeof activityLogs.$inferSelect;

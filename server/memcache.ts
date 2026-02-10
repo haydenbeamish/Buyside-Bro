@@ -50,11 +50,13 @@ class MemoryCache {
 
   private sweep(): void {
     const now = Date.now();
-    for (const [key, entry] of this.store) {
+    const keysToDelete: string[] = [];
+    this.store.forEach((entry, key) => {
       if (now > entry.expiresAt) {
-        this.store.delete(key);
+        keysToDelete.push(key);
       }
-    }
+    });
+    keysToDelete.forEach((key) => this.store.delete(key));
   }
 }
 

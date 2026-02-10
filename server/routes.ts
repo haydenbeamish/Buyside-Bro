@@ -253,24 +253,17 @@ async function generateAndPostMarketSummary(market: string, eventType: string): 
 
   console.log(`[NewsFeed Scheduler] Posted ${eventType} summary for ${market}: ${title}`);
 
-  // Send push notifications for market close summaries
+  // Fire-and-forget push notifications and emails (don't block the scheduler)
   if (eventType === "close") {
     const marketMap: Record<string, string> = { USA: "usa", ASX: "asx", Europe: "europe", Asia: "asia" };
     const summaryType = marketMap[market];
     if (summaryType) {
-      try {
-        await sendMarketSummaryNotification(summaryType, String(newItem.id));
-      } catch (e) {
-        console.error(`[Push] Failed to send summary notification for ${market}:`, e);
-      }
+      sendMarketSummaryNotification(summaryType, String(newItem.id))
+        .catch((e) => console.error(`[Push] Failed to send summary notification for ${market}:`, e));
     }
 
-    // Send market wrap emails
-    try {
-      await sendMarketWrapEmails(market, summaryContent, String(newItem.id));
-    } catch (e) {
-      console.error(`[Email] Failed to send market wrap emails for ${market}:`, e);
-    }
+    sendMarketWrapEmails(market, summaryContent, String(newItem.id))
+      .catch((e) => console.error(`[Email] Failed to send market wrap emails for ${market}:`, e));
   }
 }
 
@@ -510,21 +503,18 @@ export async function registerRoutes(
         }
       }
 
-      const cacheKey = forceRefresh ? `markets_full_fetch_${Date.now()}` : "markets_full_fetch";
-      let fetchPromise = pendingRequests.get(cacheKey);
-      
-      if (!fetchPromise) {
-        fetchPromise = (async () => {
+      const dedupKey = forceRefresh ? `markets_full_fetch_${Date.now()}` : "markets_full_fetch";
+      try {
+        const data = await dedup(dedupKey, async () => {
           const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS }, 15000);
           if (!response.ok) {
             throw new Error(`API error: ${response.status} ${response.statusText}`);
           }
 
-          const data = await response.json();
-          const markets = data.markets || [];
+          const apiData = await response.json();
+          const markets = apiData.markets || [];
 
-          // Group by category using module-scope transformMarketItem
-          const byCategory = (category: string) => 
+          const byCategory = (category: string) =>
             markets.filter((m: any) => m.category === category || m.categoryGroup === category).map(transformMarketItem);
 
           const marketsFullData = {
@@ -543,14 +533,7 @@ export async function registerRoutes(
 
           await storage.setCachedData("markets_full", marketsFullData, 5);
           return marketsFullData;
-        })();
-        
-        pendingRequests.set(cacheKey, fetchPromise);
-        fetchPromise.catch(() => {}).finally(() => pendingRequests.delete(cacheKey));
-      }
-
-      try {
-        const data = await fetchPromise;
+        });
         res.json(data);
       } catch (fetchErr) {
         console.error("Markets full API error:", fetchErr);
@@ -1360,30 +1343,36 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
       const ticker = normalizeTicker(rawTicker);
 
-      const lbcUrl = `${LASER_BEAM_API}/api/stock/quick-summary/${encodeURIComponent(ticker)}`;
-      const lbcResponse = await fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 10000);
+      const forwardResult = await dedup(`forward_${ticker}`, async () => {
+        const lbcUrl = `${LASER_BEAM_API}/api/stock/quick-summary/${encodeURIComponent(ticker)}`;
+        const lbcResponse = await fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 10000);
 
-      if (!lbcResponse.ok) {
+        if (!lbcResponse.ok) {
+          return null;
+        }
+
+        const lbcRaw = await lbcResponse.json() as any;
+        const lbcData = lbcRaw?.data || lbcRaw;
+        const fm = lbcData.forwardMetrics || {};
+
+        const forwardPE = typeof fm.forwardPE === 'number' ? fm.forwardPE : null;
+        const forwardEpsGrowth = typeof fm.forwardEPSGrowth === 'number' ? fm.forwardEPSGrowth : null;
+
+        let pegRatio: number | null = null;
+        if (forwardPE !== null && forwardEpsGrowth !== null && forwardEpsGrowth > 0) {
+          pegRatio = forwardPE / forwardEpsGrowth;
+        }
+
+        return { forwardPE, forwardEpsGrowth, pegRatio };
+      });
+
+      if (!forwardResult) {
         return res.status(502).json({ error: "Failed to fetch forward metrics from data source" });
-      }
-
-      const lbcRaw = await lbcResponse.json() as any;
-      const lbcData = lbcRaw?.data || lbcRaw;
-      const fm = lbcData.forwardMetrics || {};
-
-      const forwardPE = typeof fm.forwardPE === 'number' ? fm.forwardPE : null;
-      const forwardEpsGrowth = typeof fm.forwardEPSGrowth === 'number' ? fm.forwardEPSGrowth : null;
-
-      let pegRatio: number | null = null;
-      if (forwardPE !== null && forwardEpsGrowth !== null && forwardEpsGrowth > 0) {
-        pegRatio = forwardPE / forwardEpsGrowth;
       }
 
       res.json({
         ticker,
-        forwardPE,
-        forwardEpsGrowth,
-        pegRatio,
+        ...forwardResult,
         currentEps: null,
         estimatedEps: null,
       });
@@ -1426,36 +1415,36 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
       const ticker = normalizeTicker(rawTicker);
       const material = req.query.material === "true";
-      const response = await fetchWithTimeout(
-        `${LASER_BEAM_API}/api/news/${encodeURIComponent(ticker)}?limit=${material ? 20 : 5}`,
-        { headers: LASER_BEAM_HEADERS },
-        10000
-      );
-      if (!response.ok) {
-        return res.json({ ticker, source: "unknown", announcements: [] });
-      }
-      const json = await response.json() as any;
-      const filings = json.data || json;
-      // Normalize items/itemDescriptions from comma-separated strings to arrays
-      if (filings.announcements) {
-        filings.announcements = filings.announcements.map((a: any) => ({
-          ...a,
-          items: typeof a.items === "string" ? a.items.split(",").map((s: string) => s.trim()) : a.items,
-          itemDescriptions: typeof a.itemDescriptions === "string" ? a.itemDescriptions.split(";").map((s: string) => s.trim()) : a.itemDescriptions,
-        }));
-        // Filter to important/material announcements only
-        if (material) {
-          const materialFormTypes = new Set(["8-K", "10-K", "10-Q"]);
-          filings.announcements = filings.announcements.filter((a: any) => {
-            if (filings.source === "asx") {
-              return a.priceSensitive === true;
-            }
-            // SEC: filter to key form types
-            return materialFormTypes.has(a.form);
-          });
-          filings.announcements = filings.announcements.slice(0, 5);
+      const filings = await dedup(`filings_${ticker}_${material}`, async () => {
+        const response = await fetchWithTimeout(
+          `${LASER_BEAM_API}/api/news/${encodeURIComponent(ticker)}?limit=${material ? 20 : 5}`,
+          { headers: LASER_BEAM_HEADERS },
+          10000
+        );
+        if (!response.ok) {
+          return { ticker, source: "unknown", announcements: [] };
         }
-      }
+        const json = await response.json() as any;
+        const result = json.data || json;
+        if (result.announcements) {
+          result.announcements = result.announcements.map((a: any) => ({
+            ...a,
+            items: typeof a.items === "string" ? a.items.split(",").map((s: string) => s.trim()) : a.items,
+            itemDescriptions: typeof a.itemDescriptions === "string" ? a.itemDescriptions.split(";").map((s: string) => s.trim()) : a.itemDescriptions,
+          }));
+          if (material) {
+            const materialFormTypes = new Set(["8-K", "10-K", "10-Q"]);
+            result.announcements = result.announcements.filter((a: any) => {
+              if (result.source === "asx") {
+                return a.priceSensitive === true;
+              }
+              return materialFormTypes.has(a.form);
+            });
+            result.announcements = result.announcements.slice(0, 5);
+          }
+        }
+        return result;
+      });
       res.json(filings);
     } catch (error) {
       console.error("Filings error:", error);
