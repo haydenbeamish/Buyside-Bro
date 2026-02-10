@@ -706,6 +706,8 @@ function PositionSizeCalculator() {
         const price = data?.price || data?.profile?.price || 0;
         if (price > 0) {
           setEntryPrice(price.toString());
+          setStopLoss((price * 0.9).toFixed(2));
+          setTargetPrice((price * 1.3).toFixed(2));
         }
       }
     } catch {}
@@ -867,9 +869,9 @@ function PositionSizeCalculator() {
               type="number"
               step="0.1"
               min="0.1"
-              max="5"
+              max="100"
               value={riskPercent}
-              onChange={(e) => setRiskPercent(Math.min(5, Math.max(0.1, parseFloat(e.target.value) || 0.1)))}
+              onChange={(e) => setRiskPercent(Math.min(100, Math.max(0.1, parseFloat(e.target.value) || 0.1)))}
               className="bg-zinc-800 border-zinc-700 text-white w-20 text-sm text-center"
               data-testid="input-risk-percent"
             />
@@ -877,7 +879,7 @@ function PositionSizeCalculator() {
           <input
             type="range"
             min="0.1"
-            max="5"
+            max="100"
             step="0.1"
             value={riskPercent}
             onChange={(e) => setRiskPercent(parseFloat(e.target.value))}
