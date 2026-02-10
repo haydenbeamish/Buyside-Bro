@@ -352,6 +352,17 @@ function RecentFilings({ ticker }: { ticker: string }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  const isValidDate = (dateStr: string) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    return !isNaN(d.getTime());
+  };
+
+  const hasAnyInvalidDate = useMemo(() => {
+    return filings?.announcements?.some(f => !isValidDate(f.date) || (f.reportDate && !isValidDate(f.reportDate)));
+  }, [filings?.announcements]);
+  const showDates = !hasAnyInvalidDate;
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -390,23 +401,11 @@ function RecentFilings({ ticker }: { ticker: string }) {
     return <Badge className={`${color} text-[10px] px-1.5 py-0 shrink-0`}>{form}</Badge>;
   };
 
-  const isValidDate = (dateStr: string) => {
-    if (!dateStr) return false;
-    const d = new Date(dateStr);
-    return !isNaN(d.getTime());
-  };
-
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return null;
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   };
-
-  // If any announcement has an invalid date, hide dates on all of them
-  const hasAnyInvalidDate = useMemo(() => {
-    return filings?.announcements?.some(f => !isValidDate(f.date) || (f.reportDate && !isValidDate(f.reportDate)));
-  }, [filings?.announcements]);
-  const showDates = !hasAnyInvalidDate;
 
   return (
     <div className="space-y-3">
