@@ -1,7 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { ReactNode } from "react";
-import { LayoutGrid, Briefcase, Newspaper, MessageSquare, Menu, X, Sparkles, CreditCard, LogOut, User, Eye, Shield, Brain, Building2, Loader2 } from "lucide-react";
+import { LayoutGrid, Briefcase, Newspaper, MessageSquare, Menu, X, Sparkles, CreditCard, LogOut, User, Eye, Shield, Brain, Building2, Loader2, Bug } from "lucide-react";
 import { useState } from "react";
+import * as Sentry from "@sentry/react";
 import { useAuth } from "@/hooks/use-auth";
 import { useBroStatus } from "@/hooks/use-bro-status";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +23,66 @@ const navItems = [
   { path: "/earnings", label: "Earnings", icon: Brain },
   { path: "/chat", label: "Ask Bro", icon: MessageSquare },
 ];
+
+function BetaFeedbackWidget() {
+  const [open, setOpen] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = () => {
+    if (!feedback.trim()) return;
+    Sentry.captureFeedback({
+      message: feedback.trim(),
+    });
+    setFeedback("");
+    setSubmitted(true);
+    setTimeout(() => {
+      setSubmitted(false);
+      setOpen(false);
+    }, 2000);
+  };
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50">
+      {open && (
+        <div className="mb-2 w-72 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-zinc-200">Beta Feedback</span>
+            <button onClick={() => setOpen(false)} className="text-zinc-500 hover:text-zinc-300">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {submitted ? (
+            <p className="text-sm text-green-400">Thanks for the feedback!</p>
+          ) : (
+            <>
+              <textarea
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                placeholder="What's broken or could be better?"
+                className="w-full h-24 bg-zinc-800 border border-zinc-700 rounded-md p-2 text-sm text-zinc-200 placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-1 focus:ring-amber-500"
+              />
+              <button
+                onClick={handleSubmit}
+                disabled={!feedback.trim()}
+                className="w-full py-1.5 text-sm font-medium rounded-md bg-amber-600 hover:bg-amber-500 text-black disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Send Feedback
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      <button
+        onClick={() => setOpen(!open)}
+        className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-800/80 border border-zinc-700 text-zinc-400 hover:text-amber-400 hover:border-amber-500/50 transition-all text-xs backdrop-blur-sm"
+      >
+        <Bug className="w-3.5 h-3.5" />
+        <span>Feedback</span>
+      </button>
+    </div>
+  );
+}
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [location] = useLocation();
@@ -214,6 +275,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </main>
       </div>
+
+      <BetaFeedbackWidget />
     </div>
   );
 }

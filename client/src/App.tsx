@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-provider";
-import React from "react";
+import * as Sentry from "@sentry/react";
 import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing";
 import PreviewPage from "@/pages/preview";
@@ -20,32 +20,14 @@ import SubscriptionPage from "@/pages/subscription";
 import WatchlistPage from "@/pages/watchlist";
 import AdminPage from "@/pages/admin";
 
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("Uncaught error:", error, info);
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: "2rem", textAlign: "center" }}>
-          <h1>Something went wrong</h1>
-          <p>Please refresh the page to try again.</p>
-          <button onClick={() => window.location.reload()}>Refresh</button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
+function ErrorFallback() {
+  return (
+    <div style={{ padding: "2rem", textAlign: "center" }}>
+      <h1>Something went wrong</h1>
+      <p>Please refresh the page to try again.</p>
+      <button onClick={() => window.location.reload()}>Refresh</button>
+    </div>
+  );
 }
 
 function DashboardRoutes() {
@@ -80,7 +62,7 @@ function Router() {
 
 function App() {
   return (
-    <ErrorBoundary>
+    <Sentry.ErrorBoundary fallback={<ErrorFallback />}>
       <ThemeProvider defaultTheme="dark">
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
@@ -89,7 +71,7 @@ function App() {
           </TooltipProvider>
         </QueryClientProvider>
       </ThemeProvider>
-    </ErrorBoundary>
+    </Sentry.ErrorBoundary>
   );
 }
 
