@@ -487,12 +487,12 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
     const interval = setInterval(() => {
       setAnimatedProgress(prev => {
         const elapsed = (Date.now() - startTime) / 1000;
-        const baseProgress = Math.min(apiProgress, 95);
-        const timeBasedProgress = Math.min(elapsed * 0.5, 94);
+        const baseProgress = Math.min(apiProgress, 99);
+        const timeBasedProgress = Math.min(elapsed * 0.5, 90);
         const newProgress = Math.max(baseProgress, timeBasedProgress, prev);
-        const increment = 0.1 + Math.random() * 0.3;
-        const nextProgress = Math.min(newProgress + increment, 95);
-        return nextProgress;
+        const remaining = 99 - newProgress;
+        const increment = Math.max(remaining * 0.02, 0.01);
+        return Math.min(newProgress + increment, 99);
       });
     }, 150);
     
