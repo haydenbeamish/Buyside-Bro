@@ -15,12 +15,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from "@/components/ui/dialog";
-import {
   TrendingUp, Loader2, ChevronDown, ChevronUp,
   Trophy, Target, BarChart3, ArrowUpRight, ArrowDownRight, Trash2,
-  AlertTriangle, Lock, Plus,
+  AlertTriangle, Lock, Plus, Building2, X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Trade } from "@shared/schema";
@@ -48,6 +45,7 @@ interface Financials {
   roe: number;
   debtToEquity: number;
   evToEbit?: number;
+  dividendYield?: number;
 }
 
 interface Analytics {
@@ -221,6 +219,7 @@ function MetricCard({ label, value, subValue, color }: { label: string; value: s
 
 function formatCurrency(val: number): string {
   const abs = Math.abs(val);
+  if (abs >= 1000000000) return `$${(val / 1000000000).toFixed(1)}B`;
   if (abs >= 1000000) return `$${(val / 1000000).toFixed(1)}M`;
   if (abs >= 1000) return `$${(val / 1000).toFixed(1)}K`;
   return `$${val.toFixed(0)}`;
@@ -229,6 +228,57 @@ function formatCurrency(val: number): string {
 function formatPnL(val: number): string {
   const prefix = val >= 0 ? "+" : "";
   return `${prefix}${formatCurrency(val)}`;
+}
+
+// ─── TradingView Chart ────────────────────────────────────────────
+
+function TradingViewChart({ ticker, exchange, height = "h-[350px] sm:h-[450px]" }: { ticker: string; exchange?: string; height?: string }) {
+  const iframeSrc = useMemo(() => {
+    let tvSymbol = ticker;
+    if (ticker.endsWith(".AX")) {
+      tvSymbol = `ASX:${ticker.replace(".AX", "")}`;
+    } else if (exchange) {
+      const exchangeMap: Record<string, string> = {
+        NASDAQ: "NASDAQ", NYSE: "NYSE", AMEX: "AMEX",
+        LSE: "LSE", "London Stock Exchange": "LSE",
+        ASX: "ASX", "Australian Securities Exchange": "ASX",
+      };
+      const prefix = exchangeMap[exchange];
+      if (prefix && !ticker.includes(":")) {
+        tvSymbol = `${prefix}:${ticker}`;
+      }
+    }
+
+    const params = new URLSearchParams({
+      symbol: tvSymbol,
+      interval: "D",
+      theme: "dark",
+      style: "1",
+      locale: "en",
+      hide_top_toolbar: "1",
+      hide_side_toolbar: "1",
+      hide_legend: "1",
+      allow_symbol_change: "0",
+      save_image: "0",
+      calendar: "0",
+      hide_volume: "0",
+      backgroundColor: "rgba(9, 9, 11, 1)",
+      gridColor: "rgba(242, 242, 242, 0.06)",
+    });
+
+    return `https://s.tradingview.com/widgetembed/?${params.toString()}`;
+  }, [ticker, exchange]);
+
+  return (
+    <div className={`bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden ${height}`}>
+      <iframe
+        src={iframeSrc}
+        style={{ width: "100%", height: "100%", border: "none" }}
+        allowFullScreen
+        loading="lazy"
+      />
+    </div>
+  );
 }
 
 // ─── Analytics Dashboard ──────────────────────────────────────────
@@ -409,267 +459,15 @@ function AnalyticsDashboard({ analytics, isDemo }: { analytics: Analytics; isDem
   );
 }
 
-// ─── Trade Form Dialog ────────────────────────────────────────────
-
-interface TradeFormProps {
-  open: boolean;
-  onClose: () => void;
-  action: "buy" | "sell";
-  ticker: string;
-  companyName: string;
-  currentPrice: number;
-  profile: StockProfile | null;
-  financials: Financials | null;
-  chartData: number[];
-  forwardMetrics: any;
-  strategies: string[];
-  setups: string[];
-  sources: string[];
-}
-
-function TradeFormDialog({
-  open, onClose, action, ticker, companyName, currentPrice,
-  profile, financials, chartData, forwardMetrics,
-  strategies, setups, sources,
-}: TradeFormProps) {
-  const [shares, setShares] = useState("");
-  const [price, setPrice] = useState(currentPrice.toFixed(2));
-  const [tradeDate, setTradeDate] = useState(new Date().toISOString().split("T")[0]);
-  const [strategyTag, setStrategyTag] = useState("");
-  const [setupType, setSetupType] = useState("");
-  const [emotionalState, setEmotionalState] = useState("");
-  const [ideaSource, setIdeaSource] = useState("");
-  const [ideaSourceName, setIdeaSourceName] = useState("");
-  const [notes, setNotes] = useState("");
-  const [updatePortfolio, setUpdatePortfolio] = useState(true);
-  const { toast } = useToast();
-
-  // Sync price when dialog opens with new ticker/price
-  useEffect(() => {
-    if (open && currentPrice > 0) {
-      setPrice(currentPrice.toFixed(2));
-    }
-  }, [open, currentPrice]);
-
-  const createMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/trades", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/trades"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/trades/analytics"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/trades/labels/strategies"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/trades/labels/setups"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/trades/labels/sources"] });
-      if (updatePortfolio) {
-        queryClient.invalidateQueries({ queryKey: ["/api/portfolio/enriched"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/portfolio"] });
-      }
-      toast({ title: "Trade logged", description: `${action.toUpperCase()} ${shares} shares of ${ticker} @ $${price}` });
-      onClose();
-      resetForm();
-    },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to log trade", variant: "destructive" });
-    },
-  });
-
-  const resetForm = () => {
-    setShares(""); setPrice(currentPrice.toFixed(2)); setTradeDate(new Date().toISOString().split("T")[0]);
-    setStrategyTag(""); setSetupType(""); setEmotionalState("");
-    setIdeaSource(""); setIdeaSourceName(""); setNotes("");
-  };
-
-  const handleSubmit = () => {
-    if (!shares || !price) return;
-    createMutation.mutate({
-      ticker, companyName, action, shares, price,
-      tradedAt: new Date(tradeDate).toISOString(),
-      strategyTag: strategyTag || null,
-      setupType: setupType || null,
-      emotionalState: emotionalState || null,
-      ideaSource: ideaSource || null,
-      ideaSourceName: ideaSourceName || null,
-      notes: notes || null,
-      profileSnapshot: profile || null,
-      financialsSnapshot: financials || null,
-      chartSnapshot: chartData.length > 0 ? chartData : null,
-      forwardMetricsSnapshot: forwardMetrics || null,
-      portfolioUpdated: updatePortfolio,
-      updatePortfolio,
-    });
-  };
-
-  const totalValue = shares && price ? (parseFloat(shares) * parseFloat(price)).toFixed(2) : "0.00";
-
-  const emotions = ["confident", "neutral", "anxious", "excited", "fomo", "fearful"];
-
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-zinc-900 border-zinc-800 text-white max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className={action === "buy" ? "text-green-400" : "text-red-400"}>
-            {action === "buy" ? "BUY" : "SELL"} {ticker}
-          </DialogTitle>
-          <DialogDescription className="text-zinc-400">{companyName}</DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* Shares + Price */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-zinc-400 text-xs">Shares</Label>
-              <Input
-                type="number" step="any" min="0" placeholder="100"
-                value={shares} onChange={(e) => setShares(e.target.value)}
-                className="bg-zinc-800 border-zinc-700 text-white mt-1"
-              />
-            </div>
-            <div>
-              <Label className="text-zinc-400 text-xs">Price ($)</Label>
-              <Input
-                type="number" step="0.01" min="0" placeholder="150.00"
-                value={price} onChange={(e) => setPrice(e.target.value)}
-                className="bg-zinc-800 border-zinc-700 text-white mt-1"
-              />
-            </div>
-          </div>
-
-          {/* Total */}
-          <div className="text-sm text-zinc-400">
-            Total: <span className="text-white font-mono">${totalValue}</span>
-          </div>
-
-          {/* Trade date */}
-          <div>
-            <Label className="text-zinc-400 text-xs">Trade Date</Label>
-            <Input
-              type="date" value={tradeDate}
-              onChange={(e) => setTradeDate(e.target.value)}
-              className="bg-zinc-800 border-zinc-700 text-white mt-1"
-            />
-          </div>
-
-          {/* Strategy */}
-          <div>
-            <Label className="text-zinc-400 text-xs">Strategy Tag</Label>
-            <Input
-              placeholder="e.g., momentum, value, swing"
-              value={strategyTag} onChange={(e) => setStrategyTag(e.target.value)}
-              className="bg-zinc-800 border-zinc-700 text-white mt-1"
-              list="strategy-list"
-            />
-            <datalist id="strategy-list">
-              {strategies.map(s => <option key={s} value={s} />)}
-            </datalist>
-          </div>
-
-          {/* Setup type */}
-          <div>
-            <Label className="text-zinc-400 text-xs">Setup Type</Label>
-            <select
-              value={setupType} onChange={(e) => setSetupType(e.target.value)}
-              className="w-full mt-1 bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"
-            >
-              <option value="">Select...</option>
-              <option value="technical">Technical</option>
-              <option value="fundamental">Fundamental</option>
-              <option value="catalyst_driven">Catalyst Driven</option>
-              <option value="market_conditions">Market Conditions</option>
-            </select>
-          </div>
-
-          {/* Emotional state */}
-          <div>
-            <Label className="text-zinc-400 text-xs">Emotional State</Label>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {emotions.map(e => (
-                <button
-                  key={e}
-                  onClick={() => setEmotionalState(emotionalState === e ? "" : e)}
-                  className={`px-3 py-1 rounded-full text-xs border transition-colors ${
-                    emotionalState === e
-                      ? "border-amber-500 bg-amber-900/30 text-amber-400"
-                      : "border-zinc-700 text-zinc-400 hover:border-zinc-600"
-                  }`}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Idea source */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-zinc-400 text-xs">Idea Source</Label>
-              <select
-                value={ideaSource} onChange={(e) => setIdeaSource(e.target.value)}
-                className="w-full mt-1 bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"
-              >
-                <option value="">Select...</option>
-                <option value="self">Self</option>
-                <option value="broker">Broker</option>
-                <option value="friend">Friend</option>
-                <option value="research">Research</option>
-              </select>
-            </div>
-            <div>
-              <Label className="text-zinc-400 text-xs">Source Name</Label>
-              <Input
-                placeholder="e.g., Goldman Sachs"
-                value={ideaSourceName} onChange={(e) => setIdeaSourceName(e.target.value)}
-                className="bg-zinc-800 border-zinc-700 text-white mt-1"
-                list="source-list"
-              />
-              <datalist id="source-list">
-                {sources.map(s => <option key={s} value={s} />)}
-              </datalist>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <Label className="text-zinc-400 text-xs">Notes</Label>
-            <Textarea
-              placeholder="Why are you making this trade?"
-              value={notes} onChange={(e) => setNotes(e.target.value)}
-              className="bg-zinc-800 border-zinc-700 text-white mt-1 min-h-[60px]"
-            />
-          </div>
-
-          {/* Update portfolio toggle */}
-          <div className="flex items-center gap-3">
-            <Switch checked={updatePortfolio} onCheckedChange={setUpdatePortfolio} />
-            <Label className="text-zinc-400 text-sm">Update Portfolio</Label>
-          </div>
-        </div>
-
-        <DialogFooter className="mt-4">
-          <Button variant="ghost" onClick={onClose} className="text-zinc-400">Cancel</Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!shares || !price || createMutation.isPending}
-            className={action === "buy"
-              ? "bg-green-600 hover:bg-green-500 text-white"
-              : "bg-red-600 hover:bg-red-500 text-white"
-            }
-          >
-            {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : `${action === "buy" ? "Buy" : "Sell"} ${ticker}`}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ─── Trade Card ───────────────────────────────────────────────────
 
 function TradeCard({ trade, onDelete, isDemo }: { trade: any; onDelete?: (id: number) => void; isDemo: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const pnl = trade.pnl;
   const hasPnL = typeof pnl === "number";
+
+  const profileSnap = trade.profileSnapshot as any;
+  const financialsSnap = trade.financialsSnapshot as any;
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
@@ -738,8 +536,70 @@ function TradeCard({ trade, onDelete, isDemo }: { trade: any; onDelete?: (id: nu
             <p className="text-sm text-zinc-400 bg-zinc-800/50 rounded p-2">{trade.notes}</p>
           )}
 
+          {/* Snapshot data at time of trade */}
+          {(profileSnap || financialsSnap) && (
+            <div className="space-y-2">
+              <p className="text-xs text-zinc-500 font-medium">Snapshot at time of trade</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {profileSnap?.sector && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1">
+                    <span className="text-[10px] text-zinc-500">Sector</span>
+                    <p className="text-xs text-white truncate">{profileSnap.sector}</p>
+                  </div>
+                )}
+                {profileSnap?.industry && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1">
+                    <span className="text-[10px] text-zinc-500">Industry</span>
+                    <p className="text-xs text-white truncate">{profileSnap.industry}</p>
+                  </div>
+                )}
+                {profileSnap?.marketCap > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1">
+                    <span className="text-[10px] text-zinc-500">Mkt Cap</span>
+                    <p className="text-xs text-white font-mono">{formatCurrency(profileSnap.marketCap)}</p>
+                  </div>
+                )}
+                {financialsSnap?.peRatio > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1">
+                    <span className="text-[10px] text-zinc-500">P/E</span>
+                    <p className="text-xs text-white font-mono">{financialsSnap.peRatio.toFixed(1)}</p>
+                  </div>
+                )}
+                {financialsSnap?.roe != null && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1">
+                    <span className="text-[10px] text-zinc-500">ROE</span>
+                    <p className="text-xs text-white font-mono">{(financialsSnap.roe * 100).toFixed(1)}%</p>
+                  </div>
+                )}
+                {financialsSnap?.evToEbit != null && financialsSnap.evToEbit > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1">
+                    <span className="text-[10px] text-zinc-500">EV/EBIT</span>
+                    <p className="text-xs text-white font-mono">{financialsSnap.evToEbit.toFixed(1)}</p>
+                  </div>
+                )}
+                {financialsSnap?.debtToEquity != null && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1">
+                    <span className="text-[10px] text-zinc-500">D/E</span>
+                    <p className="text-xs text-white font-mono">{financialsSnap.debtToEquity.toFixed(2)}</p>
+                  </div>
+                )}
+                {financialsSnap?.pbRatio != null && financialsSnap.pbRatio > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1">
+                    <span className="text-[10px] text-zinc-500">P/B</span>
+                    <p className="text-xs text-white font-mono">{financialsSnap.pbRatio.toFixed(2)}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {trade.chartSnapshot && Array.isArray(trade.chartSnapshot) && trade.chartSnapshot.length > 1 && (
             <MiniChart data={trade.chartSnapshot} />
+          )}
+
+          {/* TradingView chart for this trade's ticker */}
+          {!isDemo && trade.ticker && (
+            <TradingViewChart ticker={trade.ticker} height="h-[250px]" />
           )}
 
           {!isDemo && onDelete && (
@@ -848,11 +708,22 @@ function RealTradeTracker() {
   const { toast } = useToast();
   const [selectedTicker, setSelectedTicker] = useState("");
   const [selectedName, setSelectedName] = useState("");
-  const [tradeFormOpen, setTradeFormOpen] = useState(false);
-  const [tradeAction, setTradeAction] = useState<"buy" | "sell">("buy");
+  const [tradeAction, setTradeAction] = useState<"buy" | "sell" | null>(null);
   const [filterTicker, setFilterTicker] = useState("");
   const [filterStrategy, setFilterStrategy] = useState("");
   const [filterAction, setFilterAction] = useState("");
+
+  // Form state
+  const [shares, setShares] = useState("");
+  const [price, setPrice] = useState("");
+  const [tradeDate, setTradeDate] = useState(new Date().toISOString().split("T")[0]);
+  const [strategyTag, setStrategyTag] = useState("");
+  const [setupType, setSetupType] = useState("");
+  const [emotionalState, setEmotionalState] = useState("");
+  const [ideaSource, setIdeaSource] = useState("");
+  const [ideaSourceName, setIdeaSourceName] = useState("");
+  const [notes, setNotes] = useState("");
+  const [updatePortfolio, setUpdatePortfolio] = useState(true);
 
   // Fetch trades
   const { data: trades = [], isLoading: tradesLoading } = useQuery<Trade[]>({
@@ -895,6 +766,59 @@ function RealTradeTracker() {
     return historyData.map((d: any) => d.close).filter(Boolean);
   }, [historyData]);
 
+  // Sync price when profile loads
+  useEffect(() => {
+    if (profile?.price && profile.price > 0) {
+      setPrice(profile.price.toFixed(2));
+    }
+  }, [profile?.price]);
+
+  // Reset form when ticker changes
+  useEffect(() => {
+    setTradeAction(null);
+    setShares("");
+    setTradeDate(new Date().toISOString().split("T")[0]);
+    setStrategyTag("");
+    setSetupType("");
+    setEmotionalState("");
+    setIdeaSource("");
+    setIdeaSourceName("");
+    setNotes("");
+  }, [selectedTicker]);
+
+  // Create trade mutation
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/trades", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trades"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trades/analytics"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trades/labels/strategies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trades/labels/setups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trades/labels/sources"] });
+      if (updatePortfolio) {
+        queryClient.invalidateQueries({ queryKey: ["/api/portfolio/enriched"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/portfolio"] });
+      }
+      toast({ title: "Trade logged", description: `${tradeAction!.toUpperCase()} ${shares} shares of ${selectedTicker} @ $${price}` });
+      // Reset
+      setTradeAction(null);
+      setShares("");
+      setTradeDate(new Date().toISOString().split("T")[0]);
+      setStrategyTag("");
+      setSetupType("");
+      setEmotionalState("");
+      setIdeaSource("");
+      setIdeaSourceName("");
+      setNotes("");
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to log trade", variant: "destructive" });
+    },
+  });
+
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -912,13 +836,34 @@ function RealTradeTracker() {
     setSelectedName(name);
   }, []);
 
-  const openTradeForm = (action: "buy" | "sell") => {
-    if (!selectedTicker) return;
-    setTradeAction(action);
-    setTradeFormOpen(true);
+  const handleSubmit = () => {
+    if (!shares || !price || !tradeAction) return;
+    createMutation.mutate({
+      ticker: selectedTicker,
+      companyName: selectedName || profile?.companyName || selectedTicker,
+      action: tradeAction,
+      shares,
+      price,
+      tradedAt: new Date(tradeDate).toISOString(),
+      strategyTag: strategyTag || null,
+      setupType: setupType || null,
+      emotionalState: emotionalState || null,
+      ideaSource: ideaSource || null,
+      ideaSourceName: ideaSourceName || null,
+      notes: notes || null,
+      profileSnapshot: profile || null,
+      financialsSnapshot: financials || null,
+      chartSnapshot: chartData.length > 0 ? chartData : null,
+      forwardMetricsSnapshot: forwardMetrics || null,
+      portfolioUpdated: updatePortfolio,
+      updatePortfolio,
+    });
   };
 
-  // Compute P&L for trade cards (simplified: no live prices, just show stored data)
+  const totalValue = shares && price ? (parseFloat(shares) * parseFloat(price)).toFixed(2) : "0.00";
+  const emotions = ["confident", "neutral", "anxious", "excited", "fomo", "fearful"];
+
+  // Compute P&L for trade cards
   const tradesWithPnL = useMemo(() => {
     return trades.map(t => ({ ...t }));
   }, [trades]);
@@ -937,6 +882,12 @@ function RealTradeTracker() {
     return Array.from(s) as string[];
   }, [trades]);
 
+  const clearSelection = () => {
+    setSelectedTicker("");
+    setSelectedName("");
+    setTradeAction(null);
+  };
+
   return (
     <div className="space-y-6">
       {/* Analytics */}
@@ -944,7 +895,7 @@ function RealTradeTracker() {
         <AnalyticsDashboard analytics={analytics} isDemo={false} />
       )}
 
-      {/* Trade Entry */}
+      {/* Trade Entry Section */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-4">
         <h3 className="text-sm font-semibold text-white flex items-center gap-2">
           <Plus className="w-4 h-4 text-amber-400" /> Log a Trade
@@ -956,67 +907,307 @@ function RealTradeTracker() {
           clearOnSelect={false}
         />
 
+        {selectedTicker && !profile && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+          </div>
+        )}
+
         {selectedTicker && profile && (
-          <div className="space-y-3">
-            {/* Compact profile */}
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <span className="font-mono font-semibold text-amber-400 text-lg">{profile.symbol}</span>
-                <span className="text-zinc-400 text-sm ml-2">{profile.companyName}</span>
+          <div className="space-y-4">
+            {/* Stock Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono font-bold text-amber-400 text-xl">{profile.symbol}</span>
+                  <span className="text-zinc-300 text-sm truncate">{profile.companyName}</span>
+                  <button onClick={clearSelection} className="text-zinc-600 hover:text-zinc-400">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  {profile.sector && (
+                    <Badge variant="outline" className="text-[10px] border-zinc-700 text-zinc-400">
+                      <Building2 className="w-3 h-3 mr-1" />{profile.sector}
+                    </Badge>
+                  )}
+                  {profile.industry && (
+                    <Badge variant="outline" className="text-[10px] border-zinc-700 text-zinc-400">
+                      {profile.industry}
+                    </Badge>
+                  )}
+                </div>
               </div>
-              <div className="text-right">
-                <span className="text-white font-mono text-lg">${profile.price.toFixed(2)}</span>
-                <span className={`ml-2 text-sm ${profile.changes >= 0 ? "text-green-400" : "text-red-400"}`}>
-                  {profile.changes >= 0 ? "+" : ""}{profile.changesPercentage?.toFixed(2)}%
-                </span>
+              <div className="text-right shrink-0">
+                <span className="text-white font-mono text-xl font-bold">${profile.price.toFixed(2)}</span>
+                <div className={`text-sm font-mono ${profile.changes >= 0 ? "text-green-400" : "text-red-400"}`}>
+                  {profile.changes >= 0 ? "+" : ""}{profile.changes?.toFixed(2)} ({profile.changesPercentage?.toFixed(2)}%)
+                </div>
               </div>
             </div>
 
-            {/* Compact metrics */}
-            {financials && (
-              <div className="grid grid-cols-3 gap-2">
-                {financials.peRatio != null && financials.peRatio > 0 && (
-                  <div className="bg-zinc-800/50 rounded px-2 py-1">
-                    <span className="text-[10px] text-zinc-500">P/E</span>
+            {/* BUY / SELL buttons */}
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setTradeAction(tradeAction === "buy" ? null : "buy")}
+                className={`flex-1 font-semibold text-lg py-5 ${
+                  tradeAction === "buy"
+                    ? "bg-green-600 hover:bg-green-500 text-white ring-2 ring-green-400"
+                    : "bg-green-900/30 hover:bg-green-800/50 text-green-400 border border-green-800"
+                }`}
+              >
+                <ArrowUpRight className="w-5 h-5 mr-1" /> BUY
+              </Button>
+              <Button
+                onClick={() => setTradeAction(tradeAction === "sell" ? null : "sell")}
+                className={`flex-1 font-semibold text-lg py-5 ${
+                  tradeAction === "sell"
+                    ? "bg-red-600 hover:bg-red-500 text-white ring-2 ring-red-400"
+                    : "bg-red-900/30 hover:bg-red-800/50 text-red-400 border border-red-800"
+                }`}
+              >
+                <ArrowDownRight className="w-5 h-5 mr-1" /> SELL
+              </Button>
+            </div>
+
+            {/* Inline Form (visible after BUY/SELL clicked) */}
+            {tradeAction && (
+              <div className="space-y-4 border-t border-zinc-800 pt-4">
+                {/* Shares + Price */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-zinc-400 text-xs">Shares</Label>
+                    <Input
+                      type="number" step="any" min="0" placeholder="100"
+                      value={shares} onChange={(e) => setShares(e.target.value)}
+                      className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400 text-xs">Price ($)</Label>
+                    <Input
+                      type="number" step="0.01" min="0" placeholder="150.00"
+                      value={price} onChange={(e) => setPrice(e.target.value)}
+                      className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                    />
+                  </div>
+                </div>
+
+                {/* Trade date + Total */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-zinc-400 text-xs">Trade Date</Label>
+                    <Input
+                      type="date" value={tradeDate}
+                      onChange={(e) => setTradeDate(e.target.value)}
+                      className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400 text-xs">Total Value</Label>
+                    <div className="mt-1 bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-white font-mono text-sm">
+                      ${totalValue}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Strategy */}
+                <div>
+                  <Label className="text-zinc-400 text-xs">Strategy Tag</Label>
+                  <Input
+                    placeholder="e.g., momentum, value, swing"
+                    value={strategyTag} onChange={(e) => setStrategyTag(e.target.value)}
+                    className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                    list="strategy-list"
+                  />
+                  <datalist id="strategy-list">
+                    {strategies.map(s => <option key={s} value={s} />)}
+                  </datalist>
+                </div>
+
+                {/* Setup type */}
+                <div>
+                  <Label className="text-zinc-400 text-xs">Setup Type</Label>
+                  <select
+                    value={setupType} onChange={(e) => setSetupType(e.target.value)}
+                    className="w-full mt-1 bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"
+                  >
+                    <option value="">Select...</option>
+                    <option value="technical">Technical</option>
+                    <option value="fundamental">Fundamental</option>
+                    <option value="catalyst_driven">Catalyst Driven</option>
+                    <option value="market_conditions">Market Conditions</option>
+                  </select>
+                </div>
+
+                {/* Emotional state */}
+                <div>
+                  <Label className="text-zinc-400 text-xs">Emotional State</Label>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {emotions.map(e => (
+                      <button
+                        key={e}
+                        onClick={() => setEmotionalState(emotionalState === e ? "" : e)}
+                        className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                          emotionalState === e
+                            ? "border-amber-500 bg-amber-900/30 text-amber-400"
+                            : "border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                        }`}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Idea source */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-zinc-400 text-xs">Idea Source</Label>
+                    <select
+                      value={ideaSource} onChange={(e) => setIdeaSource(e.target.value)}
+                      className="w-full mt-1 bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"
+                    >
+                      <option value="">Select...</option>
+                      <option value="self">Self</option>
+                      <option value="broker">Broker</option>
+                      <option value="friend">Friend</option>
+                      <option value="research">Research</option>
+                      <option value="fund_manager">Fund Manager</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400 text-xs">Source Name</Label>
+                    <Input
+                      placeholder="e.g., Goldman Sachs"
+                      value={ideaSourceName} onChange={(e) => setIdeaSourceName(e.target.value)}
+                      className="bg-zinc-800 border-zinc-700 text-white mt-1"
+                      list="source-list"
+                    />
+                    <datalist id="source-list">
+                      {sources.map(s => <option key={s} value={s} />)}
+                    </datalist>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <Label className="text-zinc-400 text-xs">Notes</Label>
+                  <Textarea
+                    placeholder="Why are you making this trade?"
+                    value={notes} onChange={(e) => setNotes(e.target.value)}
+                    className="bg-zinc-800 border-zinc-700 text-white mt-1 min-h-[60px]"
+                  />
+                </div>
+
+                {/* Update portfolio toggle */}
+                <div className="flex items-center gap-3">
+                  <Switch checked={updatePortfolio} onCheckedChange={setUpdatePortfolio} />
+                  <Label className="text-zinc-400 text-sm">Update Portfolio</Label>
+                </div>
+
+                {/* Submit */}
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!shares || !price || createMutation.isPending}
+                  className={`w-full font-semibold py-5 ${
+                    tradeAction === "buy"
+                      ? "bg-green-600 hover:bg-green-500 text-white"
+                      : "bg-red-600 hover:bg-red-500 text-white"
+                  }`}
+                >
+                  {createMutation.isPending
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : `${tradeAction === "buy" ? "Buy" : "Sell"} ${selectedTicker}`
+                  }
+                </Button>
+              </div>
+            )}
+
+            {/* Key Metrics Grid */}
+            <div className="space-y-2">
+              <p className="text-xs text-zinc-500 font-medium">Key Metrics</p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {profile.marketCap > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
+                    <span className="text-[10px] text-zinc-500">Mkt Cap</span>
+                    <p className="text-sm text-white font-mono">{formatCurrency(profile.marketCap)}</p>
+                  </div>
+                )}
+                {financials?.peRatio != null && financials.peRatio > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
+                    <span className="text-[10px] text-zinc-500">P/E (TTM)</span>
                     <p className="text-sm text-white font-mono">{financials.peRatio.toFixed(1)}</p>
                   </div>
                 )}
-                {financials.evToEbit != null && financials.evToEbit > 0 && (
-                  <div className="bg-zinc-800/50 rounded px-2 py-1">
+                {forwardMetrics?.forwardPE != null && forwardMetrics.forwardPE > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
+                    <span className="text-[10px] text-zinc-500">P/E (Fwd)</span>
+                    <p className="text-sm text-white font-mono">{forwardMetrics.forwardPE.toFixed(1)}</p>
+                  </div>
+                )}
+                {financials?.evToEbit != null && financials.evToEbit > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
                     <span className="text-[10px] text-zinc-500">EV/EBIT</span>
                     <p className="text-sm text-white font-mono">{financials.evToEbit.toFixed(1)}</p>
                   </div>
                 )}
-                {financials.roe != null && (
-                  <div className="bg-zinc-800/50 rounded px-2 py-1">
+                {financials?.roe != null && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
                     <span className="text-[10px] text-zinc-500">ROE</span>
                     <p className="text-sm text-white font-mono">{(financials.roe * 100).toFixed(1)}%</p>
                   </div>
                 )}
+                {financials?.revenue != null && financials.revenue > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
+                    <span className="text-[10px] text-zinc-500">Revenue</span>
+                    <p className="text-sm text-white font-mono">{formatCurrency(financials.revenue)}</p>
+                  </div>
+                )}
+                {financials?.netIncome != null && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
+                    <span className="text-[10px] text-zinc-500">Net Income</span>
+                    <p className="text-sm text-white font-mono">{formatCurrency(financials.netIncome)}</p>
+                  </div>
+                )}
+                {financials?.debtToEquity != null && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
+                    <span className="text-[10px] text-zinc-500">D/E</span>
+                    <p className="text-sm text-white font-mono">{financials.debtToEquity.toFixed(2)}</p>
+                  </div>
+                )}
+                {financials?.pbRatio != null && financials.pbRatio > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
+                    <span className="text-[10px] text-zinc-500">P/B</span>
+                    <p className="text-sm text-white font-mono">{financials.pbRatio.toFixed(2)}</p>
+                  </div>
+                )}
+                {financials?.dividendYield != null && financials.dividendYield > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
+                    <span className="text-[10px] text-zinc-500">Div Yield</span>
+                    <p className="text-sm text-white font-mono">{(financials.dividendYield * 100).toFixed(2)}%</p>
+                  </div>
+                )}
+                {forwardMetrics?.forwardEpsGrowth != null && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
+                    <span className="text-[10px] text-zinc-500">Fwd EPS Gr</span>
+                    <p className={`text-sm font-mono ${forwardMetrics.forwardEpsGrowth >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      {(forwardMetrics.forwardEpsGrowth * 100).toFixed(1)}%
+                    </p>
+                  </div>
+                )}
+                {forwardMetrics?.peg != null && forwardMetrics.peg > 0 && (
+                  <div className="bg-zinc-800/50 rounded px-2 py-1.5">
+                    <span className="text-[10px] text-zinc-500">PEG</span>
+                    <p className="text-sm text-white font-mono">{forwardMetrics.peg.toFixed(2)}</p>
+                  </div>
+                )}
               </div>
-            )}
-
-            {/* Buy/Sell buttons */}
-            <div className="flex gap-3">
-              <Button
-                onClick={() => openTradeForm("buy")}
-                className="flex-1 bg-green-600 hover:bg-green-500 text-white font-semibold"
-              >
-                <ArrowUpRight className="w-4 h-4 mr-1" /> BUY
-              </Button>
-              <Button
-                onClick={() => openTradeForm("sell")}
-                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-semibold"
-              >
-                <ArrowDownRight className="w-4 h-4 mr-1" /> SELL
-              </Button>
             </div>
-          </div>
-        )}
 
-        {selectedTicker && !profile && (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
+            {/* TradingView Chart */}
+            <TradingViewChart ticker={selectedTicker} exchange={profile.exchange} />
           </div>
         )}
       </div>
@@ -1076,25 +1267,6 @@ function RealTradeTracker() {
           </div>
         )}
       </div>
-
-      {/* Trade Form Dialog */}
-      {selectedTicker && (
-        <TradeFormDialog
-          open={tradeFormOpen}
-          onClose={() => setTradeFormOpen(false)}
-          action={tradeAction}
-          ticker={selectedTicker}
-          companyName={selectedName || profile?.companyName || selectedTicker}
-          currentPrice={profile?.price || 0}
-          profile={profile || null}
-          financials={financials || null}
-          chartData={chartData}
-          forwardMetrics={forwardMetrics || null}
-          strategies={strategies}
-          setups={setups}
-          sources={sources}
-        />
-      )}
     </div>
   );
 }

@@ -306,6 +306,10 @@ const BRO_FEATURES = [
 
 const ADMIN_BRO_EMAILS = ['hbeamish1@gmail.com'];
 
+export function isAdminUser(user: User | null | undefined): boolean {
+  return ADMIN_BRO_EMAILS.includes(user?.email?.toLowerCase() ?? '');
+}
+
 export function getBroQueryLimit(user: User | null | undefined): number {
   if (!user) return 1;
   if (user.email && ADMIN_BRO_EMAILS.includes(user.email.toLowerCase())) return 50;

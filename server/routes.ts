@@ -20,6 +20,7 @@ import {
   checkAndDeductCredits,
   checkBroQueryAllowed,
   getBroStatus,
+  isAdminUser,
   MARKET_SCHEDULES,
   hasNewsFeedItemForMarketToday
 } from "./creditService";
@@ -2767,7 +2768,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     try {
       const userId = req.user.claims.sub;
       const user = await authStorage.getUser(userId);
-      if (!user || user.subscriptionStatus !== "active") {
+      if (!user || (user.subscriptionStatus !== "active" && !isAdminUser(user))) {
         return res.status(403).json({ error: "Pro subscription required" });
       }
 
@@ -2987,7 +2988,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     try {
       const userId = req.user.claims.sub;
       const user = await authStorage.getUser(userId);
-      if (!user || user.subscriptionStatus !== "active") {
+      if (!user || (user.subscriptionStatus !== "active" && !isAdminUser(user))) {
         return res.status(403).json({ error: "Pro subscription required" });
       }
 
