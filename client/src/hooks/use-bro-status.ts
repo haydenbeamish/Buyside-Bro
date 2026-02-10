@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -17,11 +18,21 @@ export function useBroStatus() {
     staleTime: 30_000,
   });
 
+  const [viewAs, setViewAs] = useState(() => localStorage.getItem("admin_view_as"));
+
+  useEffect(() => {
+    const onStorage = () => setViewAs(localStorage.getItem("admin_view_as"));
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const isFreeOverride = viewAs === "free";
+
   return {
     broStatus,
     canQuery: broStatus ? broStatus.dailyUsed < broStatus.dailyLimit : false,
     isAtLimit: broStatus ? broStatus.dailyUsed >= broStatus.dailyLimit : false,
-    isPro: broStatus?.isPro ?? false,
+    isPro: isFreeOverride ? false : (broStatus?.isPro ?? false),
     refetch,
   };
 }

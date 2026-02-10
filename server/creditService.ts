@@ -338,7 +338,7 @@ export async function getBroStatus(userId: string, user: User | null | undefined
 }> {
   const dailyUsed = await getDailyBroQueryCount(userId);
   const dailyLimit = getBroQueryLimit(user);
-  const isPro = user?.subscriptionStatus === 'active';
+  const isPro = user?.subscriptionStatus === 'active' || ADMIN_BRO_EMAILS.includes(user?.email?.toLowerCase() ?? '');
   const creditInfo = await getUserCredits(userId);
   return { dailyUsed, dailyLimit, isPro, credits: creditInfo.availableCreditsCents };
 }
@@ -351,7 +351,7 @@ export async function checkBroQueryAllowed(userId: string, user: User | null | u
   const dailyUsed = await getDailyBroQueryCount(userId);
   const dailyLimit = getBroQueryLimit(user);
   if (dailyUsed >= dailyLimit) {
-    const isPro = user?.subscriptionStatus === 'active';
+    const isPro = user?.subscriptionStatus === 'active' || ADMIN_BRO_EMAILS.includes(user?.email?.toLowerCase() ?? '');
     return {
       allowed: false,
       message: isPro

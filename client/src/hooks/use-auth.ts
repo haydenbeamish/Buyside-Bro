@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { User } from "@shared/models/auth";
 
@@ -24,6 +25,18 @@ export function useAuth() {
     retry: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
+
+  const [viewAs, setViewAs] = useState(() => localStorage.getItem("admin_view_as"));
+
+  useEffect(() => {
+    const onStorage = () => setViewAs(localStorage.getItem("admin_view_as"));
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  if (viewAs === "logged_out") {
+    return { user: null, isLoading: false, isAuthenticated: false };
+  }
 
   return {
     user,

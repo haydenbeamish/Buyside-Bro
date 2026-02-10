@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
@@ -143,6 +143,66 @@ function getStatusBadge(status: string | null) {
   return <Badge variant="outline" className="text-yellow-500 border-yellow-700">{status}</Badge>;
 }
 
+type ViewAsMode = "normal" | "logged_out" | "free";
+
+function ViewAsSwitcher() {
+  const [mode, setMode] = useState<ViewAsMode>(() => {
+    const stored = localStorage.getItem("admin_view_as");
+    if (stored === "logged_out") return "logged_out";
+    if (stored === "free") return "free";
+    return "normal";
+  });
+
+  useEffect(() => {
+    const onStorage = () => {
+      const stored = localStorage.getItem("admin_view_as");
+      if (stored === "logged_out") setMode("logged_out");
+      else if (stored === "free") setMode("free");
+      else setMode("normal");
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  const apply = (next: ViewAsMode) => {
+    setMode(next);
+    if (next === "normal") {
+      localStorage.removeItem("admin_view_as");
+    } else {
+      localStorage.setItem("admin_view_as", next);
+    }
+    window.dispatchEvent(new Event("storage"));
+  };
+
+  const options: { value: ViewAsMode; label: string }[] = [
+    { value: "normal", label: "Normal" },
+    { value: "logged_out", label: "Logged Out" },
+    { value: "free", label: "Free User" },
+  ];
+
+  return (
+    <div className="flex items-center gap-2">
+      <Eye className="h-4 w-4 text-zinc-500" />
+      <span className="text-xs text-zinc-500 uppercase tracking-wider">View As</span>
+      <div className="flex gap-1">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => apply(opt.value)}
+            className={`px-3 py-1 text-xs rounded-md transition-colors ${
+              mode === opt.value
+                ? "bg-amber-900/30 text-amber-400 border border-amber-700"
+                : "text-zinc-400 border border-zinc-700 hover:text-amber-400 hover:border-amber-700"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   useDocumentTitle("Admin Dashboard");
   const [, navigate] = useLocation();
@@ -284,6 +344,7 @@ export default function AdminPage() {
           </Button>
         </div>
       </div>
+      <ViewAsSwitcher />
       <p className="text-sm text-zinc-500">Monitor users, activity, and costs across BuysideBro and Laser Beam.</p>
 
       <div className="flex gap-2 border-b border-zinc-800 pb-2 overflow-x-auto">
