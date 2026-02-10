@@ -403,7 +403,9 @@ function RecentFilings({ ticker }: { ticker: string }) {
   };
 
   // If any announcement has an invalid date, hide dates on all of them
-  const hasAnyInvalidDate = filings.announcements.some(f => !isValidDate(f.date));
+  const hasAnyInvalidDate = useMemo(() => {
+    return filings?.announcements?.some(f => !isValidDate(f.date) || (f.reportDate && !isValidDate(f.reportDate)));
+  }, [filings?.announcements]);
   const showDates = !hasAnyInvalidDate;
 
   return (
