@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { queryClient, apiRequest, ApiError } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
 import {
   Plus,
   TrendingUp,
@@ -155,10 +154,22 @@ export default function PortfolioPage() {
     enabled: isAuthenticated, refetchInterval: 60000,
   });
 
-  const { data: stats, isLoading: statsLoading } = useQuery<PortfolioStats>({
-    queryKey: ["/api/portfolio/stats"],
-    enabled: isAuthenticated,
-  });
+  // Compute stats from live enriched data instead of stale DB prices
+  const stats: PortfolioStats | undefined = holdings ? (() => {
+    let totalValue = 0;
+    let totalCost = 0;
+    let dayChange = 0;
+    for (const h of holdings) {
+      totalValue += h.value || 0;
+      totalCost += Number(h.shares) * Number(h.avgCost);
+      dayChange += h.dayPnL || 0;
+    }
+    const totalGain = totalValue - totalCost;
+    const totalGainPercent = totalCost > 0 ? (totalGain / totalCost) * 100 : 0;
+    const dayChangePercent = totalValue > 0 ? (dayChange / (totalValue - dayChange)) * 100 : 0;
+    return { totalValue, totalGain, totalGainPercent, dayChange, dayChangePercent };
+  })() : undefined;
+  const statsLoading = holdingsLoading;
 
   const { data: analysis } = useQuery<{ analysis: string }>({
     queryKey: ["/api/portfolio/analysis"],
@@ -212,7 +223,6 @@ export default function PortfolioPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/portfolio/enriched"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/portfolio/stats"] });
       setIsAddOpen(false);
       setNewHolding({ ticker: "", shares: "", avgCost: "" });
       toast({
@@ -229,41 +239,29 @@ export default function PortfolioPage() {
     },
   });
 
-  const deleteTimerRef = useRef<ReturnType<typeof setTimeout>>();
-
-  const handleDelete = useCallback((id: number, ticker: string) => {
+  const handleDelete = useCallback(async (id: number, ticker: string) => {
     if (!gate()) return;
 
     const prevData = queryClient.getQueryData<EnrichedHolding[]>(["/api/portfolio/enriched"]);
 
+    // Optimistic UI update
     queryClient.setQueryData<EnrichedHolding[]>(
       ["/api/portfolio/enriched"],
       (old) => old?.filter((h) => h.id !== id) ?? []
     );
 
-    const timer = setTimeout(async () => {
-      try {
-        await apiRequest("DELETE", `/api/portfolio/${id}`);
-        queryClient.invalidateQueries({ queryKey: ["/api/portfolio/enriched"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/portfolio/stats"] });
-      } catch {
-        if (prevData) queryClient.setQueryData(["/api/portfolio/enriched"], prevData);
-        toast({ title: "Error", description: "Failed to remove position.", variant: "destructive" });
-      }
-    }, 5000);
-    deleteTimerRef.current = timer;
+    // Delete immediately
+    try {
+      await apiRequest("DELETE", `/api/portfolio/${id}`);
+    } catch {
+      if (prevData) queryClient.setQueryData(["/api/portfolio/enriched"], prevData);
+      toast({ title: "Error", description: "Failed to remove position.", variant: "destructive" });
+      return;
+    }
 
     toast({
       title: `${ticker} removed`,
       description: "Position removed from portfolio.",
-      action: (
-        <ToastAction altText="Undo remove" onClick={() => {
-          clearTimeout(timer);
-          if (prevData) queryClient.setQueryData(["/api/portfolio/enriched"], prevData);
-        }}>
-          Undo
-        </ToastAction>
-      ),
     });
   }, [gate, toast]);
 
