@@ -274,9 +274,9 @@ export default function ChatPage() {
     <div className="flex h-[calc(100dvh-56px)] sm:h-[calc(100vh-64px)] max-h-[calc(100dvh-56px)] sm:max-h-[calc(100vh-64px)] bg-black overflow-hidden">
       <div className="flex-1 flex flex-col bg-black overflow-hidden">
         {messages.length === 0 && !isStreaming ? (
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-              <div className="mb-4 sm:mb-6">
+          <div className="flex-1 overflow-y-auto flex items-center justify-center">
+            <div className="max-w-3xl w-full px-3 sm:px-4 py-4 sm:py-6">
+              <div className="mb-4 sm:mb-6 text-center">
                 <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white mb-1 sm:mb-2">
                   ASK BRO
                 </h1>
@@ -285,7 +285,7 @@ export default function ChatPage() {
                 </p>
               </div>
 
-              <div className="max-w-3xl flex gap-2 mb-6 sm:mb-8">
+              <div className="flex gap-2 mb-6 sm:mb-8">
                 <Textarea
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
@@ -306,8 +306,8 @@ export default function ChatPage() {
                 </Button>
               </div>
 
-              <div className="max-w-3xl space-y-2">
-                <p className="text-xs text-zinc-500 uppercase tracking-wide">Try asking:</p>
+              <div className="space-y-2">
+                <p className="text-xs text-zinc-500 uppercase tracking-wide text-center">Try asking:</p>
                 <div className="flex flex-col gap-2">
                   {suggestedQuestions.map((q, i) => (
                     <Button
