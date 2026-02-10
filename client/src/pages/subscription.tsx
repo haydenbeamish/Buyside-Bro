@@ -306,28 +306,26 @@ export default function SubscriptionPage() {
   const displayPrice = price ? (price.unit_amount / 100).toFixed(0) : "10";
 
   const proFeatures = [
-    { icon: Globe, text: "Live global market data across 8 categories", desc: "Futures, commodities, forex, US sectors, ASX sectors, thematics and more" },
-    { icon: Bot, text: "5 Bro AI queries per day", desc: "Ask Bro anything about stocks, markets, or your portfolio" },
-
+    { icon: Globe, text: "Live global market data", desc: "Futures, commodities, forex, US sectors, ASX sectors, thematics and more" },
+    { icon: Bot, text: "5 Bro queries per day", desc: "Ask Bro anything about stocks, markets, or your portfolio" },
+    { icon: Mail, text: "Daily market wrap emails", desc: "Get the closing bell wrap delivered to your inbox after every US, ASX and European close" },
     { icon: LineChart, text: "Advanced stock analysis", desc: "AI-powered company breakdowns with financial metrics" },
-    { icon: BarChart3, text: "Full earnings insights", desc: "AI analysis of quarterly earnings with key takeaways" },
+    { icon: BarChart3, text: "Earnings insights and predictions", desc: "AI analysis of quarterly earnings with key takeaways" },
     { icon: BriefcaseBusiness, text: "Unlimited portfolio tracking", desc: "Track your holdings with real-time P&L and performance" },
     { icon: TrendingUp, text: "Custom watchlists", desc: "Build and monitor unlimited watchlists with live prices" },
     { icon: Newspaper, text: "Curated market news feed", desc: "Stay on top of what's moving the markets" },
-    { icon: Mail, text: "Daily market wrap emails", desc: "Get the closing bell wrap delivered to your inbox after every US, ASX and European close" },
   ];
 
   const comparisonRows = [
     { feature: "Live market dashboard", free: true, pro: true },
     { feature: "Global markets data", free: true, pro: true },
-    { feature: "Ask Bro AI queries", free: "1/day", pro: "5/day" },
-
+    { feature: "Ask Bro queries", free: "1/day", pro: "5/day" },
+    { feature: "Daily market wrap emails", free: false, pro: true },
     { feature: "Stock analysis", free: false, pro: true },
     { feature: "Earnings insights", free: false, pro: true },
     { feature: "Portfolio tracking", free: false, pro: true },
     { feature: "Custom watchlists", free: false, pro: true },
     { feature: "Priority support", free: false, pro: true },
-    { feature: "Daily market wrap emails", free: false, pro: true },
   ];
 
   return (

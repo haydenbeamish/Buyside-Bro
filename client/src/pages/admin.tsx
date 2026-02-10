@@ -40,6 +40,7 @@ interface AdminStats {
   activeUsersToday: number;
   activeUsersThisWeek: number;
   totalAiCostCents: number;
+  payingUsers: number;
 }
 
 interface UserStat {
@@ -276,13 +277,15 @@ export default function AdminPage() {
 
           {statsLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => (
+              {Array.from({ length: 10 }).map((_, i) => (
                 <Skeleton key={i} className="h-24 bg-zinc-800" />
               ))}
             </div>
           ) : stats ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard icon={Users} label="Total Users" value={stats.totalUsers} />
+              <StatCard icon={DollarSign} label="Paying Users" value={stats.payingUsers} />
+              <StatCard icon={TrendingUp} label="ARR" value={`$${(stats.payingUsers * 10 * 12).toLocaleString()}`} />
               <StatCard icon={Eye} label="Active Today" value={stats.activeUsersToday} />
               <StatCard icon={Activity} label="API Calls Today" value={stats.apiCallsToday} />
               <StatCard icon={TrendingUp} label="Calls This Week" value={stats.apiCallsThisWeek} />

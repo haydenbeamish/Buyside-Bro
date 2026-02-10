@@ -2526,6 +2526,10 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         total: sql<number>`COALESCE(SUM(cost_cents), 0)`,
       }).from(usageLogs);
 
+      const [payingCount] = await db.select({ count: count() })
+        .from(users)
+        .where(eq(users.subscriptionStatus, "active"));
+
       const activeUsersToday = await db.select({
         userId: activityLogs.userId,
       }).from(activityLogs)
@@ -2546,6 +2550,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         activeUsersToday: activeUsersToday.length,
         activeUsersThisWeek: activeUsersWeek.length,
         totalAiCostCents: Number(totalUsageCost.total),
+        payingUsers: payingCount.count,
       });
     } catch (error) {
       console.error("Admin stats error:", error);
