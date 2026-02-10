@@ -62,7 +62,11 @@
       "Bash(git -C /home/runner/workspace commit -m \"$\\(cat <<''EOF''\nFix newsfeed not posting market close summaries\n\nThe scheduler was calling a non-existent API endpoint \\(/api/market-summary,\n404\\) instead of the correct one \\(/api/markets/summary\\). Also widened the\nposting window from 30 minutes to rest-of-day and added a startup catch-up\ncheck so summaries aren''t lost when the server sleeps through market close.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git -C /home/runner/workspace show --stat 7cab866)",
       "Bash(git -C /home/runner/workspace diff 7a67251..7cab866 --stat)",
-      "Bash(git -C /home/runner/workspace diff HEAD -- server/routes.ts)"
+      "Bash(git -C /home/runner/workspace diff HEAD -- server/routes.ts)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(git -C /home/runner/workspace diff -- client/src/pages/portfolio.tsx)",
+      "Bash(git -C /home/runner/workspace add client/src/pages/portfolio.tsx)",
+      "Bash(git -C /home/runner/workspace commit -m \"$\\(cat <<''EOF''\nFix portfolio stats calculations and instant save\n\n- Compute Total Value, Total Gain, and Day Change from live enriched\n  FMP data instead of the stale /api/portfolio/stats endpoint \\(which\n  used DB-cached prices and hardcoded dayChange to 0\\)\n- Delete holdings instantly instead of 5-second delayed save\n- Remove unused ToastAction import and stats query invalidations\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
