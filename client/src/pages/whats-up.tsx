@@ -111,6 +111,7 @@ function NewsFeedItemCard({ item, defaultExpanded }: { item: NewsFeedItem; defau
 }
 
 function NewsFeed() {
+  const [visibleCount, setVisibleCount] = useState(5);
   const { data, isLoading, isError, error } = useQuery<{ items: NewsFeedItem[] }>({
     queryKey: ["/api/newsfeed"],
     refetchInterval: 120000,
@@ -170,8 +171,8 @@ function NewsFeed() {
           </div>
         </div>
       </div>
-      <div className="max-h-[60dvh] sm:max-h-[700px] overflow-y-auto">
-        {items.map((item, index) => (
+      <div>
+        {items.slice(0, visibleCount).map((item, index) => (
           <NewsFeedItemCard
             key={item.id}
             item={item}
@@ -179,6 +180,16 @@ function NewsFeed() {
           />
         ))}
       </div>
+      {visibleCount < items.length && (
+        <div className="px-3 sm:px-4 py-3 border-t border-zinc-800">
+          <button
+            onClick={() => setVisibleCount(prev => prev + 5)}
+            className="w-full text-center text-sm text-amber-400 hover:text-amber-300 transition-colors py-1 font-medium"
+          >
+            Load More ({items.length - visibleCount} remaining)
+          </button>
+        </div>
+      )}
     </div>
   );
 }
