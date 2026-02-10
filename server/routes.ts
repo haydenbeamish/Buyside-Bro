@@ -631,6 +631,7 @@ export async function registerRoutes(
       if (fmpKey) {
         searchFetches.push(
           fetchWithTimeout(`https://financialmodelingprep.com/stable/search-name?query=${encodeURIComponent(query)}&limit=15&apikey=${fmpKey}`, {}, 5000),
+          fetchWithTimeout(`https://financialmodelingprep.com/stable/search-ticker?query=${encodeURIComponent(query)}&limit=15&apikey=${fmpKey}`, {}, 5000),
         );
       }
 
