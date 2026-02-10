@@ -22,9 +22,17 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import ReactMarkdown from "react-markdown";
 
 function stripSources(text: string): string {
-  const idx = text.search(/\n*Sources?:\s*\[/);
-  if (idx !== -1) return text.substring(0, idx).trimEnd();
-  return text;
+  let cleaned = text;
+  const srcIdx = cleaned.search(/\n*Sources?:\s*\[/);
+  if (srcIdx !== -1) cleaned = cleaned.substring(0, srcIdx).trimEnd();
+  const refIdx = cleaned.search(/\n*\*?\*?References?\*?\*?:?\s*\n/i);
+  if (refIdx !== -1) cleaned = cleaned.substring(0, refIdx).trimEnd();
+  cleaned = cleaned.replace(/\[([^\]]*?)\]\(https?:\/\/[^)]+\)/g, "$1");
+  cleaned = cleaned.replace(/\bhttps?:\/\/[^\s),]+/g, "");
+  cleaned = cleaned.replace(/(?<![@#\/\w])(?:[a-zA-Z0-9-]+\.)+(?:com|org|net|io|co|gov|edu|info|biz|us|uk|au|app|dev|finance|news)\b(?:\/[^\s),]*)*/gi, "");
+  cleaned = cleaned.replace(/ {2,}/g, " ");
+  cleaned = cleaned.replace(/\. \./g, ".");
+  return cleaned;
 }
 
 function FormattedMessage({ content }: { content: string }) {
@@ -41,10 +49,8 @@ function FormattedMessage({ content }: { content: string }) {
           h1: ({ children }) => <h3 className="font-bold text-white text-base mb-1">{children}</h3>,
           h2: ({ children }) => <h3 className="font-bold text-white text-base mb-1">{children}</h3>,
           h3: ({ children }) => <h3 className="font-semibold text-white text-sm mb-1">{children}</h3>,
-          a: ({ href, children }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer" className="text-amber-500 underline">
-              {children}
-            </a>
+          a: ({ children }) => (
+            <span>{children}</span>
           ),
           code: ({ children }) => (
             <code className="bg-zinc-800/80 border border-zinc-700 px-1 py-0.5 rounded text-xs text-amber-400">{children}</code>
