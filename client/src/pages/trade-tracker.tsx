@@ -346,7 +346,7 @@ function TradeCard({ trade, onDelete, isDemo }: { trade: any; onDelete?: (id: nu
         <span className="text-zinc-400 text-sm truncate hidden sm:inline">{parseFloat(trade.shares).toLocaleString()} @ ${parseFloat(trade.price).toFixed(2)}</span>
         {trade.strategyTag && (<Badge variant="outline" className="text-xs border-zinc-700 text-zinc-400 shrink-0 hidden md:inline-flex">{trade.strategyTag}</Badge>)}
         <div className="flex-1" />
-        {hasPnL && (<span className={`font-mono text-sm font-semibold shrink-0 ${pnl >= 0 ? "text-green-400" : "text-red-400"}`}>{formatPnL(pnl)}</span>)}
+        {hasPnL && (<span className={`font-mono text-sm font-semibold shrink-0 ${pnl >= 0 ? "text-green-400" : "text-red-400"}`}>{formatPnL(pnl)}{typeof trade.returnPct === "number" && <span className="ml-1 text-xs opacity-80">({trade.returnPct >= 0 ? "+" : ""}{trade.returnPct.toFixed(1)}%)</span>}</span>)}
         <span className="text-xs text-zinc-600 shrink-0 hidden sm:inline">{new Date(trade.tradedAt).toLocaleDateString()}</span>
         {expanded ? <ChevronUp className="w-4 h-4 text-zinc-500 shrink-0" /> : <ChevronDown className="w-4 h-4 text-zinc-500 shrink-0" />}
       </button>
@@ -438,6 +438,7 @@ function RealTradeTracker() {
   const [ideaSourceName, setIdeaSourceName] = useState("");
   const [notes, setNotes] = useState("");
   const [updatePortfolio, setUpdatePortfolio] = useState(true);
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
 
   const { data: trades = [], isLoading: tradesLoading } = useQuery<Trade[]>({ queryKey: ["/api/trades"] });
   const { data: analytics } = useQuery<Analytics>({ queryKey: ["/api/trades/analytics"] });
@@ -551,14 +552,22 @@ function RealTradeTracker() {
                   <div><Label className="text-zinc-400 text-xs">Trade Date</Label><Input type="date" value={tradeDate} onChange={(e) => setTradeDate(e.target.value)} className="bg-zinc-800 border-zinc-700 text-white mt-1" /></div>
                   <div><Label className="text-zinc-400 text-xs">Total Value</Label><div className="mt-1 bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-white font-mono text-sm">${totalValue}</div></div>
                 </div>
-                <div><Label className="text-zinc-400 text-xs">Strategy Tag</Label><Input placeholder="e.g., momentum, value, swing" value={strategyTag} onChange={(e) => setStrategyTag(e.target.value)} className="bg-zinc-800 border-zinc-700 text-white mt-1" list="strategy-list" /><datalist id="strategy-list">{strategies.map(s => <option key={s} value={s} />)}</datalist></div>
-                <div><Label className="text-zinc-400 text-xs">Setup Type</Label><select value={setupType} onChange={(e) => setSetupType(e.target.value)} className="w-full mt-1 bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"><option value="">Select...</option><option value="technical">Technical</option><option value="fundamental">Fundamental</option><option value="catalyst_driven">Catalyst Driven</option><option value="market_conditions">Market Conditions</option></select></div>
-                <div><Label className="text-zinc-400 text-xs">Emotional State</Label><div className="flex flex-wrap gap-2 mt-1">{emotions.map(e => (<button key={e} onClick={() => setEmotionalState(emotionalState === e ? "" : e)} className={`px-3 py-1 rounded-full text-xs border transition-colors ${emotionalState === e ? "border-amber-500 bg-amber-900/30 text-amber-400" : "border-zinc-700 text-zinc-400 hover:border-zinc-600"}`}>{e}</button>))}</div></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-zinc-400 text-xs">Idea Source</Label><select value={ideaSource} onChange={(e) => setIdeaSource(e.target.value)} className="w-full mt-1 bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"><option value="">Select...</option><option value="self">Self</option><option value="broker">Broker</option><option value="friend">Friend</option><option value="research">Research</option><option value="fund_manager">Fund Manager</option><option value="other">Other</option></select></div>
-                  <div><Label className="text-zinc-400 text-xs">Source Name</Label><Input placeholder="e.g., Goldman Sachs" value={ideaSourceName} onChange={(e) => setIdeaSourceName(e.target.value)} className="bg-zinc-800 border-zinc-700 text-white mt-1" list="source-list" /><datalist id="source-list">{sources.map(s => <option key={s} value={s} />)}</datalist></div>
-                </div>
-                <div><Label className="text-zinc-400 text-xs">Notes</Label><Textarea placeholder="Why are you making this trade?" value={notes} onChange={(e) => setNotes(e.target.value)} className="bg-zinc-800 border-zinc-700 text-white mt-1 min-h-[60px]" /></div>
+                <button type="button" onClick={() => setShowMoreDetails(!showMoreDetails)} className="flex items-center gap-2 text-xs text-zinc-400 hover:text-zinc-300 transition-colors w-full py-1">
+                  {showMoreDetails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  <span>More Details (optional)</span>
+                </button>
+                {showMoreDetails && (
+                  <div className="space-y-4 border-l-2 border-zinc-800 pl-3">
+                    <div><Label className="text-zinc-400 text-xs">Strategy Tag</Label><Input placeholder="e.g., momentum, value, swing" value={strategyTag} onChange={(e) => setStrategyTag(e.target.value)} className="bg-zinc-800 border-zinc-700 text-white mt-1" list="strategy-list" /><datalist id="strategy-list">{strategies.map(s => <option key={s} value={s} />)}</datalist></div>
+                    <div><Label className="text-zinc-400 text-xs">Setup Type</Label><select value={setupType} onChange={(e) => setSetupType(e.target.value)} className="w-full mt-1 bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"><option value="">Select...</option><option value="technical">Technical</option><option value="fundamental">Fundamental</option><option value="catalyst_driven">Catalyst Driven</option><option value="market_conditions">Market Conditions</option></select></div>
+                    <div><Label className="text-zinc-400 text-xs">Emotional State</Label><div className="flex flex-wrap gap-2 mt-1">{emotions.map(e => (<button key={e} onClick={() => setEmotionalState(emotionalState === e ? "" : e)} className={`px-3 py-1 rounded-full text-xs border transition-colors ${emotionalState === e ? "border-amber-500 bg-amber-900/30 text-amber-400" : "border-zinc-700 text-zinc-400 hover:border-zinc-600"}`}>{e}</button>))}</div></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div><Label className="text-zinc-400 text-xs">Idea Source</Label><select value={ideaSource} onChange={(e) => setIdeaSource(e.target.value)} className="w-full mt-1 bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"><option value="">Select...</option><option value="self">Self</option><option value="broker">Broker</option><option value="friend">Friend</option><option value="research">Research</option><option value="fund_manager">Fund Manager</option><option value="other">Other</option></select></div>
+                      <div><Label className="text-zinc-400 text-xs">Source Name</Label><Input placeholder="e.g., Goldman Sachs" value={ideaSourceName} onChange={(e) => setIdeaSourceName(e.target.value)} className="bg-zinc-800 border-zinc-700 text-white mt-1" list="source-list" /><datalist id="source-list">{sources.map(s => <option key={s} value={s} />)}</datalist></div>
+                    </div>
+                    <div><Label className="text-zinc-400 text-xs">Notes</Label><Textarea placeholder="Why are you making this trade?" value={notes} onChange={(e) => setNotes(e.target.value)} className="bg-zinc-800 border-zinc-700 text-white mt-1 min-h-[60px]" /></div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3"><Switch checked={updatePortfolio} onCheckedChange={setUpdatePortfolio} /><Label className="text-zinc-400 text-sm">Update Portfolio</Label></div>
                 <Button onClick={handleSubmit} disabled={!shares || !price || createMutation.isPending} className={`w-full font-semibold py-5 ${tradeAction === "buy" ? "bg-green-600 hover:bg-green-500 text-white" : "bg-red-600 hover:bg-red-500 text-white"}`}>{createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : `${tradeAction === "buy" ? "Buy" : "Sell"} ${selectedTicker}`}</Button>
               </div>

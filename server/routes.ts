@@ -2964,7 +2964,47 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     try {
       const userId = req.user.claims.sub;
       const allTrades = await storage.getTrades(userId);
-      res.json(allTrades);
+
+      // Batch-fetch current prices for P&L enrichment
+      const uniqueTickers = Array.from(new Set(allTrades.map(t => t.ticker.toUpperCase())));
+      const priceMap = new Map<string, number>();
+      const fmpKey = process.env.FMP_API_KEY;
+      if (fmpKey && uniqueTickers.length > 0) {
+        try {
+          const symbolParam = uniqueTickers.join(",");
+          const quoteRes = await fetchWithTimeout(
+            `https://financialmodelingprep.com/stable/quote?symbol=${encodeURIComponent(symbolParam)}&apikey=${fmpKey}`,
+            {}, 10000
+          );
+          if (quoteRes.ok) {
+            const quotes = await quoteRes.json() as any[];
+            for (const q of quotes) {
+              if (q.symbol && q.price) priceMap.set(q.symbol.toUpperCase(), q.price);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch batch quotes for trades:", e);
+        }
+      }
+
+      const enrichedTrades = allTrades.map(t => {
+        const entryPrice = parseFloat(t.price);
+        const shares = parseFloat(t.shares);
+        const currentPrice = priceMap.get(t.ticker.toUpperCase()) || null;
+        let pnl: number | null = null;
+        let returnPct: number | null = null;
+        if (currentPrice !== null) {
+          pnl = t.action === "buy"
+            ? (currentPrice - entryPrice) * shares
+            : (entryPrice - currentPrice) * shares;
+          returnPct = entryPrice > 0
+            ? ((t.action === "buy" ? currentPrice - entryPrice : entryPrice - currentPrice) / entryPrice) * 100
+            : 0;
+        }
+        return { ...t, pnl, returnPct, currentPrice };
+      });
+
+      res.json(enrichedTrades);
     } catch (error) {
       console.error("Trades list error:", error);
       res.status(500).json({ error: "Failed to fetch trades" });
@@ -2993,6 +3033,22 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
 
       const { updatePortfolio, ...tradeData } = req.body;
+
+      // Coerce fields before Zod validation
+      if (typeof tradeData.tradedAt === "string") {
+        tradeData.tradedAt = new Date(tradeData.tradedAt);
+      }
+      // Strip empty strings to null for optional text fields
+      const optionalTextFields = ["notes", "strategyTag", "setupType", "emotionalState", "ideaSource", "ideaSourceName", "companyName"];
+      for (const field of optionalTextFields) {
+        if (tradeData[field] === "" || tradeData[field] === undefined) {
+          tradeData[field] = null;
+        }
+      }
+      // Ensure shares/price are strings (decimal columns)
+      if (typeof tradeData.shares === "number") tradeData.shares = String(tradeData.shares);
+      if (typeof tradeData.price === "number") tradeData.price = String(tradeData.price);
+
       const validation = insertTradeSchema.safeParse(tradeData);
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid input", details: validation.error.errors });
