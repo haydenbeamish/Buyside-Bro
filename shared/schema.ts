@@ -228,3 +228,43 @@ export const notificationLog = pgTable("notification_log", {
 }));
 
 export type NotificationLogEntry = typeof notificationLog.$inferSelect;
+
+// Trade journal for tracking buys/sells with full context
+export const trades = pgTable("trades", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  ticker: text("ticker").notNull(),
+  companyName: text("company_name"),
+  action: text("action").notNull(), // 'buy' | 'sell'
+  shares: decimal("shares", { precision: 18, scale: 8 }).notNull(),
+  price: decimal("price", { precision: 18, scale: 4 }).notNull(),
+  totalValue: decimal("total_value", { precision: 18, scale: 4 }),
+  notes: text("notes"),
+  strategyTag: text("strategy_tag"),
+  setupType: text("setup_type"),
+  emotionalState: text("emotional_state"),
+  ideaSource: text("idea_source"),
+  ideaSourceName: text("idea_source_name"),
+  profileSnapshot: jsonb("profile_snapshot"),
+  financialsSnapshot: jsonb("financials_snapshot"),
+  chartSnapshot: jsonb("chart_snapshot"),
+  forwardMetricsSnapshot: jsonb("forward_metrics_snapshot"),
+  portfolioUpdated: boolean("portfolio_updated").default(false).notNull(),
+  tradedAt: timestamp("traded_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => ({
+  userIdIdx: index("trades_user_id_idx").on(table.userId),
+  userTickerIdx: index("trades_user_ticker_idx").on(table.userId, table.ticker),
+  tradedAtIdx: index("trades_traded_at_idx").on(table.tradedAt),
+}));
+
+export const insertTradeSchema = createInsertSchema(trades).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Trade = typeof trades.$inferSelect;
+export type InsertTrade = z.infer<typeof insertTradeSchema>;
