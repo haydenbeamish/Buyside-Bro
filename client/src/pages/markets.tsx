@@ -74,38 +74,66 @@ function MarketBreadthStrip({ items }: { items: MarketItem[] }) {
   const worst = items.reduce((a, b) => (b.change1D < a.change1D ? b : a), items[0]);
 
   return (
-    <div className="hidden sm:grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
-        <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Advancers / Decliners</div>
-        <div className="flex items-center gap-2 text-sm ticker-font">
-          <span className="text-green-500">{advancers}</span>
+    <>
+      {/* Mobile: single compact row */}
+      <div className="sm:hidden flex items-center gap-3 text-[11px] px-1 py-2 mb-3 border-b border-zinc-800/50 overflow-x-auto scrollbar-hide">
+        <span className="flex items-center gap-1 whitespace-nowrap">
+          <span className="text-zinc-500">A/D</span>
+          <span className="text-green-500 ticker-font">{advancers}</span>
           <span className="text-zinc-600">/</span>
-          <span className="text-red-500">{decliners}</span>
-        </div>
-        <div className="mt-2 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
-          <div className="h-full rounded-full bg-green-500" style={{ width: `${advPct}%` }} />
-        </div>
+          <span className="text-red-500 ticker-font">{decliners}</span>
+        </span>
+        <span className="text-zinc-800">|</span>
+        <span className="flex items-center gap-1 whitespace-nowrap">
+          <span className="text-zinc-500">Avg</span>
+          <span className={`ticker-font ${avg1D >= 0 ? 'text-green-500' : 'text-red-500'}`}>{avg1D >= 0 ? '+' : ''}{avg1D.toFixed(2)}%</span>
+        </span>
+        <span className="text-zinc-800">|</span>
+        <span className="flex items-center gap-1 whitespace-nowrap">
+          <span className="text-green-500 ticker-font">+{best.change1D.toFixed(1)}%</span>
+          <span className="text-zinc-400 truncate max-w-[60px]">{best.name}</span>
+        </span>
+        <span className="text-zinc-800">|</span>
+        <span className="flex items-center gap-1 whitespace-nowrap">
+          <span className="text-red-500 ticker-font">{worst.change1D.toFixed(1)}%</span>
+          <span className="text-zinc-400 truncate max-w-[60px]">{worst.name}</span>
+        </span>
       </div>
 
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
-        <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Avg 1D Change</div>
-        <div className={`text-lg ticker-font font-medium ${avg1D >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-          {avg1D >= 0 ? '+' : ''}{avg1D.toFixed(2)}%
+      {/* Desktop: card grid */}
+      <div className="hidden sm:grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
+          <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Advancers / Decliners</div>
+          <div className="flex items-center gap-2 text-sm ticker-font">
+            <span className="text-green-500">{advancers}</span>
+            <span className="text-zinc-600">/</span>
+            <span className="text-red-500">{decliners}</span>
+          </div>
+          <div className="mt-2 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+            <div className="h-full rounded-full bg-green-500" style={{ width: `${advPct}%` }} />
+          </div>
+        </div>
+
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
+          <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Avg 1D Change</div>
+          <div className={`text-lg ticker-font font-medium ${avg1D >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+            {avg1D >= 0 ? '+' : ''}{avg1D.toFixed(2)}%
+          </div>
+        </div>
+
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
+          <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Best Performer</div>
+          <div className="text-zinc-200 text-sm truncate">{best.name}</div>
+          <div className="text-green-500 text-sm ticker-font">+{best.change1D.toFixed(1)}%</div>
+        </div>
+
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
+          <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Worst Performer</div>
+          <div className="text-zinc-200 text-sm truncate">{worst.name}</div>
+          <div className="text-red-500 text-sm ticker-font">{worst.change1D.toFixed(1)}%</div>
         </div>
       </div>
-
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
-        <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Best Performer</div>
-        <div className="text-zinc-200 text-sm truncate">{best.name}</div>
-        <div className="text-green-500 text-sm ticker-font">+{best.change1D.toFixed(1)}%</div>
-      </div>
-
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
-        <div className="text-zinc-500 text-[11px] uppercase tracking-wide mb-1.5">Worst Performer</div>
-        <div className="text-zinc-200 text-sm truncate">{worst.name}</div>
-        <div className="text-red-500 text-sm ticker-font">{worst.change1D.toFixed(1)}%</div>
-      </div>
-    </div>
+    </>
   );
 }
 
