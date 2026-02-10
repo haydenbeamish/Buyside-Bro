@@ -683,16 +683,34 @@ function PositionSizeCalculator() {
   }, [portfolioData]);
 
   const [portfolioSize, setPortfolioSize] = useState("");
+  const [selectedStock, setSelectedStock] = useState<{ ticker: string; name: string } | null>(null);
   const [entryPrice, setEntryPrice] = useState("");
   const [stopLoss, setStopLoss] = useState("");
   const [targetPrice, setTargetPrice] = useState("");
   const [riskPercent, setRiskPercent] = useState(1);
+  const [fetchingPrice, setFetchingPrice] = useState(false);
 
   useEffect(() => {
     if (computedPortfolioValue > 0 && !portfolioSize) {
       setPortfolioSize(computedPortfolioValue.toFixed(2));
     }
   }, [computedPortfolioValue]);
+
+  const handleStockSelect = async (ticker: string, name: string) => {
+    setSelectedStock({ ticker, name });
+    setFetchingPrice(true);
+    try {
+      const res = await fetch(`/api/analysis/profile/${encodeURIComponent(ticker)}`);
+      if (res.ok) {
+        const data = await res.json();
+        const price = data?.price || data?.profile?.price || 0;
+        if (price > 0) {
+          setEntryPrice(price.toString());
+        }
+      }
+    } catch {}
+    setFetchingPrice(false);
+  };
 
   const ps = parseFloat(portfolioSize) || 0;
   const ep = parseFloat(entryPrice) || 0;
@@ -707,6 +725,11 @@ function PositionSizeCalculator() {
   const positionValue = positionSize * ep;
   const pctOfPortfolio = ps > 0 ? (positionValue / ps) * 100 : 0;
   const riskRewardRatio = dollarRiskPerShare > 0 ? (tp - ep) / (ep - sl) : 0;
+
+  const dollarLossAtStop = positionSize * dollarRiskPerShare;
+  const pctLossAtStop = ps > 0 ? (dollarLossAtStop / ps) * 100 : 0;
+  const dollarGainAtTarget = positionSize * (tp - ep);
+  const pctGainAtTarget = ps > 0 ? (dollarGainAtTarget / ps) * 100 : 0;
 
   const rrFeedback = useMemo(() => {
     if (!allFilled) return null;
@@ -733,6 +756,8 @@ function PositionSizeCalculator() {
   const avgRR = hasUserAnalytics && analytics.avgLoss !== 0 ? analytics.avgWin / Math.abs(analytics.avgLoss) : null;
   const kellyPct = userWinRateDecimal !== null && avgRR !== null && avgRR > 0 ? (userWinRateDecimal - ((1 - userWinRateDecimal) / avgRR)) * 100 : null;
 
+  const fmtDollar = (v: number) => `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   return (
     <div className="space-y-6">
       <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-4">
@@ -740,9 +765,37 @@ function PositionSizeCalculator() {
           <Calculator className="w-4 h-4 text-amber-400" /> Position Size Calculator
         </h3>
 
+        <div>
+          <Label className="text-zinc-400 text-xs">Select Stock</Label>
+          <div className="mt-1">
+            <StockSearch
+              onSelect={handleStockSelect}
+              placeholder="Search for a stock..."
+              clearOnSelect={false}
+              value={selectedStock?.ticker || ""}
+              inputTestId="input-sizer-stock-search"
+              optionIdPrefix="sizer-stock-option"
+            />
+          </div>
+          {selectedStock && (
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="secondary" className="text-xs font-mono">{selectedStock.ticker}</Badge>
+              <span className="text-xs text-zinc-400 truncate">{selectedStock.name}</span>
+              {fetchingPrice && <Loader2 className="w-3 h-3 animate-spin text-amber-400" />}
+              <button
+                onClick={() => { setSelectedStock(null); setEntryPrice(""); }}
+                className="ml-auto text-zinc-500 hover:text-zinc-300"
+                data-testid="button-clear-stock"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Label className="text-zinc-400 text-xs">Portfolio Size</Label>
+            <Label className="text-zinc-400 text-xs">Portfolio Value</Label>
             <div className="relative mt-1">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">$</span>
               <Input
@@ -758,43 +811,52 @@ function PositionSizeCalculator() {
             </div>
           </div>
           <div>
-            <Label className="text-zinc-400 text-xs">Entry Price</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="150.00"
-              value={entryPrice}
-              onChange={(e) => setEntryPrice(e.target.value)}
-              className="bg-zinc-800 border-zinc-700 text-white mt-1"
-              data-testid="input-entry-price"
-            />
+            <Label className="text-zinc-400 text-xs">Current Price (Entry)</Label>
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">$</span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder={selectedStock ? "Fetching..." : "150.00"}
+                value={entryPrice}
+                onChange={(e) => setEntryPrice(e.target.value)}
+                className="bg-zinc-800 border-zinc-700 text-white pl-7"
+                data-testid="input-entry-price"
+              />
+            </div>
           </div>
           <div>
             <Label className="text-zinc-400 text-xs">Stop Loss Price</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="140.00"
-              value={stopLoss}
-              onChange={(e) => setStopLoss(e.target.value)}
-              className="bg-zinc-800 border-zinc-700 text-white mt-1"
-              data-testid="input-stop-loss"
-            />
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">$</span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="140.00"
+                value={stopLoss}
+                onChange={(e) => setStopLoss(e.target.value)}
+                className="bg-zinc-800 border-zinc-700 text-white pl-7"
+                data-testid="input-stop-loss"
+              />
+            </div>
           </div>
           <div>
             <Label className="text-zinc-400 text-xs">Target Price</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="180.00"
-              value={targetPrice}
-              onChange={(e) => setTargetPrice(e.target.value)}
-              className="bg-zinc-800 border-zinc-700 text-white mt-1"
-              data-testid="input-target-price"
-            />
+            <div className="relative mt-1">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">$</span>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="180.00"
+                value={targetPrice}
+                onChange={(e) => setTargetPrice(e.target.value)}
+                className="bg-zinc-800 border-zinc-700 text-white pl-7"
+                data-testid="input-target-price"
+              />
+            </div>
           </div>
         </div>
 
@@ -827,12 +889,70 @@ function PositionSizeCalculator() {
 
       {allFilled && (
         <div className="space-y-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
+            <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-amber-400" /> Trade Summary
+              {selectedStock && <span className="text-xs text-zinc-500 font-normal ml-auto">{selectedStock.ticker}</span>}
+            </h4>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-zinc-800/50 rounded-md p-3">
+                <p className="text-xs text-zinc-500 mb-1">Quantity</p>
+                <p className="text-lg font-bold font-mono text-amber-400" data-testid="text-shares-qty">{positionSize.toLocaleString()}<span className="text-xs text-zinc-500 ml-1">shares</span></p>
+              </div>
+              <div className="bg-zinc-800/50 rounded-md p-3">
+                <p className="text-xs text-zinc-500 mb-1">Position Value</p>
+                <p className="text-lg font-bold font-mono text-white" data-testid="text-position-value">{fmtDollar(positionValue)}</p>
+              </div>
+              <div className="bg-zinc-800/50 rounded-md p-3">
+                <p className="text-xs text-zinc-500 mb-1">Portfolio Value</p>
+                <p className="text-lg font-bold font-mono text-zinc-300" data-testid="text-portfolio-value">{fmtDollar(ps)}</p>
+              </div>
+              <div className="bg-zinc-800/50 rounded-md p-3">
+                <p className="text-xs text-zinc-500 mb-1">% of Portfolio</p>
+                <p className={`text-lg font-bold font-mono ${pctOfPortfolio > 25 ? "text-red-400" : pctOfPortfolio > 10 ? "text-amber-400" : "text-green-400"}`} data-testid="text-pct-portfolio">{pctOfPortfolio.toFixed(1)}%</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-zinc-900 border border-red-900/50 rounded-lg p-4 space-y-2">
+              <h4 className="text-sm font-semibold text-red-400 flex items-center gap-2">
+                <ArrowDownRight className="w-4 h-4" /> If Stop Loss Hit
+              </h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-zinc-500">$ Loss</p>
+                  <p className="text-lg font-bold font-mono text-red-400" data-testid="text-dollar-loss">-{fmtDollar(dollarLossAtStop)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500">% Loss on Portfolio</p>
+                  <p className="text-lg font-bold font-mono text-red-400" data-testid="text-pct-loss">-{pctLossAtStop.toFixed(2)}%</p>
+                </div>
+              </div>
+              <p className="text-xs text-zinc-500">Risk per share: {fmtDollar(dollarRiskPerShare)}</p>
+            </div>
+
+            <div className="bg-zinc-900 border border-green-900/50 rounded-lg p-4 space-y-2">
+              <h4 className="text-sm font-semibold text-green-400 flex items-center gap-2">
+                <ArrowUpRight className="w-4 h-4" /> If Target Hit
+              </h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-zinc-500">$ Gain</p>
+                  <p className="text-lg font-bold font-mono text-green-400" data-testid="text-dollar-gain">+{fmtDollar(dollarGainAtTarget)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-zinc-500">% Gain on Portfolio</p>
+                  <p className="text-lg font-bold font-mono text-green-400" data-testid="text-pct-gain">+{pctGainAtTarget.toFixed(2)}%</p>
+                </div>
+              </div>
+              <p className="text-xs text-zinc-500">Reward per share: {fmtDollar(tp - ep)}</p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <AnalyticsMetricCard label="Position Size" value={`${positionSize.toLocaleString()} shares`} color="text-amber-400" />
-            <AnalyticsMetricCard label="Position Value" value={`$${positionValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} color="text-white" />
-            <AnalyticsMetricCard label="% of Portfolio" value={`${pctOfPortfolio.toFixed(1)}%`} color={pctOfPortfolio > 25 ? "text-red-400" : pctOfPortfolio > 10 ? "text-amber-400" : "text-green-400"} />
-            <AnalyticsMetricCard label="Risk Amount" value={`$${riskAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} color="text-red-400" />
-            <AnalyticsMetricCard label="Dollar Risk/Share" value={`$${dollarRiskPerShare.toFixed(2)}`} color="text-zinc-300" />
+            <AnalyticsMetricCard label="Risk Amount" value={fmtDollar(riskAmount)} color="text-red-400" />
+            <AnalyticsMetricCard label="Dollar Risk/Share" value={fmtDollar(dollarRiskPerShare)} color="text-zinc-300" />
             <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3" data-testid="text-risk-reward">
               <p className="text-xs text-zinc-500 mb-1">Risk/Reward</p>
               <p className={`text-lg font-bold font-mono ${riskRewardRatio >= 2 ? "text-green-400" : riskRewardRatio >= 1 ? "text-amber-400" : "text-red-400"}`}>
