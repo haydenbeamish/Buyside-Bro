@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import {
   Eye,
   FileSearch,
   Building2,
+  Sparkles,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { useLoginGate } from "@/hooks/use-login-gate";
@@ -95,7 +96,7 @@ interface JobStatus {
   message: string;
 }
 
-type AnalysisMode = "preview" | "review";
+type AnalysisMode = "preview" | "review" | "deep";
 
 function StockSearchInput({
   value,
@@ -373,7 +374,7 @@ function AnalysisLoader({ ticker, mode, progress: apiProgress, message, isComple
   }, [apiProgress, isComplete, startTime]);
 
   const displayProgress = isComplete ? 100 : Math.floor(animatedProgress);
-  const modeLabel = mode === "preview" ? "Earnings Preview" : "Earnings Review";
+  const modeLabel = mode === "preview" ? "Earnings Preview" : mode === "deep" ? "Deep Analysis" : "Earnings Review";
 
   const loadingStages = [
     { label: "Gathering data", threshold: 20, icon: Search },
@@ -507,6 +508,15 @@ export default function EarningsAnalysisPage() {
   const { toast } = useToast();
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000;
 
+  const [deepJobId, setDeepJobId] = useState<string | null>(null);
+  const [deepJobStatus, setDeepJobStatus] = useState<JobStatus | null>(null);
+  const [deepResult, setDeepResult] = useState<DeepAnalysisResultData | null>(null);
+  const [deepError, setDeepError] = useState<string | null>(null);
+  const deepPollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deepPollAttemptRef = useRef<number>(0);
+  const deepJobStartTimeRef = useRef<number>(Date.now());
+  const [showDeepCompletionAnimation, setShowDeepCompletionAnimation] = useState(false);
+
   const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
   const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
   const [showBroLimit, setShowBroLimit] = useState(false);
@@ -536,6 +546,15 @@ export default function EarningsAnalysisPage() {
     if (isAtLimit) {
       setShowBroLimit(true);
       return;
+    }
+    setDeepError(null);
+    setDeepJobId(null);
+    setDeepJobStatus(null);
+    setDeepResult(null);
+    setShowDeepCompletionAnimation(false);
+    if (deepPollingRef.current) {
+      clearTimeout(deepPollingRef.current);
+      deepPollingRef.current = null;
     }
     setIsStarting(true);
     setError(null);
@@ -638,6 +657,108 @@ export default function EarningsAnalysisPage() {
     }
   }, [jobId, jobStatus?.status, pollJobStatus]);
 
+  const startDeepAnalysis = useMutation({
+    mutationFn: async (ticker: string) => {
+      const res = await apiRequest("POST", `/api/analysis/deep/${ticker}`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setDeepJobId(data.jobId);
+      setDeepJobStatus({ jobId: data.jobId, status: "pending", progress: 0, message: "Starting analysis..." });
+      setDeepResult(null);
+      setDeepError(null);
+      deepPollAttemptRef.current = 0;
+      deepJobStartTimeRef.current = Date.now();
+      refetchBroStatus();
+    },
+    onError: (error: any) => {
+      if (error instanceof ApiError && error.status === 429) {
+        setShowBroLimit(true);
+        return;
+      }
+      setDeepError("Failed to start analysis. Please try again.");
+    },
+  });
+
+  const pollDeepJobStatus = useCallback(async (currentJobId: string) => {
+    const elapsed = Date.now() - deepJobStartTimeRef.current;
+    if (elapsed > POLLING_TIMEOUT_MS) {
+      setDeepError("Analysis timed out. Please try again.");
+      setDeepJobStatus(null);
+      if (deepPollingRef.current) {
+        clearTimeout(deepPollingRef.current);
+        deepPollingRef.current = null;
+      }
+      return;
+    }
+    try {
+      const res = await fetch(`/api/analysis/deep/job/${currentJobId}`);
+      if (!res.ok) throw new Error("Job not found");
+      const status = await res.json();
+      if (status.jobId !== currentJobId) return;
+
+      if (status.status === "completed") {
+        const resultRes = await fetch(`/api/analysis/deep/result/${currentJobId}`);
+        if (resultRes.ok) {
+          const raw = await resultRes.json();
+          setDeepResult(raw?.data || raw);
+        } else {
+          setDeepError("Failed to load analysis result. Please try again.");
+        }
+        setDeepJobStatus(status);
+        if (deepPollingRef.current) {
+          clearTimeout(deepPollingRef.current);
+          deepPollingRef.current = null;
+        }
+        return;
+      } else if (status.status === "failed") {
+        setDeepJobStatus(status);
+        setDeepError("Analysis failed. Please try again.");
+        if (deepPollingRef.current) {
+          clearTimeout(deepPollingRef.current);
+          deepPollingRef.current = null;
+        }
+        return;
+      } else {
+        setDeepJobStatus(status);
+      }
+    } catch (e) {
+      console.error("Deep poll error:", e);
+    }
+    deepPollAttemptRef.current += 1;
+    const INITIAL_DELAY = 1000;
+    const MAX_DELAY = 10000;
+    const delay = Math.min(INITIAL_DELAY * Math.pow(2, deepPollAttemptRef.current), MAX_DELAY);
+    deepPollingRef.current = setTimeout(() => pollDeepJobStatus(currentJobId), delay);
+  }, [POLLING_TIMEOUT_MS]);
+
+  useEffect(() => {
+    if (deepJobId && deepJobStatus?.status !== "completed" && deepJobStatus?.status !== "failed") {
+      deepPollAttemptRef.current = 0;
+      const INITIAL_DELAY = 1000;
+      deepPollingRef.current = setTimeout(() => pollDeepJobStatus(deepJobId), INITIAL_DELAY);
+      return () => {
+        if (deepPollingRef.current) {
+          clearTimeout(deepPollingRef.current);
+          deepPollingRef.current = null;
+        }
+      };
+    }
+  }, [deepJobId, deepJobStatus?.status, pollDeepJobStatus]);
+
+  const isDeepJobComplete = deepJobStatus?.status === "completed";
+
+  useEffect(() => {
+    if (isDeepJobComplete && deepResult) {
+      setShowDeepCompletionAnimation(true);
+      const timer = setTimeout(() => setShowDeepCompletionAnimation(false), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isDeepJobComplete, deepResult]);
+
+  const isDeepLoading = startDeepAnalysis.isPending ||
+    (deepJobStatus?.status === "pending" || deepJobStatus?.status === "processing");
+
   const handleSubmit = (ticker: string) => {
     if (!gate()) return;
     setActiveTicker(ticker);
@@ -645,8 +766,54 @@ export default function EarningsAnalysisPage() {
     setError(null);
     setJobId(null);
     setJobStatus(null);
+    setDeepJobId(null);
+    setDeepJobStatus(null);
+    setDeepResult(null);
+    setDeepError(null);
+    setShowDeepCompletionAnimation(false);
+    if (deepPollingRef.current) {
+      clearTimeout(deepPollingRef.current);
+      deepPollingRef.current = null;
+    }
     hasAutoStarted.current = false;
   };
+
+  const clearEarningsState = useCallback(() => {
+    setResult(null);
+    setError(null);
+    setJobId(null);
+    setJobStatus(null);
+    setIsStarting(false);
+    if (pollingRef.current) {
+      clearTimeout(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  const clearDeepState = useCallback(() => {
+    setDeepError(null);
+    setDeepJobId(null);
+    setDeepJobStatus(null);
+    setDeepResult(null);
+    setShowDeepCompletionAnimation(false);
+    if (deepPollingRef.current) {
+      clearTimeout(deepPollingRef.current);
+      deepPollingRef.current = null;
+    }
+  }, []);
+
+  const handleStartDeep = useCallback(() => {
+    if (!gate()) return;
+    if (isAtLimit) {
+      setShowBroLimit(true);
+      return;
+    }
+    if (activeTicker) {
+      clearEarningsState();
+      clearDeepState();
+      startDeepAnalysis.mutate(activeTicker);
+    }
+  }, [gate, isAtLimit, activeTicker, startDeepAnalysis, clearEarningsState, clearDeepState]);
 
   const isLoading = isStarting || jobStatus?.status === "pending" || jobStatus?.status === "processing";
 
@@ -765,8 +932,8 @@ export default function EarningsAnalysisPage() {
             )}
 
             {/* Mode action cards — show when stock loaded, not analysing, no result */}
-            {activeTicker && !isLoading && !result && !error && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {activeTicker && !isLoading && !result && !error && !isDeepLoading && !deepResult && !deepError && !showDeepCompletionAnimation && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <button
                   type="button"
                   onClick={() => { setMode("preview"); startAnalysis(activeTicker, "preview"); }}
@@ -794,6 +961,20 @@ export default function EarningsAnalysisPage() {
                     <h3 className="font-semibold text-lg text-white">Earnings Review</h3>
                   </div>
                   <p className="text-sm text-zinc-400">Evaluate results after earnings have been reported</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStartDeep}
+                  className="bg-zinc-900 border border-zinc-800 hover:border-amber-500/50 rounded-lg p-6 cursor-pointer transition-all text-left group hover:shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                  data-testid="card-deep-analysis"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+                      <Sparkles className="h-5 w-5 text-amber-400" />
+                    </div>
+                    <h3 className="font-semibold text-lg text-white">Deep Analysis</h3>
+                  </div>
+                  <p className="text-sm text-zinc-400">Comprehensive AI fundamental analysis with buy/hold/sell recommendation</p>
                 </button>
               </div>
             )}
@@ -828,10 +1009,9 @@ export default function EarningsAnalysisPage() {
             ) : result ? (
               <>
                 <AnalysisResult result={result} />
-                {/* Analyse again row */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 pb-4">
                   <span className="text-sm text-zinc-500">Want a different perspective?</span>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 justify-center">
                     <Button
                       variant="outline"
                       size="sm"
@@ -851,6 +1031,84 @@ export default function EarningsAnalysisPage() {
                     >
                       <FileSearch className="h-3.5 w-3.5" />
                       Earnings Review
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
+                      onClick={handleStartDeep}
+                      data-testid="button-reanalyse-deep"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Deep Analysis
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : null}
+
+            {deepError ? (
+              <div className="bg-zinc-900 border border-red-500/30 rounded-lg p-6">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-6 w-6 text-red-500" />
+                  <div>
+                    <p className="text-white font-medium">Deep Analysis Failed</p>
+                    <p className="text-sm text-zinc-400">{deepError}</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-auto border-zinc-700"
+                    onClick={handleStartDeep}
+                    data-testid="button-retry-deep-analysis"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            ) : isDeepLoading || showDeepCompletionAnimation ? (
+              <AnalysisLoader
+                ticker={activeTicker || ""}
+                mode="deep"
+                progress={deepJobStatus?.progress || 0}
+                message={showDeepCompletionAnimation ? "Analysis complete!" : (deepJobStatus?.message || "Starting analysis...")}
+                isComplete={isDeepJobComplete}
+              />
+            ) : deepResult ? (
+              <>
+                <AnalysisResult result={deepResult} />
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 pb-4">
+                  <span className="text-sm text-zinc-500">Want a different perspective?</span>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
+                      onClick={() => { setMode("preview"); startAnalysis(activeTicker, "preview"); }}
+                      data-testid="button-deep-to-preview"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Earnings Preview
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
+                      onClick={() => { setMode("review"); startAnalysis(activeTicker, "review"); }}
+                      data-testid="button-deep-to-review"
+                    >
+                      <FileSearch className="h-3.5 w-3.5" />
+                      Earnings Review
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
+                      onClick={handleStartDeep}
+                      data-testid="button-rerun-deep"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Deep Analysis
                     </Button>
                   </div>
                 </div>
