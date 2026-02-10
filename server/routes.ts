@@ -1334,6 +1334,29 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
+  app.get("/api/analysis/filings/:ticker", async (req: any, res: Response) => {
+    try {
+      const rawTicker = req.params.ticker as string;
+      if (!isValidTicker(rawTicker)) {
+        return res.status(400).json({ error: "Invalid ticker symbol" });
+      }
+      const ticker = normalizeTicker(rawTicker);
+      const response = await fetchWithTimeout(
+        `${LASER_BEAM_API}/api/news/${encodeURIComponent(ticker)}?limit=5`,
+        { headers: LASER_BEAM_HEADERS },
+        10000
+      );
+      if (!response.ok) {
+        return res.json({ ticker, source: "unknown", announcements: [] });
+      }
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Filings error:", error);
+      res.json({ ticker: req.params.ticker, source: "unknown", announcements: [] });
+    }
+  });
+
   app.get("/api/analysis/ai/:ticker", isAuthenticated, async (req: any, res: Response) => {
     try {
       const rawTicker = req.params.ticker as string;

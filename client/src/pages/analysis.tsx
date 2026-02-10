@@ -22,6 +22,10 @@ import {
   ThumbsDown,
   Minus,
   Building2,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
 } from "lucide-react";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import { useLoginGate } from "@/hooks/use-login-gate";
@@ -94,6 +98,28 @@ interface ForwardMetrics {
   pegRatio: number | null;
   currentEps: number | null;
   estimatedEps: number | null;
+}
+
+interface FilingAnnouncement {
+  title: string;
+  date: string;
+  url: string;
+  source: string;
+  form?: string;
+  reportDate?: string;
+  accessionNumber?: string;
+  items?: string[];
+  itemDescriptions?: string[];
+  priceSensitive?: boolean;
+  time?: string;
+  pages?: number;
+  fileSize?: string;
+}
+
+interface FilingsResponse {
+  ticker: string;
+  source: "sec_edgar" | "asx";
+  announcements: FilingAnnouncement[];
 }
 
 
@@ -301,6 +327,124 @@ function MetricsGrid({
           value={financials?.pbRatio != null ? financials.pbRatio.toFixed(2) : "N/A"}
           isLoading={financialsLoading}
         />
+      </div>
+    </div>
+  );
+}
+
+function RecentFilings({ ticker }: { ticker: string }) {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  const { data: filings, isLoading } = useQuery<FilingsResponse>({
+    queryKey: ["/api/analysis/filings", ticker],
+    queryFn: async () => {
+      const res = await apiRequest("GET", `/api/analysis/filings/${encodeURIComponent(ticker)}`);
+      return res.json();
+    },
+    enabled: !!ticker,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-white flex items-center gap-2">
+          <FileText className="h-4 w-4 text-amber-500" />
+          Recent Filings
+        </h3>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-14 w-full bg-zinc-800 rounded-lg" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!filings?.announcements?.length) return null;
+
+  const getFormBadge = (filing: FilingAnnouncement) => {
+    if (filings.source === "asx") {
+      if (filing.priceSensitive) {
+        return <Badge className="bg-red-600 text-white text-[10px] px-1.5 py-0 shrink-0">Price Sensitive</Badge>;
+      }
+      return null;
+    }
+    const form = filing.form || "";
+    let color = "bg-zinc-700 text-zinc-300";
+    if (form === "8-K") color = "bg-amber-600 text-white";
+    else if (form === "10-K" || form === "10-Q") color = "bg-blue-600 text-white";
+    else if (form === "DEF 14A" || form === "DEFA14A") color = "bg-purple-600 text-white";
+    else if (form.startsWith("S-1") || form.startsWith("S-4")) color = "bg-green-600 text-white";
+    if (!form) return null;
+    return <Badge className={`${color} text-[10px] px-1.5 py-0 shrink-0`}>{form}</Badge>;
+  };
+
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <h3 className="font-semibold text-white flex items-center gap-2">
+        <FileText className="h-4 w-4 text-amber-500" />
+        Recent Filings
+      </h3>
+      <div className="space-y-2">
+        {filings.announcements.map((filing, idx) => {
+          const isExpanded = expandedIndex === idx;
+          return (
+            <div key={idx} className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+              <button
+                className="w-full flex items-center gap-2 px-3 py-2.5 text-left hover:bg-zinc-800/50 transition-colors"
+                onClick={() => setExpandedIndex(isExpanded ? null : idx)}
+              >
+                {getFormBadge(filing)}
+                <span className={`text-sm text-zinc-200 flex-1 ${isExpanded ? "" : "truncate"}`}>
+                  {filing.title}
+                </span>
+                <span className="text-xs text-zinc-500 shrink-0">{formatDate(filing.date)}</span>
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-zinc-500 shrink-0" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-zinc-500 shrink-0" />
+                )}
+              </button>
+              {isExpanded && (
+                <div className="px-3 pb-3 border-t border-zinc-800 pt-2 space-y-2">
+                  {filing.itemDescriptions?.length ? (
+                    <div className="space-y-1">
+                      {filing.itemDescriptions.map((desc, i) => (
+                        <p key={i} className="text-xs text-zinc-400">• {desc}</p>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="flex items-center gap-3 text-xs text-zinc-500 flex-wrap">
+                    <span>Source: {filings.source === "sec_edgar" ? "SEC EDGAR" : "ASX"}</span>
+                    {filing.reportDate && <span>Report date: {formatDate(filing.reportDate)}</span>}
+                    {filing.pages && <span>{filing.pages} pages</span>}
+                    {filing.fileSize && <span>{filing.fileSize}</span>}
+                  </div>
+                  {filing.url && (
+                    <a
+                      href={filing.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-amber-500 hover:text-amber-400 transition-colors"
+                    >
+                      View filing <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -994,6 +1138,9 @@ export default function AnalysisPage() {
                 metricsLoading={metricsLoading}
               />
             )}
+
+            {/* Recent Filings */}
+            {activeTicker && <RecentFilings ticker={activeTicker} />}
 
             {/* Full-width chart */}
             {activeTicker && (
