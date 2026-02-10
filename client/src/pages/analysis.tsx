@@ -339,7 +339,7 @@ function MetricsGrid({
 
 function RecentFilings({ ticker }: { ticker: string }) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const [importantOnly, setImportantOnly] = useState(false);
+  const [importantOnly, setImportantOnly] = useState(true);
 
   const { data: filings, isLoading } = useQuery<FilingsResponse>({
     queryKey: ["/api/analysis/filings", ticker, importantOnly],
