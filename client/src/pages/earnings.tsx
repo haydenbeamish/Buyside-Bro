@@ -712,16 +712,20 @@ export default function EarningsAnalysisPage() {
   const handleSubmit = (ticker: string) => {
     if (!gate()) return;
     setActiveTicker(ticker);
-    if (!hasAutoStarted.current) {
-      startAnalysis(ticker, mode);
-    }
+    setResult(null);
+    setError(null);
+    setJobId(null);
+    setJobStatus(null);
     hasAutoStarted.current = false;
   };
 
   const handleModeChange = (newMode: AnalysisMode) => {
     setMode(newMode);
+  };
+
+  const handleAnalyse = () => {
     if (activeTicker && !isLoading) {
-      startAnalysis(activeTicker, newMode);
+      startAnalysis(activeTicker, mode);
     }
   };
 
@@ -787,6 +791,15 @@ export default function EarningsAnalysisPage() {
           >
             <FileSearch className="h-4 w-4" />
             Earnings Review
+          </Button>
+          <Button
+            onClick={handleAnalyse}
+            disabled={!activeTicker || isLoading}
+            className="bg-green-600 hover:bg-green-700 text-white gap-2 ml-auto"
+            data-testid="button-analyse"
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Analyse
           </Button>
         </div>
 
