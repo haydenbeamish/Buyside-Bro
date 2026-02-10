@@ -1151,7 +1151,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
       const [fmpResponse, lbcResponse] = await Promise.all([
         fetchWithTimeout(fmpUrl, {}, 10000),
-        fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 10000).catch(() => null),
+        fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 15000).catch(() => null),
       ]);
 
       if (!fmpResponse.ok) throw new Error("Failed to fetch profile");
@@ -1173,6 +1173,14 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
 
       const profile = data[0];
+
+      // Truncate long FMP descriptions to first 3 sentences when used as fallback
+      let description = lbcDescription;
+      if (!description && profile.description) {
+        const sentences = profile.description.match(/[^.!?]+[.!?]+/g) || [];
+        description = sentences.slice(0, 3).join("").trim();
+      }
+
       res.json({
         symbol: profile.symbol,
         companyName: profile.companyName,
@@ -1183,7 +1191,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         price: profile.price || 0,
         changes: profile.change || 0,
         changesPercentage: profile.changePercentage || 0,
-        description: lbcDescription || profile.description || "",
+        description: description || "",
         investmentCase,
       });
     } catch (error) {
