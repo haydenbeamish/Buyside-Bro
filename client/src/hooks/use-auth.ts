@@ -23,7 +23,8 @@ export function useAuth() {
     queryKey: ["/api/auth/user"],
     queryFn: fetchUser,
     retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // Always refetch auth state on mount/navigation
+    refetchOnWindowFocus: true,
   });
 
   const [viewAs, setViewAs] = useState(() => localStorage.getItem("admin_view_as"));
