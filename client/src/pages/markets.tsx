@@ -484,7 +484,7 @@ export default function MarketsPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
+      <div className="max-w-5xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-4 sm:mb-6 px-1">
           <h1 className="display-font text-xl sm:text-3xl md:text-4xl font-bold tracking-wider text-white">
             MARKETS
