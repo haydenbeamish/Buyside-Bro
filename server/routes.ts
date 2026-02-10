@@ -2505,6 +2505,23 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   // ==================== ADMIN ROUTES ====================
 
+  app.get("/api/admin/api-costs", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const params = new URLSearchParams();
+      if (req.query.start) params.set("start", String(req.query.start));
+      if (req.query.end) params.set("end", String(req.query.end));
+      if (req.query.groupBy) params.set("groupBy", String(req.query.groupBy));
+      const qs = params.toString();
+      const url = `${LASER_BEAM_API}/api/admin/costs${qs ? `?${qs}` : ""}`;
+      const response = await fetchWithTimeout(url, { headers: LASER_BEAM_HEADERS }, 10000);
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error("Admin API costs error:", error);
+      res.json({ summary: { total_calls: 0, total_cost: 0, total_tokens: 0 }, breakdown: [] });
+    }
+  });
+
   app.get("/api/admin/stats", isAdmin, async (req: Request, res: Response) => {
     try {
       const [userCount] = await db.select({ count: count() }).from(users);
