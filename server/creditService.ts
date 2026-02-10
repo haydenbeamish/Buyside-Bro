@@ -298,8 +298,11 @@ const BRO_FEATURES = [
   'earnings_analysis', 'deep_analysis',
 ];
 
+const ADMIN_BRO_EMAILS = ['hbeamish1@gmail.com'];
+
 export function getBroQueryLimit(user: User | null | undefined): number {
   if (!user) return 1;
+  if (user.email && ADMIN_BRO_EMAILS.includes(user.email.toLowerCase())) return 50;
   if (user.subscriptionStatus === 'active') return 5;
   return 1;
 }
@@ -346,7 +349,7 @@ export async function checkBroQueryAllowed(userId: string, user: User | null | u
     return {
       allowed: false,
       message: isPro
-        ? "You've used all 5 Bro queries for today. Come back tomorrow!"
+        ? `You've used all ${dailyLimit} Bro queries for today. Come back tomorrow!`
         : "You've used your free Bro query for today. Upgrade to Pro for 5 queries per day.",
       requiresUpgrade: !isPro,
     };
