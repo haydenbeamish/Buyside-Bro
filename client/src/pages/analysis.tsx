@@ -119,7 +119,7 @@ interface FilingAnnouncement {
 
 interface FilingsResponse {
   ticker: string;
-  source: "sec_edgar" | "asx";
+  source: "sec_edgar" | "asx" | string;
   announcements: FilingAnnouncement[];
 }
 
@@ -366,6 +366,9 @@ function RecentFilings({ ticker }: { ticker: string }) {
 
   if (!filings?.announcements?.length) return null;
 
+  const isOfficialSource = filings.source === "sec_edgar" || filings.source === "asx";
+  const heading = isOfficialSource ? "Recent Announcements" : "Recent News";
+
   const getFormBadge = (filing: FilingAnnouncement) => {
     if (filings.source === "asx") {
       if (filing.priceSensitive) {
@@ -397,7 +400,7 @@ function RecentFilings({ ticker }: { ticker: string }) {
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-white flex items-center gap-2">
           <FileText className="h-4 w-4 text-amber-500" />
-          Recent Announcements
+          {heading}
         </h3>
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <span className="text-xs text-zinc-400">Important only</span>

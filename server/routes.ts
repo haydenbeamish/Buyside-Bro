@@ -1149,30 +1149,61 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       const fmpUrl = `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
       const lbcUrl = `${LASER_BEAM_API}/api/stock/quick-summary/${encodeURIComponent(ticker)}`;
 
+      const isASX = ticker.endsWith(".AX");
+
       const [fmpResponse, lbcResponse] = await Promise.all([
-        fetchWithTimeout(fmpUrl, {}, 10000),
+        fetchWithTimeout(fmpUrl, {}, 10000).catch(() => null),
         fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 15000).catch(() => null),
       ]);
 
-      if (!fmpResponse.ok) throw new Error("Failed to fetch profile");
+      const fmpData: any[] = fmpResponse && fmpResponse.ok ? await fmpResponse.json() as any[] : [];
+      const fmpProfile = fmpData && fmpData.length > 0 ? fmpData[0] : null;
 
-      const data = await fmpResponse.json() as any[];
-      if (!data || data.length === 0) {
-        return res.status(404).json({ error: "Stock not found" });
-      }
-
-      let lbcDescription = "";
-      let investmentCase = "";
+      // Parse LBC data
+      let lbcData: any = null;
       if (lbcResponse && lbcResponse.ok) {
         try {
           const lbcRaw = await lbcResponse.json() as any;
-          const lbcData = lbcRaw?.data || lbcRaw;
-          lbcDescription = lbcData.companyDescription || "";
-          investmentCase = lbcData.investmentCase || "";
+          lbcData = lbcRaw?.data || lbcRaw;
         } catch {}
       }
 
-      const profile = data[0];
+      // If both sources failed, return appropriate error
+      if (!fmpProfile && !lbcData) {
+        return res.status(404).json({ error: "Stock not found" });
+      }
+
+      const lbcDescription = lbcData?.companyDescription || "";
+      const investmentCase = lbcData?.investmentCase || "";
+
+      // For ASX stocks without FMP data, build profile from LBC
+      if (!fmpProfile && lbcData) {
+        // Derive price from last entry in price history
+        const priceHistory = lbcData.charts?.priceHistory5Y || [];
+        const lastEntry = priceHistory.length > 0 ? priceHistory[priceHistory.length - 1] : null;
+        const prevEntry = priceHistory.length > 1 ? priceHistory[priceHistory.length - 2] : null;
+        const price = lastEntry?.close || 0;
+        const prevPrice = prevEntry?.close || 0;
+        const changes = prevPrice ? price - prevPrice : 0;
+        const changesPercentage = prevPrice ? ((price - prevPrice) / prevPrice) * 100 : 0;
+
+        return res.json({
+          symbol: ticker,
+          companyName: lbcData.companyName || ticker,
+          sector: "N/A",
+          industry: "N/A",
+          exchange: isASX ? "ASX" : "N/A",
+          marketCap: lbcData.marketCap || 0,
+          price,
+          changes: Math.round(changes * 1000) / 1000,
+          changesPercentage: Math.round(changesPercentage * 100) / 100,
+          description: lbcDescription,
+          investmentCase,
+        });
+      }
+
+      // FMP profile exists — use it, but prefer LBC marketCap for ASX stocks
+      const profile = fmpProfile!;
 
       // Truncate long FMP descriptions to first 3 sentences when used as fallback
       let description = lbcDescription;
@@ -1187,7 +1218,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         sector: profile.sector || "N/A",
         industry: profile.industry || "N/A",
         exchange: profile.exchange,
-        marketCap: profile.marketCap || 0,
+        marketCap: (isASX && lbcData?.marketCap) ? lbcData.marketCap : (profile.marketCap || 0),
         price: profile.price || 0,
         changes: profile.change || 0,
         changesPercentage: profile.changePercentage || 0,
@@ -1207,14 +1238,17 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.status(400).json({ error: "Invalid ticker symbol" });
       }
       const ticker = normalizeTicker(rawTicker);
+      const isASX = ticker.endsWith(".AX");
       const ratiosUrl = `https://financialmodelingprep.com/stable/ratios-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
       const incomeUrl = `https://financialmodelingprep.com/stable/income-statement?symbol=${encodeURIComponent(ticker)}&limit=1&apikey=${process.env.FMP_API_KEY}`;
       const metricsUrl = `https://financialmodelingprep.com/stable/key-metrics-ttm?symbol=${encodeURIComponent(ticker)}&apikey=${process.env.FMP_API_KEY}`;
+      const lbcUrl = `${LASER_BEAM_API}/api/stock/quick-summary/${encodeURIComponent(ticker)}`;
 
-      const [ratiosRes, incomeRes, metricsRes] = await Promise.all([
+      const [ratiosRes, incomeRes, metricsRes, lbcResponse] = await Promise.all([
         fetchWithTimeout(ratiosUrl, {}, 10000),
         fetchWithTimeout(incomeUrl, {}, 10000),
         fetchWithTimeout(metricsUrl, {}, 10000),
+        isASX ? fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 15000).catch(() => null) : Promise.resolve(null),
       ]);
 
       const ratios: any[] = ratiosRes.ok ? await ratiosRes.json() as any[] : [];
@@ -1225,6 +1259,21 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       const i = income[0] || {};
       const m = metrics[0] || {};
 
+      const fmpHasData = Object.keys(r).length > 0 || Object.keys(i).length > 0 || Object.keys(m).length > 0;
+
+      // For ASX stocks where FMP returned no data, fall back to LBC
+      let lbcEV: number | null = null;
+      let lbcEvToEbit: number | null = null;
+      if (!fmpHasData && lbcResponse && lbcResponse.ok) {
+        try {
+          const lbcRaw = await lbcResponse.json() as any;
+          const lbcData = lbcRaw?.data || lbcRaw;
+          lbcEV = typeof lbcData.enterpriseValue === 'number' ? lbcData.enterpriseValue : null;
+          const trailingEvEbit = typeof lbcData.trailingEvEbit === 'number' ? lbcData.trailingEvEbit : null;
+          lbcEvToEbit = trailingEvEbit;
+        } catch {}
+      }
+
       res.json({
         revenue: i.revenue || 0,
         netIncome: i.netIncome || 0,
@@ -1234,8 +1283,8 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         dividendYield: r.dividendYieldTTM || 0,
         roe: m.returnOnEquityTTM || 0,
         debtToEquity: r.debtToEquityRatioTTM || 0,
-        enterpriseValue: m.enterpriseValueTTM || null,
-        evToEbit: m.enterpriseValueTTM && i.operatingIncome ? m.enterpriseValueTTM / i.operatingIncome : null,
+        enterpriseValue: m.enterpriseValueTTM || lbcEV || null,
+        evToEbit: m.enterpriseValueTTM && i.operatingIncome ? m.enterpriseValueTTM / i.operatingIncome : (lbcEvToEbit || null),
       });
     } catch (error) {
       console.error("Financials error:", error);
