@@ -318,16 +318,20 @@ function MetricsGrid({
           value={financials?.roe != null ? `${(financials.roe * 100).toFixed(2)}%` : "N/A"}
           isLoading={financialsLoading}
         />
-        <MetricCard
-          label="Debt/Equity"
-          value={financials?.debtToEquity != null ? `${(financials.debtToEquity * 100).toFixed(1)}%` : "N/A"}
-          isLoading={financialsLoading}
-        />
-        <MetricCard
-          label="P/B Ratio"
-          value={financials?.pbRatio != null ? financials.pbRatio.toFixed(2) : "N/A"}
-          isLoading={financialsLoading}
-        />
+        {(financialsLoading || !financials || financials.debtToEquity * 100 >= -100) && (
+          <MetricCard
+            label="Debt/Equity"
+            value={financials?.debtToEquity != null ? `${(financials.debtToEquity * 100).toFixed(1)}%` : "N/A"}
+            isLoading={financialsLoading}
+          />
+        )}
+        {(financialsLoading || !financials || financials.pbRatio >= 0) && (
+          <MetricCard
+            label="P/B Ratio"
+            value={financials?.pbRatio != null ? financials.pbRatio.toFixed(2) : "N/A"}
+            isLoading={financialsLoading}
+          />
+        )}
       </div>
     </div>
   );
