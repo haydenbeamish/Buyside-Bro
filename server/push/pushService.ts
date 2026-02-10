@@ -24,9 +24,11 @@ export async function getPreferences(userId: string): Promise<NotificationPrefer
     usaMarketSummary: true,
     asxMarketSummary: true,
     europeMarketSummary: true,
+    asiaMarketSummary: true,
     emailUsaMarketSummary: false,
     emailAsxMarketSummary: false,
     emailEuropeMarketSummary: false,
+    emailAsiaMarketSummary: false,
   };
 }
 
@@ -36,9 +38,11 @@ interface DefaultPreferences {
   usaMarketSummary: boolean;
   asxMarketSummary: boolean;
   europeMarketSummary: boolean;
+  asiaMarketSummary: boolean;
   emailUsaMarketSummary: boolean;
   emailAsxMarketSummary: boolean;
   emailEuropeMarketSummary: boolean;
+  emailAsiaMarketSummary: boolean;
 }
 
 export async function updatePreferences(userId: string, prefs: Partial<NotificationPreference>): Promise<NotificationPreference> {
@@ -135,6 +139,7 @@ export async function sendMarketSummaryNotification(
     usa: "🇺🇸 US Market",
     asx: "🇦🇺 ASX",
     europe: "🇪🇺 Europe",
+    asia: "🌏 Asia",
   };
 
   const payload: PushPayload = {

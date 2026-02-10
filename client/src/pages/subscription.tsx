@@ -59,6 +59,7 @@ interface EmailPrefs {
   emailUsaMarketSummary: boolean;
   emailAsxMarketSummary: boolean;
   emailEuropeMarketSummary: boolean;
+  emailAsiaMarketSummary: boolean;
 }
 
 function EmailPreferencesSection() {
@@ -105,6 +106,7 @@ function EmailPreferencesSection() {
     { key: "emailUsaMarketSummary" as keyof EmailPrefs, label: "US Markets", desc: "NYSE & NASDAQ close wrap" },
     { key: "emailAsxMarketSummary" as keyof EmailPrefs, label: "ASX (Australia)", desc: "ASX close wrap" },
     { key: "emailEuropeMarketSummary" as keyof EmailPrefs, label: "European Markets", desc: "European close wrap" },
+    { key: "emailAsiaMarketSummary" as keyof EmailPrefs, label: "Asian Markets", desc: "Asia close wrap" },
   ];
 
   return (

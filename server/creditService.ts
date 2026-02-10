@@ -251,6 +251,12 @@ export const MARKET_SCHEDULES = {
     closeHour: 16, closeMinute: 30,
     updateOffsetMinutes: 20,
   },
+  Asia: {
+    timezone: 'Asia/Hong_Kong',
+    openHour: 9, openMinute: 30,
+    closeHour: 16, closeMinute: 0,
+    updateOffsetMinutes: 20,
+  },
 };
 
 export function getMarketEventTitle(market: string, eventType: string): string {

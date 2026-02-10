@@ -241,7 +241,7 @@ async function generateAndPostMarketSummary(market: string, eventType: string): 
 
   // Send push notifications for market close summaries
   if (eventType === "close") {
-    const marketMap: Record<string, string> = { USA: "usa", ASX: "asx", Europe: "europe" };
+    const marketMap: Record<string, string> = { USA: "usa", ASX: "asx", Europe: "europe", Asia: "asia" };
     const summaryType = marketMap[market];
     if (summaryType) {
       try {

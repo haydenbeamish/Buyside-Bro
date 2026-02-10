@@ -12,6 +12,7 @@ export function marketWrapEmail(params: {
     USA: "US Markets",
     ASX: "ASX (Australia)",
     Europe: "European Markets",
+    Asia: "Asian Markets",
   };
 
   const marketLabel = marketLabels[market] || market;

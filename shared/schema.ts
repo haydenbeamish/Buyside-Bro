@@ -188,9 +188,11 @@ export const notificationPreferences = pgTable("notification_preferences", {
   usaMarketSummary: boolean("usa_market_summary").default(true).notNull(),
   asxMarketSummary: boolean("asx_market_summary").default(true).notNull(),
   europeMarketSummary: boolean("europe_market_summary").default(true).notNull(),
+  asiaMarketSummary: boolean("asia_market_summary").default(true).notNull(),
   emailUsaMarketSummary: boolean("email_usa_market_summary").default(false).notNull(),
   emailAsxMarketSummary: boolean("email_asx_market_summary").default(false).notNull(),
   emailEuropeMarketSummary: boolean("email_europe_market_summary").default(false).notNull(),
+  emailAsiaMarketSummary: boolean("email_asia_market_summary").default(false).notNull(),
   createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 }, (table) => ({

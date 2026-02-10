@@ -84,6 +84,8 @@ export function registerPushRoutes(app: Express): void {
         "emailUsaMarketSummary",
         "emailAsxMarketSummary",
         "emailEuropeMarketSummary",
+        "asiaMarketSummary",
+        "emailAsiaMarketSummary",
       ];
       const updates: Record<string, any> = {};
       for (const field of allowedFields) {
@@ -93,7 +95,7 @@ export function registerPushRoutes(app: Express): void {
       }
 
       // Pro gating: require active subscription to enable email preferences
-      const emailFields = ["emailUsaMarketSummary", "emailAsxMarketSummary", "emailEuropeMarketSummary"];
+      const emailFields = ["emailUsaMarketSummary", "emailAsxMarketSummary", "emailEuropeMarketSummary", "emailAsiaMarketSummary"];
       const enablingEmail = emailFields.some((f) => updates[f] === true);
       if (enablingEmail) {
         const user = await authStorage.getUser(userId);

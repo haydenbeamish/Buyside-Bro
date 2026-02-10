@@ -132,7 +132,9 @@ export const pushStorage: IPushStorage = {
       ? notificationPreferences.usaMarketSummary
       : market === "asx"
         ? notificationPreferences.asxMarketSummary
-        : notificationPreferences.europeMarketSummary;
+        : market === "asia"
+          ? notificationPreferences.asiaMarketSummary
+          : notificationPreferences.europeMarketSummary;
 
     return db
       .select({

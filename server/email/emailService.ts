@@ -30,7 +30,9 @@ export async function sendMarketWrapEmails(
       ? notificationPreferences.emailUsaMarketSummary
       : market === "ASX"
         ? notificationPreferences.emailAsxMarketSummary
-        : notificationPreferences.emailEuropeMarketSummary;
+        : market === "Asia"
+          ? notificationPreferences.emailAsiaMarketSummary
+          : notificationPreferences.emailEuropeMarketSummary;
 
   const subscribers = await db
     .select({
