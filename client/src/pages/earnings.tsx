@@ -796,22 +796,20 @@ export default function EarningsAnalysisPage() {
               </div>
             ) : profile ? (
               <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 sm:p-6">
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <h2 className="text-xl sm:text-2xl font-bold font-mono text-white">{profile.symbol}</h2>
-                      <Badge variant="outline" className="border-zinc-700 text-zinc-400">{profile.exchange}</Badge>
-                    </div>
-                    <p className="text-lg text-zinc-300 mb-2">{profile.companyName}</p>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="border-zinc-700 text-zinc-400">{profile.sector}</Badge>
-                      <Badge variant="outline" className="border-zinc-700 text-zinc-400">{profile.industry}</Badge>
-                    </div>
+                <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-xl sm:text-2xl font-bold font-mono text-white">{profile.symbol}</h2>
+                    <Badge variant="outline" className="border-zinc-700 text-zinc-400">{profile.exchange}</Badge>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl sm:text-3xl font-bold font-mono text-white">${profile.price.toFixed(2)}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xl sm:text-2xl font-bold font-mono text-white">${profile.price.toFixed(2)}</p>
                     <PercentDisplay value={profile.changesPercentage} />
                   </div>
+                </div>
+                <p className="text-base text-zinc-300 mb-2">{profile.companyName}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="border-zinc-700 text-zinc-400">{profile.sector}</Badge>
+                  <Badge variant="outline" className="border-zinc-700 text-zinc-400">{profile.industry}</Badge>
                 </div>
               </div>
             ) : null}
