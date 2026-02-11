@@ -1686,11 +1686,27 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.status(404).json({ error: "Job not found" });
       }
       
-      const data = await response.json();
+      const data = await response.json() as any;
+      console.log(`[Deep Analysis] Job ${jobId} raw status:`, JSON.stringify({ status: data.status, progress: data.progress }));
+
+      // Normalize status from external API - handle variations
+      let status = (data.status || "processing").toLowerCase();
+      const progress = data.progress || 0;
+      if (status === "complete" || status === "done" || status === "finished" || status === "success") {
+        status = "completed";
+      }
+      if (status === "error" || status === "cancelled") {
+        status = "failed";
+      }
+      // If progress is 100 but status hasn't updated, treat as completed
+      if (progress >= 100 && status !== "failed") {
+        status = "completed";
+      }
+
       res.json({
         jobId,
-        status: data.status, // pending, processing, completed, failed
-        progress: data.progress || 0,
+        status,
+        progress,
         message: data.message || "",
       });
     } catch (error) {
