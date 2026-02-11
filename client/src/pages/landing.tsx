@@ -5,7 +5,7 @@ import {
   TrendingUp, BarChart3,
   Twitter, Menu, X, Briefcase, Bot,
   ArrowRight, CheckCircle2, LogOut, Shield, Zap, Clock, Eye, Brain, Sparkles,
-  Bell, Newspaper, ChevronDown, HelpCircle
+  Bell, Newspaper, ChevronDown, HelpCircle, Calculator, Target
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import { useAuth } from "@/hooks/use-auth";
@@ -13,14 +13,17 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import logoImg from "@assets/image_1770442846290.png";
 import heroImg from "@assets/image_1770442846290.png";
-import screenshotWhatsUp from "@assets/image_1770367320606.png";
-import screenshotMarkets from "@assets/image_1770353894237.png";
-import screenshotPortfolio from "@assets/Screenshot_2026-01-28_160509_1770780893798.png";
-import screenshotNavPerformance from "@assets/Screenshot_2026-01-28_164030_1770780893799.png";
-import screenshotWatchlist from "@assets/IMG_0610_1770426137445.jpeg";
-import screenshotDeepAnalysis from "@assets/image_1770353948671.png";
+import screenshotWhatsUp from "@assets/Screenshot_2026-02-11_113321_1770781113772.png";
+import screenshotMarkets from "@assets/Screenshot_2026-02-11_113338_1770781113772.png";
+import screenshotPortfolio from "@assets/image_1770293388261.png";
+import screenshotWatchlist from "@assets/Screenshot_2026-02-11_113400_1770781113773.png";
+import screenshotDeepAnalysis from "@assets/Screenshot_2026-02-11_113352_1770781113772.png";
 import screenshotEarnings from "@assets/image_1770367362870.png";
-import screenshotAskBro from "@assets/image_1770353921106.png";
+import screenshotAskBro from "@assets/Screenshot_2026-02-11_113424_1770781113773.png";
+import screenshotNews from "@assets/Screenshot_2026-02-11_113330_1770781113772.png";
+import screenshotTradeAnalytics from "@assets/Screenshot_2026-02-11_113407_1770781113773.png";
+import screenshotPositionSizer from "@assets/Screenshot_2026-02-11_113420_1770781113773.png";
+import screenshotPushAlerts from "@assets/Screenshot_2026-02-11_113428_1770781113772.png";
 
 interface TickerItem {
   symbol: string;
@@ -249,21 +252,35 @@ const featureShowcase = [
     description: "Ask complex financial questions and get data-backed answers. Bro auto-detects tickers and pulls real-time market data into every response. Conversation memory retains up to 50 messages so you can drill deeper with natural follow-ups.",
   },
   {
-    image: screenshotWhatsUp,
+    image: screenshotNews,
     icon: Newspaper,
     title: "NEWS & SUMMARIES",
     subtitle: "Analyst-curated news across your portfolio",
     description: "Company news sourced from ASX announcements, SEC EDGAR, and financial news feeds. Bro reads and summarizes 72 hours of news for up to 10 stocks at once. Auto-generate portfolio news summaries across all your top holdings.",
   },
   {
-    image: screenshotPortfolio,
+    image: screenshotPositionSizer,
+    icon: Calculator,
+    title: "POSITION SIZE CALCULATOR",
+    subtitle: "Risk-managed trade sizing with Bro's approval",
+    description: "Enter your portfolio value, entry price, stop loss, and target price — Bro calculates your position size, risk amount, dollar risk per share, and risk/reward ratio. See trade summary with quantity, position value, and portfolio impact. Get instant feedback on whether your risk/reward setup passes Bro's standards.",
+  },
+  {
+    image: screenshotTradeAnalytics,
+    icon: Target,
+    title: "TRADE JOURNAL & ANALYTICS",
+    subtitle: "Track every trade with hedge fund analytics",
+    description: "Log trades and track your win rate, profit factor, expectancy, Sharpe ratio, and max drawdown. See who made you the most money, which strategies perform best, day-of-week performance heatmaps, and holding period analysis. Turn your trading history into actionable insights.",
+  },
+  {
+    image: screenshotTradeAnalytics,
     icon: TrendingUp,
     title: "NAV & PERFORMANCE",
     subtitle: "Automated performance tracking & benchmarking",
     description: "Automated NAV tracking from IRESS emails. View monthly performance with MTD, QTD, FY, annualized returns, and Sharpe ratio. Compare against MSCI ACWI in AUD benchmark. Export to Bloomberg format with SharePoint upload support.",
   },
   {
-    image: screenshotWatchlist,
+    image: screenshotPushAlerts,
     icon: Bell,
     title: "PUSH NOTIFICATIONS",
     subtitle: "Real-time alerts when it matters",
@@ -282,7 +299,7 @@ function FeatureShowcase() {
           Professional-grade market intelligence. No Bloomberg terminal required.
         </p>
         <p className="text-amber-400 text-sm md:text-base display-font">
-          10 powerful tools. Free to explore. No credit card.
+          12 powerful tools. Free to explore. No credit card.
         </p>
       </div>
 
