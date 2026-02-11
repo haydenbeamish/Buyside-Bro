@@ -488,10 +488,11 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
       setAnimatedProgress(prev => {
         const elapsed = (Date.now() - startTime) / 1000;
         const baseProgress = Math.min(apiProgress, 99);
-        const timeBasedProgress = Math.min(elapsed * 0.5, 90);
+        // Time-based progress: reach ~80% over 4 minutes, leave room for fast finish
+        const timeBasedProgress = Math.min(elapsed * 0.33, 80);
         const newProgress = Math.max(baseProgress, timeBasedProgress, prev);
         // Slow start, fast finish: accelerate through the last 20%
-        const speed = newProgress >= 80 ? 0.6 + (newProgress - 80) * 0.04 : 0.05 + newProgress * 0.002;
+        const speed = newProgress >= 80 ? 0.4 + (newProgress - 80) * 0.03 : 0.02 + newProgress * 0.001;
         const increment = speed * (0.8 + Math.random() * 0.4);
         return Math.min(newProgress + increment, 99);
       });
@@ -547,7 +548,7 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
 
         {displayProgress >= 80 && !isComplete && (
           <p className="text-sm text-amber-400/80 text-center mb-4 animate-pulse">
-            Hang tight — still crunching the numbers. This can take up to a minute for complex stocks.
+            Hang tight — Bro is crunching the numbers. Deep analysis can take up to 5 minutes.
           </p>
         )}
 
@@ -813,12 +814,12 @@ export default function AnalysisPage() {
   });
 
   const pollStartTimeRef = useRef<number>(Date.now());
-  const POLL_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes max
+  const POLL_TIMEOUT_MS = 6 * 60 * 1000; // 6 minutes max (deep analysis can take up to 5 min)
 
   const pollJobStatus = useCallback(async (jobId: string) => {
     // Check if we've exceeded the max polling time
     if (Date.now() - pollStartTimeRef.current > POLL_TIMEOUT_MS) {
-      setDeepError("Analysis is taking longer than expected. Please try again.");
+      setDeepError("Analysis timed out after 6 minutes. Please try again.");
       setDeepJobStatus(null);
       if (pollingRef.current) {
         clearTimeout(pollingRef.current);

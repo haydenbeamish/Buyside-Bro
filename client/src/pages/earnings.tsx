@@ -364,10 +364,11 @@ function AnalysisLoader({ ticker, mode, progress: apiProgress, message, isComple
       setAnimatedProgress((prev) => {
         const elapsed = (Date.now() - startTime) / 1000;
         const baseProgress = Math.min(apiProgress, 99);
-        const timeBasedProgress = Math.min(elapsed * 0.5, 90);
+        // Time-based progress: reach ~80% over 4 minutes, leave room for fast finish
+        const timeBasedProgress = Math.min(elapsed * 0.33, 80);
         const newProgress = Math.max(baseProgress, timeBasedProgress, prev);
         // Slow start, fast finish: accelerate through the last 20%
-        const speed = newProgress >= 80 ? 0.6 + (newProgress - 80) * 0.04 : 0.05 + newProgress * 0.002;
+        const speed = newProgress >= 80 ? 0.4 + (newProgress - 80) * 0.03 : 0.02 + newProgress * 0.001;
         const increment = speed * (0.8 + Math.random() * 0.4);
         return Math.min(newProgress + increment, 99);
       });
@@ -415,6 +416,11 @@ function AnalysisLoader({ ticker, mode, progress: apiProgress, message, isComple
         <div className="h-3 bg-zinc-800 rounded-full overflow-hidden mb-6">
           <div className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all duration-150" style={{ width: `${displayProgress}%` }} />
         </div>
+        {mode === "deep" && displayProgress >= 60 && !isComplete && (
+          <p className="text-sm text-amber-400/80 text-center mb-4 animate-pulse">
+            Hang tight — Bro is crunching the numbers. Deep analysis can take up to 5 minutes.
+          </p>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
           {loadingStages.map((stage, i) => {
             const isActive = i === currentStage;
@@ -508,7 +514,7 @@ export default function EarningsAnalysisPage() {
   const jobStartTimeRef = useRef<number>(Date.now());
   const hasAutoStarted = useRef(!!urlJobId);
   const { toast } = useToast();
-  const POLLING_TIMEOUT_MS = 5 * 60 * 1000;
+  const POLLING_TIMEOUT_MS = 6 * 60 * 1000; // 6 minutes (deep analysis can take up to 5 min)
 
   const [deepJobId, setDeepJobId] = useState<string | null>(null);
   const [deepJobStatus, setDeepJobStatus] = useState<JobStatus | null>(null);
