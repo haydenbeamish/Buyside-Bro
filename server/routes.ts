@@ -1758,6 +1758,31 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
+  // Get all currently-streaming analyses for the authenticated user
+  app.get("/api/analysis/streaming", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const rows = await db.execute(sql`
+        SELECT ticker, mode, updated_at
+        FROM ai_analysis_results
+        WHERE user_id = ${userId} AND status = 'streaming'
+      `);
+
+      const items = ((rows as any).rows || rows).map((row: any) => ({
+        ticker: row.ticker,
+        mode: row.mode,
+        updatedAt: row.updated_at,
+      }));
+
+      return res.json(items);
+    } catch (error) {
+      console.error("Failed to fetch streaming analyses:", error);
+      res.status(500).json({ error: "Failed to fetch streaming analyses" });
+    }
+  });
+
   // Get saved analysis result for a user+ticker+mode
   app.get("/api/analysis/saved/:ticker/:mode", isAuthenticated, async (req: any, res: Response) => {
     try {

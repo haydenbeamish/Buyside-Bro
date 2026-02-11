@@ -6,6 +6,7 @@ import * as Sentry from "@sentry/react";
 import { useAuth } from "@/hooks/use-auth";
 import { useBroStatus } from "@/hooks/use-bro-status";
 import { useQuery } from "@tanstack/react-query";
+import AnalysisNotificationBanner from "@/components/analysis-notification-banner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import logoImg from "@assets/image_1770442846290.png";
@@ -400,6 +401,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </main>
       </div>
 
+      <AnalysisNotificationBanner />
       <BetaFeedbackWidget />
     </div>
   );
