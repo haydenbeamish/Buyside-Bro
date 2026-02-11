@@ -68,7 +68,11 @@
       "Bash(git -C /home/runner/workspace add client/src/pages/portfolio.tsx)",
       "Bash(git -C /home/runner/workspace commit -m \"$\\(cat <<''EOF''\nFix portfolio stats calculations and instant save\n\n- Compute Total Value, Total Gain, and Day Change from live enriched\n  FMP data instead of the stale /api/portfolio/stats endpoint \\(which\n  used DB-cached prices and hardcoded dayChange to 0\\)\n- Delete holdings instantly instead of 5-second delayed save\n- Remove unused ToastAction import and stats query invalidations\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(numbers\" to set expectations.\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(git -C /home/runner/workspace log --all --oneline)",
+      "Bash(git -C /home/runner/workspace show c748d7a --stat)",
+      "Bash(git -C /home/runner/workspace log --all --grep=\"frontend.*deep\\\\|deep.*analysis.*frontend\\\\|streaming.*ui\" --oneline)",
+      "Bash(echo:*)"
     ]
   }
 }
