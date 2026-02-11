@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -787,6 +787,56 @@ export default function AnalysisPage() {
     enabled: !!activeTicker,
   });
 
+  const queryClientRef = useQueryClient();
+
+  // Fetch saved analysis result from DB
+  const { data: savedResult } = useQuery<{
+    ticker: string;
+    mode: string;
+    status: string;
+    recommendation: any;
+    analysis: string;
+    companyName: string | null;
+    currentPrice: number | null;
+    updatedAt: string;
+  } | null>({
+    queryKey: ["/api/analysis/saved", activeTicker, "deep_dive"],
+    enabled: !!activeTicker && isAuthenticated,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data && data.status === "streaming" ? 3000 : false;
+    },
+  });
+
+  // Populate deepResult from saved data when returning to the page
+  useEffect(() => {
+    if (
+      savedResult &&
+      savedResult.status === "done" &&
+      savedResult.analysis &&
+      !deepResult &&
+      streamState === "idle"
+    ) {
+      const result: DeepAnalysisResult = {
+        ticker: savedResult.ticker,
+        mode: savedResult.mode,
+        recommendation: savedResult.recommendation?.recommendation || savedResult.recommendation || {
+          action: "Hold",
+          confidence: 50,
+          targetPrice: 0,
+          upside: 0,
+          timeHorizon: "",
+          reasoning: "",
+        },
+        analysis: savedResult.analysis,
+        companyName: savedResult.companyName || undefined,
+        currentPrice: savedResult.currentPrice || undefined,
+      };
+      setDeepResult(result);
+      deepResultCache.current[savedResult.ticker] = result;
+    }
+  }, [savedResult, deepResult, streamState]);
+
   const handleRunDeepAnalysis = useCallback(async () => {
     if (!gate()) return;
     if (isAtLimit) {
@@ -862,6 +912,7 @@ export default function AnalysisPage() {
             deepResultCache.current[activeTicker] = result;
             setStreamState("done");
             refetchBroStatus();
+            queryClientRef.invalidateQueries({ queryKey: ["/api/analysis/saved", activeTicker, "deep_dive"] });
           },
           onError: (errorMsg) => {
             setDeepError(errorMsg);

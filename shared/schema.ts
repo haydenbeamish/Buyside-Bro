@@ -96,6 +96,27 @@ export const marketCache = pgTable("market_cache", {
 
 export type MarketCache = typeof marketCache.$inferSelect;
 
+// Persisted AI analysis results (survives navigation & sessions)
+export const aiAnalysisResults = pgTable("ai_analysis_results", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  ticker: text("ticker").notNull(),
+  mode: text("mode").notNull(), // "deep_dive", "earnings_preview", "earnings_review"
+  status: text("status").notNull().default("streaming"), // "streaming", "done", "error"
+  recommendation: jsonb("recommendation"),
+  analysis: text("analysis").default(""),
+  companyName: text("company_name"),
+  currentPrice: decimal("current_price", { precision: 18, scale: 4 }),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => ({
+  userTickerModeUnique: uniqueIndex("ai_analysis_user_ticker_mode_idx").on(table.userId, table.ticker, table.mode),
+  userIdIdx: index("ai_analysis_user_id_idx").on(table.userId),
+}));
+
+export type AiAnalysisResult = typeof aiAnalysisResults.$inferSelect;
+
 // Usage tracking for OpenRouter API calls
 export const usageLogs = pgTable("usage_logs", {
   id: serial("id").primaryKey(),

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -532,6 +532,63 @@ export default function EarningsAnalysisPage() {
 
   const hasDataErrors = profileError || chartError || metricsError;
 
+  const queryClientRef = useQueryClient();
+
+  // Map UI mode to API mode for saved results
+  const savedApiMode = mode === "preview" ? "earnings_preview"
+    : mode === "review" ? "earnings_review"
+    : "deep_dive";
+
+  // Fetch saved analysis result from DB
+  const { data: savedResult } = useQuery<{
+    ticker: string;
+    mode: string;
+    status: string;
+    recommendation: any;
+    analysis: string;
+    companyName: string | null;
+    currentPrice: number | null;
+    updatedAt: string;
+  } | null>({
+    queryKey: ["/api/analysis/saved", activeTicker, savedApiMode],
+    enabled: !!activeTicker && isAuthenticated,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data && data.status === "streaming" ? 3000 : false;
+    },
+  });
+
+  // Populate result from saved data when returning to the page
+  useEffect(() => {
+    if (
+      savedResult &&
+      savedResult.status === "done" &&
+      savedResult.analysis &&
+      !result &&
+      streamState === "idle"
+    ) {
+      const modeLabel = savedResult.mode === "earnings_preview" ? "Earnings Preview"
+        : savedResult.mode === "earnings_review" ? "Earnings Review"
+        : "Deep Analysis";
+      const analysisResult: DeepAnalysisResultData = {
+        ticker: savedResult.ticker,
+        mode: modeLabel,
+        recommendation: savedResult.recommendation?.recommendation || savedResult.recommendation || {
+          action: "Hold",
+          confidence: 50,
+          targetPrice: 0,
+          upside: 0,
+          timeHorizon: "",
+          reasoning: "",
+        },
+        analysis: savedResult.analysis,
+        companyName: savedResult.companyName || undefined,
+        currentPrice: savedResult.currentPrice || undefined,
+      };
+      setResult(analysisResult);
+    }
+  }, [savedResult, result, streamState]);
+
   const handleStartAnalysis = useCallback(async (ticker: string, analysisMode: AnalysisMode) => {
     if (!gate()) return;
     if (isAtLimit) {
@@ -610,6 +667,10 @@ export default function EarningsAnalysisPage() {
             setResult(analysisResult);
             setStreamState("done");
             refetchBroStatus();
+            const doneApiMode = analysisMode === "preview" ? "earnings_preview"
+              : analysisMode === "review" ? "earnings_review"
+              : "deep_dive";
+            queryClientRef.invalidateQueries({ queryKey: ["/api/analysis/saved", ticker.toUpperCase(), doneApiMode] });
           },
           onError: (errorMsg) => {
             setError(errorMsg);

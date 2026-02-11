@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerPushRoutes, sendMarketSummaryNotification } from "./push";
 import { sendMarketWrapEmails, sendWelcomeEmail } from "./email";
-import { insertPortfolioHoldingSchema, insertWatchlistSchema, insertTradeSchema, activityLogs, newsFeed } from "@shared/schema";
+import { insertPortfolioHoldingSchema, insertWatchlistSchema, insertTradeSchema, activityLogs, newsFeed, aiAnalysisResults } from "@shared/schema";
 import { users, usageLogs } from "@shared/schema";
 import OpenAI from "openai";
 import { isAuthenticated, authStorage } from "./replit_integrations/auth";
@@ -385,6 +385,37 @@ export async function registerRoutes(
     console.log("[Migration] subscription_tier column ensured");
   } catch (e) {
     console.error("[Migration] subscription_tier migration error:", e);
+  }
+
+  // Run migration: create ai_analysis_results table
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS ai_analysis_results (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR NOT NULL,
+        ticker TEXT NOT NULL,
+        mode TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'streaming',
+        recommendation JSONB,
+        analysis TEXT DEFAULT '',
+        company_name TEXT,
+        current_price DECIMAL(18, 4),
+        error_message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+      )
+    `);
+    await db.execute(sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS ai_analysis_user_ticker_mode_idx
+      ON ai_analysis_results (user_id, ticker, mode)
+    `);
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS ai_analysis_user_id_idx
+      ON ai_analysis_results (user_id)
+    `);
+    console.log("[Migration] ai_analysis_results table ensured");
+  } catch (e) {
+    console.error("[Migration] ai_analysis_results migration error:", e);
   }
 
   const SITE_URL = "https://www.buysidebro.com";
@@ -1557,6 +1588,8 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return res.status(400).json({ error: "Invalid ticker symbol" });
       }
 
+      const analysisMode = mode || "deep_dive";
+
       // Check daily Bro query limit
       if (userId) {
         const user = await authStorage.getUser(userId);
@@ -1576,7 +1609,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         body: JSON.stringify({
           ticker: upperTicker,
           model: model || "moonshotai/kimi-k2.5",
-          mode: mode || "deep_dive",
+          mode: analysisMode,
         }),
       });
 
@@ -1591,6 +1624,20 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         await recordUsage(userId, 'deep_analysis', 'laserbeam/fundamental', 0, 0);
       }
 
+      // Upsert a "streaming" row so frontend knows analysis is in-flight
+      if (userId) {
+        try {
+          await db.execute(sql`
+            INSERT INTO ai_analysis_results (user_id, ticker, mode, status, analysis, recommendation, error_message, updated_at)
+            VALUES (${userId}, ${upperTicker}, ${analysisMode}, 'streaming', '', NULL, NULL, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id, ticker, mode) DO UPDATE SET
+              status = 'streaming', analysis = '', recommendation = NULL, error_message = NULL, updated_at = CURRENT_TIMESTAMP
+          `);
+        } catch (e) {
+          console.error("Failed to upsert streaming row:", e);
+        }
+      }
+
       // Set SSE headers and pipe the upstream stream through
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -1603,26 +1650,102 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         return;
       }
 
-      // Pipe the ReadableStream (from fetch) to the Express response (Node writable)
+      // Track client connection state — keep reading upstream even if client leaves
+      let clientConnected = true;
+      req.on("close", () => {
+        clientConnected = false;
+      });
+
+      // Accumulate content server-side (mirrors client-side SSE parsing)
+      let fullContent = "";
+      let recommendation: any = null;
+      let streamError: string | null = null;
+      let companyName: string | undefined;
+      let currentPrice: number | undefined;
+      const textDecoder = new TextDecoder();
+      let sseBuffer = "";
+
       const reader = (upstreamBody as any).getReader();
       const pump = async () => {
         try {
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            res.write(value);
+
+            // Write to client if still connected
+            if (clientConnected) {
+              try {
+                res.write(value);
+              } catch {
+                clientConnected = false;
+              }
+            }
+
+            // Parse SSE lines to accumulate content
+            sseBuffer += textDecoder.decode(value, { stream: true });
+            const lines = sseBuffer.split("\n");
+            sseBuffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (!line.trim() || !line.startsWith("data: ")) continue;
+              const dataStr = line.slice(6).trim();
+              if (dataStr === "[DONE]") continue;
+              try {
+                const data = JSON.parse(dataStr);
+                const eventType = data.type || data.event;
+                switch (eventType) {
+                  case "content": {
+                    const chunk = data.content || data.text;
+                    if (chunk) fullContent += chunk;
+                    break;
+                  }
+                  case "recommendation":
+                    recommendation = data.recommendation || data.data || data;
+                    break;
+                  case "error":
+                    streamError = data.message || data.error || "Stream error";
+                    break;
+                  default: {
+                    const fallbackChunk = data.content || data.text;
+                    if (fallbackChunk) fullContent += fallbackChunk;
+                    break;
+                  }
+                }
+              } catch {
+                // ignore JSON parse errors
+              }
+            }
           }
         } catch (err) {
           console.error("Stream pipe error:", err);
+          streamError = streamError || "Stream pipe error";
         } finally {
-          res.end();
+          if (clientConnected) {
+            try { res.end(); } catch {}
+          }
+
+          // Save completed result to DB
+          if (userId) {
+            try {
+              const status = streamError ? "error" : "done";
+              await db.execute(sql`
+                INSERT INTO ai_analysis_results (user_id, ticker, mode, status, analysis, recommendation, company_name, current_price, error_message, updated_at)
+                VALUES (${userId}, ${upperTicker}, ${analysisMode}, ${status}, ${fullContent}, ${recommendation ? JSON.stringify(recommendation) : null}::jsonb, ${companyName || null}, ${currentPrice || null}, ${streamError}, CURRENT_TIMESTAMP)
+                ON CONFLICT (user_id, ticker, mode) DO UPDATE SET
+                  status = ${status},
+                  analysis = ${fullContent},
+                  recommendation = ${recommendation ? JSON.stringify(recommendation) : null}::jsonb,
+                  company_name = COALESCE(${companyName || null}, ai_analysis_results.company_name),
+                  current_price = COALESCE(${currentPrice || null}, ai_analysis_results.current_price),
+                  error_message = ${streamError},
+                  updated_at = CURRENT_TIMESTAMP
+              `);
+            } catch (e) {
+              console.error("Failed to save analysis result:", e);
+            }
+          }
         }
       };
-
-      // If client disconnects, cancel the upstream reader
-      req.on("close", () => {
-        reader.cancel().catch(() => {});
-      });
 
       await pump();
     } catch (error) {
@@ -1630,8 +1753,53 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       if (!res.headersSent) {
         res.status(500).json({ error: "Failed to start streaming analysis" });
       } else {
-        res.end();
+        try { res.end(); } catch {}
       }
+    }
+  });
+
+  // Get saved analysis result for a user+ticker+mode
+  app.get("/api/analysis/saved/:ticker/:mode", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const { ticker, mode } = req.params;
+      const upperTicker = ticker.toUpperCase();
+      const validModes = ["deep_dive", "earnings_preview", "earnings_review"];
+      if (!validModes.includes(mode)) {
+        return res.status(400).json({ error: "Invalid mode" });
+      }
+      if (!isValidTicker(upperTicker)) {
+        return res.status(400).json({ error: "Invalid ticker" });
+      }
+
+      const rows = await db.execute(sql`
+        SELECT ticker, mode, status, recommendation, analysis, company_name, current_price, error_message, updated_at
+        FROM ai_analysis_results
+        WHERE user_id = ${userId} AND ticker = ${upperTicker} AND mode = ${mode}
+        LIMIT 1
+      `);
+
+      const row = (rows as any).rows?.[0] || (rows as any)[0];
+      if (!row) {
+        return res.json(null);
+      }
+
+      return res.json({
+        ticker: row.ticker,
+        mode: row.mode,
+        status: row.status,
+        recommendation: row.recommendation,
+        analysis: row.analysis,
+        companyName: row.company_name,
+        currentPrice: row.current_price ? parseFloat(row.current_price) : null,
+        errorMessage: row.error_message,
+        updatedAt: row.updated_at,
+      });
+    } catch (error) {
+      console.error("Failed to fetch saved analysis:", error);
+      res.status(500).json({ error: "Failed to fetch saved analysis" });
     }
   });
 
