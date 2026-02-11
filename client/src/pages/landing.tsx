@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   TrendingUp, BarChart3,
   Twitter, Menu, X, Briefcase, Bot,
-  ArrowRight, CheckCircle2, LogOut, Shield, Zap, Clock, Eye, Brain, Sparkles,
+  ArrowRight, LogOut, Shield, Zap, Clock, Eye, Brain, Sparkles,
   Bell, Newspaper, ChevronDown, HelpCircle, Calculator, Target
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
@@ -146,12 +146,6 @@ function TopNav() {
 
 function HeroSection() {
   const { isAuthenticated } = useAuth();
-  const valueProps = [
-    "100+ live tickers — indices, futures, forex, commodities",
-    "Deep Dive reports with BUY/HOLD/SELL recommendations",
-    "Automated portfolio tracking & performance analytics",
-    "Chat Bro — your CFA-certified research analyst on the buyside"
-  ];
 
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 pb-32">
@@ -160,7 +154,7 @@ function HeroSection() {
           <div className="lg:w-1/2 flex justify-center order-2 lg:order-1">
             <img
               src={heroImg}
-              alt="Buy Side Bro terminal mascot - your bro on the buyside"
+              alt="Buy Side Bro terminal mascot"
               className="w-56 h-56 sm:w-72 sm:h-72 md:w-96 md:h-96 lg:w-[28rem] lg:h-[28rem] object-contain"
               width="448"
               height="448"
@@ -172,21 +166,12 @@ function HeroSection() {
             <h1 className="display-font text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 leading-tight text-white">
               Markets. Stocks.<br />Portfolios. Sorted.
             </h1>
-            <p className="text-amber-400 text-xl md:text-2xl mb-8 display-font italic">
-              Your Bro on the Buyside. CFA-Certified. Hedge Fund Grade.
+            <p className="text-amber-400 text-xl md:text-2xl mb-6 display-font italic">
+              Your Bro on the Buyside.
             </p>
 
-            <div className="space-y-3 mb-8">
-              {valueProps.map((prop, i) => (
-                <div key={i} className="flex items-center gap-3 justify-center lg:justify-start">
-                  <CheckCircle2 className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                  <span className="text-zinc-300 text-sm md:text-base">{prop}</span>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-zinc-500 text-xs mb-6">
-              Free stock analysis terminal &amp; Bloomberg alternative. Live market data, hedge fund quality research, and portfolio analytics — no subscription required to start.
+            <p className="text-zinc-400 text-sm md:text-base mb-8 max-w-md mx-auto lg:mx-0">
+              Free stock analysis terminal and Bloomberg alternative. Live market data, hedge fund quality research, and portfolio analytics.
             </p>
 
             <Link href={isAuthenticated ? "/whats-up" : "/dashboard"}>
@@ -207,7 +192,7 @@ const featureShowcase = [
     icon: Sparkles,
     title: "WHAT'S UP",
     subtitle: "Analyst-written market wraps for every region",
-    description: "Start every session with professionally crafted regional wraps for US, ASX, European, and Asian markets — auto-triggered on each market close. Get top gainers and losers narratives, overnight recaps, and closing summaries all in one feed.",
+    description: "Start every session with professionally crafted regional wraps for US, ASX, European, and Asian markets, auto-triggered on each market close. Get top gainers and losers narratives, overnight recaps, and closing summaries all in one feed.",
   },
   {
     image: screenshotMarkets,
@@ -221,7 +206,7 @@ const featureShowcase = [
     icon: Briefcase,
     title: "PORTFOLIO TRACKER",
     subtitle: "Automated holdings with expert-driven insights",
-    description: "Automatically import holdings from your NAV Portfolio Notebook via email. View net/gross exposure, long/short split, cash, futures, and options breakdowns. Thematic classification of holdings, sector and market cap exposure analysis, plus a portfolio review that flags concentration risks — like having a hedge fund analyst audit your book.",
+    description: "Automatically import holdings from your NAV Portfolio Notebook via email. View net/gross exposure, long/short split, cash, futures, and options breakdowns. Thematic classification of holdings, sector and market cap exposure analysis, plus a portfolio review that flags concentration risks.",
   },
   {
     image: screenshotWatchlist,
@@ -234,15 +219,15 @@ const featureShowcase = [
     image: screenshotDeepAnalysis,
     icon: BarChart3,
     title: "COMPANY ANALYSIS",
-    subtitle: "Deep Dive reports — hedge fund quality research",
-    description: "Run Deep Dive reports that deliver hedge fund quality research in 3–5 minutes. Choose from multiple analytical models including Claude, Gemini, and DeepSeek. Sources include SEC filings, ASX announcements, financials, and web search. Get structured BUY/HOLD/SELL recommendations with confidence scores and target prices. Plus Quick Snapshots with P&L tables, forward P/E charts, and Bloomberg-style fundamentals.",
+    subtitle: "Deep Dive reports with hedge fund quality research",
+    description: "Run Deep Dive reports that deliver hedge fund quality research in 3 to 5 minutes. Choose from multiple analytical models including Claude, Gemini, and DeepSeek. Sources include SEC filings, ASX announcements, financials, and web search. Get structured BUY/HOLD/SELL recommendations with confidence scores and target prices. Plus Quick Snapshots with P&L tables, forward P/E charts, and Bloomberg-style fundamentals.",
   },
   {
     image: screenshotEarnings,
     icon: Brain,
     title: "EARNINGS ANALYSIS",
     subtitle: "Expert previews & reviews with multiple models",
-    description: "Run Deep Analysis mode for comprehensive earnings breakdowns or quick preview/review summaries. See consensus expectations, beat/miss analysis, and guidance changes — all powered by your choice of analytical models including Claude, Gemini, and DeepSeek.",
+    description: "Run Deep Analysis mode for comprehensive earnings breakdowns or quick preview/review summaries. See consensus expectations, beat/miss analysis, and guidance changes, all powered by your choice of analytical models including Claude, Gemini, and DeepSeek.",
   },
   {
     image: screenshotAskBro,
@@ -263,7 +248,7 @@ const featureShowcase = [
     icon: Calculator,
     title: "POSITION SIZE CALCULATOR",
     subtitle: "Risk-managed trade sizing with Bro's approval",
-    description: "Enter your portfolio value, entry price, stop loss, and target price — Bro calculates your position size, risk amount, dollar risk per share, and risk/reward ratio. See trade summary with quantity, position value, and portfolio impact. Get instant feedback on whether your risk/reward setup passes Bro's standards.",
+    description: "Enter your portfolio value, entry price, stop loss, and target price. Bro calculates your position size, risk amount, dollar risk per share, and risk/reward ratio. See trade summary with quantity, position value, and portfolio impact. Get instant feedback on whether your risk/reward setup passes Bro's standards.",
   },
   {
     image: screenshotTradeAnalytics,
@@ -284,7 +269,7 @@ const featureShowcase = [
     icon: Shield,
     title: "PORTFOLIO HEDGING",
     subtitle: "Futures, options & commodity hedge strategies",
-    description: "Comprehensive hedging analysis with equity index (NASDAQ/S&P 500), commodity, and currency exposure breakdowns. Get beta-adjusted futures contract calculations, Black-Scholes options pricing for protective puts, collars, and put spreads, plus VaR risk metrics and stress scenario modeling — all calculated in real-time from your portfolio holdings.",
+    description: "Comprehensive hedging analysis with equity index (NASDAQ/S&P 500), commodity, and currency exposure breakdowns. Get beta-adjusted futures contract calculations, Black-Scholes options pricing for protective puts, collars, and put spreads, plus VaR risk metrics and stress scenario modeling, all calculated in real-time from your portfolio holdings.",
   },
   {
     image: screenshotPushAlerts,
@@ -419,11 +404,11 @@ const faqItems = [
   },
   {
     question: "How does the stock analysis work?",
-    answer: "Buy Side Bro's Deep Dive analysis generates hedge fund quality research reports in 3\u20135 minutes. It sources data from SEC filings, ASX announcements, financial statements, and web search, then leverages multiple analytical models including Claude, Gemini, and DeepSeek to produce structured BUY/HOLD/SELL recommendations with confidence scores, target prices, and detailed investment theses."
+    answer: "Buy Side Bro's Deep Dive analysis generates hedge fund quality research reports in 3 to 5 minutes. It sources data from SEC filings, ASX announcements, financial statements, and web search, then leverages multiple analytical models including Claude, Gemini, and DeepSeek to produce structured BUY/HOLD/SELL recommendations with confidence scores, target prices, and detailed investment theses."
   },
   {
     question: "What is Ask Bro?",
-    answer: "Ask Bro is your bro on the buyside — a CFA-certified research analyst that can answer complex financial questions with data-backed responses. He automatically detects stock tickers and pulls real-time market data into every response. Conversation memory retains up to 50 messages so you can drill deeper with natural follow-up questions."
+    answer: "Ask Bro is your bro on the buyside, a CFA-certified research analyst that can answer complex financial questions with data-backed responses. He automatically detects stock tickers and pulls real-time market data into every response. Conversation memory retains up to 50 messages so you can drill deeper with natural follow-up questions."
   },
 ];
 
