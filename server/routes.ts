@@ -223,7 +223,26 @@ function startMSFTCacheScheduler() {
   }, TWENTY_FOUR_HOURS);
 }
 
+const pendingSummaries = new Set<string>();
+
 async function generateAndPostMarketSummary(market: string, eventType: string): Promise<void> {
+  const key = `${market}:${eventType}`;
+  if (pendingSummaries.has(key)) {
+    console.log(`[NewsFeed Scheduler] Already generating ${eventType} for ${market}, skipping`);
+    return;
+  }
+  pendingSummaries.add(key);
+  try {
+    return await _generateAndPostMarketSummaryInner(market, eventType);
+  } finally {
+    pendingSummaries.delete(key);
+  }
+}
+
+async function _generateAndPostMarketSummaryInner(market: string, eventType: string): Promise<void> {
+  const alreadyExists = await hasNewsFeedItemForMarketToday(market, eventType);
+  if (alreadyExists) return;
+
   let summaryContent = "";
   try {
     const marketParam = market !== 'USA' ? `?market=${encodeURIComponent(market)}` : '';
@@ -241,6 +260,9 @@ async function generateAndPostMarketSummary(market: string, eventType: string): 
   }
 
   const title = getMarketEventTitle(market, eventType);
+
+  const doubleCheck = await hasNewsFeedItemForMarketToday(market, eventType);
+  if (doubleCheck) return;
 
   const newItem = await addNewsFeedItem({
     title,
