@@ -683,7 +683,7 @@ function PositionSizeCalculator() {
   }, [portfolioData]);
 
   const [portfolioSize, setPortfolioSize] = useState("");
-  const [selectedStock, setSelectedStock] = useState<{ ticker: string; name: string } | null>(null);
+  const [selectedStock, setSelectedStock] = useState<{ ticker: string; name: string } | null>({ ticker: "MSFT", name: "Microsoft Corporation" });
   const [entryPrice, setEntryPrice] = useState("");
   const [stopLoss, setStopLoss] = useState("");
   const [targetPrice, setTargetPrice] = useState("");
@@ -695,6 +695,14 @@ function PositionSizeCalculator() {
       setPortfolioSize(computedPortfolioValue.toFixed(2));
     }
   }, [computedPortfolioValue]);
+
+  // Pre-load MSFT price data on mount
+  useEffect(() => {
+    if (!entryPrice && selectedStock?.ticker === "MSFT") {
+      handleStockSelect("MSFT", "Microsoft Corporation");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleStockSelect = async (ticker: string, name: string) => {
     setSelectedStock({ ticker, name });

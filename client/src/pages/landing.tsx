@@ -280,6 +280,13 @@ const featureShowcase = [
     description: "Automated NAV tracking from IRESS emails. View monthly performance with MTD, QTD, FY, annualized returns, and Sharpe ratio. Compare against MSCI ACWI in AUD benchmark. Export to Bloomberg format with SharePoint upload support.",
   },
   {
+    image: screenshotPortfolio,
+    icon: Shield,
+    title: "PORTFOLIO HEDGING",
+    subtitle: "Futures, options & commodity hedge strategies",
+    description: "Comprehensive hedging analysis with equity index (NASDAQ/S&P 500), commodity, and currency exposure breakdowns. Get beta-adjusted futures contract calculations, Black-Scholes options pricing for protective puts, collars, and put spreads, plus VaR risk metrics and stress scenario modeling — all calculated in real-time from your portfolio holdings.",
+  },
+  {
     image: screenshotPushAlerts,
     icon: Bell,
     title: "PUSH NOTIFICATIONS",
