@@ -7,7 +7,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3, Shield, Globe, LineChart, Newspaper, BriefcaseBusiness, X, Mail, Bell, Brain } from "lucide-react";
+import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3, Shield, Globe, LineChart, BriefcaseBusiness, X, Mail, Bell, Brain } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import logoImg from "@assets/image_1770442846290.png";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -268,7 +268,6 @@ export default function SubscriptionPage() {
     { icon: Bot, text: "50 Bro queries per month", desc: "More queries with monthly rollover" },
     { icon: Shield, text: "Portfolio hedging strategies", desc: "Futures hedging, options pricing, VaR metrics" },
     { icon: TrendingUp, text: "Trade tracker & journal", desc: "Log trades, win rate, Sharpe ratio, analytics" },
-    { icon: Newspaper, text: "NAV & performance reporting", desc: "Monthly returns, benchmark comparison, Bloomberg export" },
   ];
 
   const comparisonRows = [
@@ -284,7 +283,6 @@ export default function SubscriptionPage() {
     { feature: "Custom watchlists", free: false, starter: true, pro: true },
     { feature: "Hedging strategies", free: false, starter: false, pro: true },
     { feature: "Trade tracker & journal", free: false, starter: "Demo", pro: true },
-    { feature: "NAV & performance reporting", free: false, starter: false, pro: true },
   ];
 
   return (

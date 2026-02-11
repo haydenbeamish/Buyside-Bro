@@ -258,13 +258,6 @@ const featureShowcase = [
     description: "Log trades and track your win rate, profit factor, expectancy, Sharpe ratio, and max drawdown. See who made you the most money, which strategies perform best, day-of-week performance heatmaps, and holding period analysis. Turn your trading history into actionable insights.",
   },
   {
-    image: screenshotTradeAnalytics,
-    icon: TrendingUp,
-    title: "NAV & PERFORMANCE",
-    subtitle: "Automated performance tracking & benchmarking",
-    description: "Automated NAV tracking from IRESS emails. View monthly performance with MTD, QTD, FY, annualized returns, and Sharpe ratio. Compare against MSCI ACWI in AUD benchmark. Export to Bloomberg format with SharePoint upload support.",
-  },
-  {
     image: screenshotPortfolio,
     icon: Shield,
     title: "PORTFOLIO HEDGING",
