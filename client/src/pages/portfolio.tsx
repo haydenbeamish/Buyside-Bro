@@ -29,7 +29,10 @@ import {
   ChevronUp,
   ChevronDown,
   RefreshCw,
+  Shield,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { HedgingSection } from "@/components/hedging-section";
 import type { PortfolioHolding } from "@shared/schema";
 import logoImg from "@assets/image_1770442846290.png";
 import ReactMarkdown from "react-markdown";
@@ -395,8 +398,25 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        <h2 className="text-lg font-semibold mb-4">Holdings</h2>
+        <Tabs defaultValue="holdings" className="w-full">
+          <TabsList className="bg-zinc-900 border border-zinc-800 rounded-lg p-1 mb-4 sm:mb-6 inline-flex min-w-max gap-1">
+            <TabsTrigger
+              value="holdings"
+              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
+            >
+              <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+              Holdings
+            </TabsTrigger>
+            <TabsTrigger
+              value="hedging"
+              className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
+            >
+              <Shield className="w-3.5 h-3.5 mr-1.5" />
+              Hedging
+            </TabsTrigger>
+          </TabsList>
 
+          <TabsContent value="holdings">
         <div className="mb-8">
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
             <div className="overflow-x-auto relative scroll-fade-right">
@@ -661,6 +681,12 @@ export default function PortfolioPage() {
           </div>
         </div>
         )}
+          </TabsContent>
+
+          <TabsContent value="hedging">
+            <HedgingSection holdings={holdings || []} totalValue={stats?.totalValue || 0} />
+          </TabsContent>
+        </Tabs>
       </div>
 
         {/* Delete confirmation dialog */}
