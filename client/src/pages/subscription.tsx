@@ -7,8 +7,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3, Coins, AlertCircle, Shield, Globe, LineChart, Newspaper, BriefcaseBusiness, X, Mail, Bell, Brain } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { Check, Loader2, CreditCard, Crown, Zap, TrendingUp, Bot, BarChart3, Shield, Globe, LineChart, Newspaper, BriefcaseBusiness, X, Mail, Bell, Brain } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import logoImg from "@assets/image_1770442846290.png";
 import { useDocumentTitle } from "@/hooks/use-document-title";
@@ -16,6 +15,7 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 interface SubscriptionStatus {
   status: string;
   isActive: boolean;
+  tier: string;
   isTrialing: boolean;
   trialEndsAt: string | null;
   subscriptionEndsAt: string | null;
@@ -34,25 +34,8 @@ interface Product {
   id: string;
   name: string;
   description: string;
+  metadata: Record<string, string>;
   prices: Price[];
-}
-
-interface CreditsStatus {
-  monthlyUsedCents: number;
-  monthlyLimitCents: number;
-  purchasedCreditsCents: number;
-  availableCreditsCents: number;
-  isOverLimit: boolean;
-}
-
-interface CreditPack {
-  id: string;
-  name: string;
-  description: string;
-  priceId: string;
-  amount: number;
-  currency: string;
-  credits: number;
 }
 
 interface EmailPrefs {
@@ -82,8 +65,8 @@ function EmailPreferencesSection() {
     onError: (error: any) => {
       if (error?.status === 403) {
         toast({
-          title: "Pro subscription required",
-          description: "Upgrade to Pro to enable market wrap emails.",
+          title: "Subscription required",
+          description: "Upgrade to Starter or Pro to enable market wrap emails.",
           variant: "destructive",
         });
       } else {
@@ -163,14 +146,13 @@ export default function SubscriptionPage() {
   const searchParams = new URLSearchParams(window.location.search);
   const success = searchParams.get("success");
   const canceled = searchParams.get("canceled");
-  const credits = searchParams.get("credits");
 
   useEffect(() => {
     if (success === "true") {
       queryClient.invalidateQueries({ queryKey: ["/api/subscription/status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/bro/status"] });
       toast({
-        title: "Welcome to Buy Side Bro Pro!",
+        title: "Welcome to Buy Side Bro!",
         description: "Your subscription is now active. Enjoy full access to all features.",
       });
       window.history.replaceState({}, "", "/subscription");
@@ -181,22 +163,8 @@ export default function SubscriptionPage() {
         variant: "destructive",
       });
       window.history.replaceState({}, "", "/subscription");
-    } else if (credits === "success") {
-      toast({
-        title: "Credits Added!",
-        description: "Your Bro Credits have been added to your account.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/credits"] });
-      window.history.replaceState({}, "", "/subscription");
-    } else if (credits === "cancelled") {
-      toast({
-        title: "Purchase canceled",
-        description: "Your credit purchase was canceled.",
-        variant: "destructive",
-      });
-      window.history.replaceState({}, "", "/subscription");
     }
-  }, [success, canceled, credits, toast]);
+  }, [success, canceled, toast]);
 
   const { data: subscriptionStatus, isLoading: statusLoading } = useQuery<SubscriptionStatus>({
     queryKey: ["/api/subscription/status"],
@@ -205,34 +173,6 @@ export default function SubscriptionPage() {
 
   const { data: productsData } = useQuery<{ products: Product[] }>({
     queryKey: ["/api/subscription/products"],
-  });
-
-  const { data: creditsData } = useQuery<CreditsStatus>({
-    queryKey: ["/api/credits"],
-    enabled: isAuthenticated,
-  });
-
-  const { data: creditPacksData } = useQuery<{ packs: CreditPack[] }>({
-    queryKey: ["/api/credits/packs"],
-  });
-
-  const creditPurchaseMutation = useMutation({
-    mutationFn: async (priceId: string) => {
-      const response = await apiRequest("POST", "/api/credits/purchase", { priceId });
-      return response.json();
-    },
-    onSuccess: (data) => {
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to start credit purchase. Please try again.",
-        variant: "destructive",
-      });
-    },
   });
 
   const checkoutMutation = useMutation({
@@ -299,54 +239,66 @@ export default function SubscriptionPage() {
   }
 
   const isActive = subscriptionStatus?.isActive;
-  const product = productsData?.products?.[0];
-  const price = product?.prices?.[0];
+  const currentTier = subscriptionStatus?.tier || "free";
 
-  // Use Stripe price if available, otherwise display the hardcoded $10
-  const displayPrice = price ? (price.unit_amount / 100).toFixed(0) : "10";
+  // Find starter and pro products/prices from Stripe
+  const products = productsData?.products || [];
+  const starterProduct = products.find(p => p.metadata?.tier === 'starter') || products.find(p => p.prices?.some(pr => pr.unit_amount === 1000));
+  const proProduct = products.find(p => p.metadata?.tier === 'pro') || products.find(p => p.prices?.some(pr => pr.unit_amount === 10000));
+
+  const starterPrice = starterProduct?.prices?.[0];
+  const proPrice = proProduct?.prices?.[0];
+
+  const starterDisplayPrice = starterPrice ? (starterPrice.unit_amount / 100).toFixed(0) : "10";
+  const proDisplayPrice = proPrice ? (proPrice.unit_amount / 100).toFixed(0) : "100";
+
+  const starterFeatures = [
+    { icon: Globe, text: "Live global market data", desc: "100+ tickers: futures, commodities, forex, sectors, thematics" },
+    { icon: Bot, text: "5 Bro queries per day", desc: "Chat with live data awareness and conversation memory" },
+    { icon: Brain, text: "Deep Dive reports", desc: "Hedge fund quality research with BUY/HOLD/SELL and target prices" },
+    { icon: LineChart, text: "Stock analysis", desc: "Quick snapshots with P&L tables, charts, and fundamentals" },
+    { icon: BarChart3, text: "Earnings insights", desc: "Expert previews and reviews with consensus estimates" },
+    { icon: BriefcaseBusiness, text: "Portfolio tracking", desc: "Holdings, exposure breakdown, and expert review" },
+    { icon: Mail, text: "Market wrap emails", desc: "Daily close summaries for US, ASX, European, Asian markets" },
+    { icon: Bell, text: "Push notifications", desc: "Price alerts and market summary notifications" },
+  ];
 
   const proFeatures = [
-    { icon: Globe, text: "Live global market data", desc: "100+ tickers: futures, commodities, forex, sectors, thematics with TradingView charts" },
-    { icon: Brain, text: "Deep Dive reports", desc: "Hedge fund quality research with BUY/HOLD/SELL, target prices, and confidence scores" },
-    { icon: Bot, text: "5 Bro queries per day", desc: "Chat with live data awareness, conversation memory, and real-time market data" },
-    { icon: Mail, text: "Daily market wrap emails", desc: "Analyst-written close summaries for US, ASX, European, and Asian markets" },
-    { icon: LineChart, text: "Advanced stock analysis", desc: "Quick snapshots with P&L tables, price charts, Bloomberg fundamentals, and SEC/ASX filings" },
-    { icon: BarChart3, text: "Earnings insights", desc: "Expert previews and reviews with consensus estimates and price targets" },
-    { icon: BriefcaseBusiness, text: "Portfolio tracking & analytics", desc: "Automated holdings, exposure breakdown, thematic classification, and expert portfolio review" },
-    { icon: Shield, text: "Portfolio hedging strategies", desc: "Beta-adjusted futures hedging, Black-Scholes options pricing, commodity exposure, and VaR risk metrics" },
-    { icon: TrendingUp, text: "NAV & performance reporting", desc: "Monthly returns, Sharpe ratio, benchmark comparison, and Bloomberg export" },
-    { icon: Newspaper, text: "News & summaries", desc: "Company news, curated digests, and portfolio news auto-summaries" },
-    { icon: Bell, text: "Push notifications", desc: "Price alerts on watchlist and market summary notifications" },
+    { icon: Globe, text: "Everything in Starter", desc: "All Starter features included" },
+    { icon: Bot, text: "50 Bro queries per month", desc: "More queries with monthly rollover" },
+    { icon: Shield, text: "Portfolio hedging strategies", desc: "Futures hedging, options pricing, VaR metrics" },
+    { icon: TrendingUp, text: "Trade tracker & journal", desc: "Log trades, win rate, Sharpe ratio, analytics" },
+    { icon: Newspaper, text: "NAV & performance reporting", desc: "Monthly returns, benchmark comparison, Bloomberg export" },
   ];
 
   const comparisonRows = [
-    { feature: "Live market dashboard", free: true, pro: true },
-    { feature: "Global markets (100+ tickers)", free: true, pro: true },
-    { feature: "Ask Bro queries", free: "1/day", pro: "5/day" },
-    { feature: "Deep Dive reports", free: false, pro: true },
-    { feature: "Stock analysis & snapshots", free: false, pro: true },
-    { feature: "Earnings insights", free: false, pro: true },
-    { feature: "Portfolio tracking & analytics", free: false, pro: true },
-    { feature: "Portfolio hedging strategies", free: false, pro: true },
-    { feature: "NAV & performance reporting", free: false, pro: true },
-    { feature: "Daily market wrap emails", free: false, pro: true },
-    { feature: "News & summaries", free: false, pro: true },
-    { feature: "Push notifications", free: false, pro: true },
-    { feature: "Custom watchlists", free: false, pro: true },
+    { feature: "Live market dashboard", free: true, starter: true, pro: true },
+    { feature: "Global markets (100+ tickers)", free: true, starter: true, pro: true },
+    { feature: "Ask Bro queries", free: "1/day", starter: "5/day", pro: "50/mo" },
+    { feature: "Deep Dive reports", free: false, starter: true, pro: true },
+    { feature: "Stock analysis & snapshots", free: false, starter: true, pro: true },
+    { feature: "Earnings insights", free: false, starter: true, pro: true },
+    { feature: "Portfolio tracking & analytics", free: false, starter: true, pro: true },
+    { feature: "Daily market wrap emails", free: false, starter: true, pro: true },
+    { feature: "Push notifications", free: false, starter: true, pro: true },
+    { feature: "Custom watchlists", free: false, starter: true, pro: true },
+    { feature: "Hedging strategies", free: false, starter: false, pro: true },
+    { feature: "Trade tracker & journal", free: false, starter: "Demo", pro: true },
+    { feature: "NAV & performance reporting", free: false, starter: false, pro: true },
   ];
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
         <div className="text-center mb-8 sm:mb-12">
           <img src={logoImg} alt="Buy Side Bro" className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 sm:mb-6" />
           <h1 className="display-font text-2xl sm:text-3xl md:text-4xl neon-green mb-3">
-            {isActive ? "Your Subscription" : "Go Pro with Buy Side Bro"}
+            {isActive ? "Your Subscription" : "Choose Your Plan"}
           </h1>
           <p className="text-zinc-400 text-sm sm:text-lg max-w-2xl mx-auto">
             {isActive
               ? "Manage your subscription and billing details."
-              : "Why pay $30,000/yr for a Bloomberg Terminal? Get hedge fund grade market intelligence for less than a Netflix subscription."}
+              : "Why pay $30,000/yr for a Bloomberg Terminal? Get hedge fund grade market intelligence starting at $10/month."}
           </p>
         </div>
 
@@ -358,20 +310,20 @@ export default function SubscriptionPage() {
                 <div>
                   <CardTitle className="text-white flex items-center gap-2">
                     <Crown className="w-5 h-5 text-amber-500" />
-                    Buy Side Bro Pro
+                    Buy Side Bro {currentTier === 'pro' ? 'Pro' : 'Starter'}
                   </CardTitle>
                   <CardDescription className="text-zinc-400">
                     Your subscription is active
                   </CardDescription>
                 </div>
                 <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30">
-                  Active
+                  {currentTier === 'pro' ? 'Pro' : 'Starter'}
                 </Badge>
               </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {proFeatures.map((feature, i) => (
+                {(currentTier === 'pro' ? [...starterFeatures, ...proFeatures.slice(1)] : starterFeatures).map((feature, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm text-zinc-300">
                     <Check className="w-4 h-4 text-amber-500 flex-shrink-0" />
                     <span>{feature.text}</span>
@@ -379,7 +331,7 @@ export default function SubscriptionPage() {
                 ))}
               </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex gap-3">
               <Button
                 variant="outline"
                 className="border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
@@ -394,164 +346,143 @@ export default function SubscriptionPage() {
                 )}
                 Manage Billing
               </Button>
+              {currentTier === 'starter' && proPrice && (
+                <Button
+                  className="neon-button"
+                  onClick={() => checkoutMutation.mutate(proPrice.id)}
+                  disabled={checkoutMutation.isPending}
+                >
+                  {checkoutMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Zap className="w-4 h-4 mr-2" />
+                  )}
+                  Upgrade to Pro
+                </Button>
+              )}
             </CardFooter>
           </Card>
 
           <EmailPreferencesSection />
-
-          {/* Bro Credits Section */}
-          <Card className="mb-8 bg-zinc-900/50 border-zinc-800">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Coins className="w-5 h-5 text-yellow-500" />
-                    Bro Credits
-                  </CardTitle>
-                  <CardDescription className="text-zinc-400">
-                    Credits for Ask Bro chat and stock analysis
-                  </CardDescription>
-                </div>
-                {creditsData?.isOverLimit && (
-                  <Badge className="bg-red-500/20 text-red-500 border-red-500/30">
-                    <AlertCircle className="w-3 h-3 mr-1" />
-                    Out of Credits
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="bg-zinc-800/50 rounded-lg p-3 sm:p-4">
-                  <div className="text-zinc-400 text-xs sm:text-sm mb-1">Monthly Included</div>
-                  <div className="text-white text-base sm:text-xl font-bold ticker-font">
-                    ${((creditsData?.monthlyLimitCents || 500) / 100).toFixed(2)}
-                  </div>
-                  <Progress
-                    value={Math.min(100, ((creditsData?.monthlyUsedCents || 0) / (creditsData?.monthlyLimitCents || 500)) * 100)}
-                    className="mt-2 h-2"
-                  />
-                  <div className="text-zinc-500 text-xs mt-1">
-                    ${((creditsData?.monthlyUsedCents || 0) / 100).toFixed(2)} used
-                  </div>
-                </div>
-                <div className="bg-zinc-800/50 rounded-lg p-3 sm:p-4">
-                  <div className="text-zinc-400 text-xs sm:text-sm mb-1">Purchased Credits</div>
-                  <div className="text-green-500 text-base sm:text-xl font-bold ticker-font">
-                    ${((creditsData?.purchasedCreditsCents || 0) / 100).toFixed(2)}
-                  </div>
-                  <div className="text-zinc-500 text-xs mt-2">
-                    Available for use
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-zinc-800/30 rounded-lg p-3 sm:p-4 border border-zinc-700/50">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-zinc-400 text-sm">Total Available</span>
-                  <span className={`text-lg font-bold ticker-font ${(creditsData?.availableCreditsCents || 0) > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    ${((creditsData?.availableCreditsCents || 500) / 100).toFixed(2)}
-                  </span>
-                </div>
-                <p className="text-zinc-500 text-xs">
-                  Your subscription includes $5/month of Bro Credits. When exhausted, credits are deducted from purchased balance.
-                </p>
-              </div>
-
-              {/* Credit Packs */}
-              {(creditPacksData?.packs?.length || 0) > 0 && (
-                <div>
-                  <h4 className="text-zinc-300 font-semibold text-sm mb-3">Buy More Credits</h4>
-                  <div className="grid grid-cols-1 min-[400px]:grid-cols-2 md:grid-cols-4 gap-2">
-                    {creditPacksData?.packs.map((pack) => (
-                      <Button
-                        key={pack.id}
-                        variant="outline"
-                        className="border-zinc-700 hover:border-amber-500/50 hover:bg-amber-500/10 flex flex-col py-3 h-auto min-h-[44px] whitespace-normal text-center"
-                        onClick={() => creditPurchaseMutation.mutate(pack.priceId)}
-                        disabled={creditPurchaseMutation.isPending}
-                        data-testid={`button-buy-credits-${pack.amount / 100}`}
-                      >
-                        <span className="text-amber-500 font-bold">${pack.amount / 100}</span>
-                        <span className="text-zinc-500 text-xs">${(pack.credits / 100).toFixed(0)} credits</span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
           </>
         )}
 
         {!isActive && (
           <>
-            {/* Hero pricing card */}
-            <Card className="mb-8 bg-gradient-to-b from-zinc-900/80 to-zinc-900/40 border-amber-500/30 relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-green-500 to-amber-500" />
-              <CardHeader className="text-center pb-2">
-                <Badge className="mx-auto mb-3 bg-amber-500/20 text-amber-500 border-amber-500/30 text-xs">
-                  MOST POPULAR
-                </Badge>
-                <CardTitle className="text-white flex items-center justify-center gap-2 text-xl sm:text-2xl">
-                  <Crown className="w-6 h-6 text-amber-500" />
-                  Buy Side Bro Pro
-                </CardTitle>
-                <CardDescription className="text-zinc-400">
-                  Everything you need to trade smarter
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="text-center py-4">
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-zinc-500 text-lg">$</span>
-                    <span className="display-font text-5xl sm:text-6xl neon-green">{displayPrice}</span>
-                    <span className="text-zinc-500 text-lg">/mo</span>
-                  </div>
-                  <p className="text-zinc-500 text-sm mt-2">Cancel anytime. No lock-in contracts.</p>
-                  <div className="flex items-center justify-center gap-4 mt-3">
-                    <span className="text-amber-500/80 text-xs font-medium">Less than a coffee a week</span>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:gap-4">
-                  {proFeatures.map((feature, i) => (
-                    <div key={i} className="flex items-start gap-3 text-zinc-300">
-                      <feature.icon className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-medium text-sm sm:text-base">{feature.text}</span>
-                        <p className="text-zinc-500 text-xs sm:text-sm">{feature.desc}</p>
-                      </div>
+            {/* Two pricing cards side by side */}
+            <div className="grid sm:grid-cols-2 gap-6 mb-8">
+              {/* Starter Card */}
+              <Card className="bg-gradient-to-b from-zinc-900/80 to-zinc-900/40 border-zinc-700 relative overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-zinc-600" />
+                <CardHeader className="text-center pb-2">
+                  <CardTitle className="text-white text-xl">
+                    Starter
+                  </CardTitle>
+                  <CardDescription className="text-zinc-400">
+                    Essential tools to trade smarter
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="text-center py-4">
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-zinc-500 text-lg">$</span>
+                      <span className="display-font text-5xl neon-green">{starterDisplayPrice}</span>
+                      <span className="text-zinc-500 text-lg">/mo</span>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-              <CardFooter className="flex-col gap-3 pt-2">
-                <Button
-                  className="w-full neon-button text-base py-6"
-                  onClick={() => checkoutMutation.mutate(price?.id)}
-                  disabled={checkoutMutation.isPending}
-                  data-testid="button-subscribe"
-                >
-                  {checkoutMutation.isPending ? (
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  ) : (
-                    <Zap className="w-5 h-5 mr-2" />
-                  )}
-                  Go Pro Now
-                </Button>
-                <div className="flex items-center gap-2 text-zinc-500 text-xs">
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>Secured by Stripe. Your payment info never touches our servers.</span>
-                </div>
-              </CardFooter>
-            </Card>
+                    <p className="text-zinc-500 text-xs mt-2">5 Bro queries per day</p>
+                  </div>
 
-            {/* Free vs Pro comparison */}
+                  <div className="grid gap-3">
+                    {starterFeatures.map((feature, i) => (
+                      <div key={i} className="flex items-start gap-3 text-zinc-300">
+                        <feature.icon className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-medium text-sm">{feature.text}</span>
+                          <p className="text-zinc-500 text-xs">{feature.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex-col gap-3 pt-2">
+                  <Button
+                    className="w-full border border-amber-500 text-amber-500 hover:bg-amber-500/10 bg-transparent py-5"
+                    onClick={() => checkoutMutation.mutate(starterPrice?.id)}
+                    disabled={checkoutMutation.isPending}
+                    data-testid="button-subscribe-starter"
+                  >
+                    {checkoutMutation.isPending ? (
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    ) : null}
+                    Get Starter
+                  </Button>
+                </CardFooter>
+              </Card>
+
+              {/* Pro Card */}
+              <Card className="bg-gradient-to-b from-zinc-900/80 to-zinc-900/40 border-amber-500/30 relative overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-green-500 to-amber-500" />
+                <CardHeader className="text-center pb-2">
+                  <Badge className="mx-auto mb-2 bg-amber-500/20 text-amber-500 border-amber-500/30 text-xs">
+                    MOST POPULAR
+                  </Badge>
+                  <CardTitle className="text-white flex items-center justify-center gap-2 text-xl">
+                    <Crown className="w-5 h-5 text-amber-500" />
+                    Pro
+                  </CardTitle>
+                  <CardDescription className="text-zinc-400">
+                    Full suite for serious traders
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="text-center py-4">
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-zinc-500 text-lg">$</span>
+                      <span className="display-font text-5xl neon-green">{proDisplayPrice}</span>
+                      <span className="text-zinc-500 text-lg">/mo</span>
+                    </div>
+                    <p className="text-zinc-500 text-xs mt-2">50 Bro queries per month</p>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {proFeatures.map((feature, i) => (
+                      <div key={i} className="flex items-start gap-3 text-zinc-300">
+                        <feature.icon className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-medium text-sm">{feature.text}</span>
+                          <p className="text-zinc-500 text-xs">{feature.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex-col gap-3 pt-2">
+                  <Button
+                    className="w-full neon-button text-base py-5"
+                    onClick={() => checkoutMutation.mutate(proPrice?.id)}
+                    disabled={checkoutMutation.isPending}
+                    data-testid="button-subscribe-pro"
+                  >
+                    {checkoutMutation.isPending ? (
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    ) : (
+                      <Zap className="w-5 h-5 mr-2" />
+                    )}
+                    Go Pro Now
+                  </Button>
+                  <div className="flex items-center gap-2 text-zinc-500 text-xs">
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Secured by Stripe. Cancel anytime.</span>
+                  </div>
+                </CardFooter>
+              </Card>
+            </div>
+
+            {/* Free vs Starter vs Pro comparison */}
             <Card className="mb-8 bg-zinc-900/50 border-zinc-800">
               <CardHeader>
-                <CardTitle className="text-white text-lg sm:text-xl">Free vs Pro</CardTitle>
-                <CardDescription className="text-zinc-400">See what you're missing out on</CardDescription>
+                <CardTitle className="text-white text-lg sm:text-xl">Compare Plans</CardTitle>
+                <CardDescription className="text-zinc-400">See what each plan includes</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -559,8 +490,9 @@ export default function SubscriptionPage() {
                     <thead>
                       <tr className="border-b border-zinc-800">
                         <th className="text-left py-3 text-zinc-400 font-medium">Feature</th>
-                        <th className="text-center py-3 text-zinc-400 font-medium w-16 sm:w-28">Free</th>
-                        <th className="text-center py-3 text-amber-500 font-medium w-16 sm:w-28">Pro</th>
+                        <th className="text-center py-3 text-zinc-400 font-medium w-16 sm:w-24">Free</th>
+                        <th className="text-center py-3 text-zinc-300 font-medium w-16 sm:w-24">Starter</th>
+                        <th className="text-center py-3 text-amber-500 font-medium w-16 sm:w-24">Pro</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -574,6 +506,15 @@ export default function SubscriptionPage() {
                               <X className="w-4 h-4 text-zinc-600 mx-auto" />
                             ) : (
                               <span className="text-zinc-400 text-xs">{row.free}</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-center">
+                            {row.starter === true ? (
+                              <Check className="w-4 h-4 text-green-500 mx-auto" />
+                            ) : row.starter === false ? (
+                              <X className="w-4 h-4 text-zinc-600 mx-auto" />
+                            ) : (
+                              <span className="text-zinc-400 text-xs">{row.starter}</span>
                             )}
                           </td>
                           <td className="py-3 text-center">
@@ -597,14 +538,14 @@ export default function SubscriptionPage() {
                 <div className="text-3xl sm:text-4xl font-bold neon-green display-font mb-1">$30k</div>
                 <div className="text-zinc-500 text-sm">Bloomberg Terminal/yr</div>
                 <div className="mt-3 h-px bg-zinc-800" />
-                <div className="text-3xl sm:text-4xl font-bold text-amber-500 display-font mt-3 mb-1">${displayPrice}</div>
-                <div className="text-zinc-500 text-sm">Buy Side Bro/mo</div>
+                <div className="text-3xl sm:text-4xl font-bold text-amber-500 display-font mt-3 mb-1">${starterDisplayPrice}</div>
+                <div className="text-zinc-500 text-sm">Buy Side Bro Starter/mo</div>
               </div>
               <div className="bg-zinc-900/30 rounded-lg p-5 border border-zinc-800 text-center">
-                <div className="text-3xl sm:text-4xl font-bold text-amber-500 display-font mb-1">$5</div>
-                <div className="text-zinc-500 text-sm">Bro credits free every month</div>
+                <div className="text-3xl sm:text-4xl font-bold text-amber-500 display-font mb-1">2</div>
+                <div className="text-zinc-500 text-sm">Plans to choose from</div>
                 <div className="mt-3 h-px bg-zinc-800" />
-                <p className="text-zinc-400 text-xs mt-3">Covers Deep Dive reports, Bro queries, and expert analysis each month at no extra cost</p>
+                <p className="text-zinc-400 text-xs mt-3">Starter at ${starterDisplayPrice}/mo for daily queries. Pro at ${proDisplayPrice}/mo for full trade tools and hedging.</p>
               </div>
               <div className="bg-zinc-900/30 rounded-lg p-5 border border-zinc-800 text-center">
                 <div className="text-3xl sm:text-4xl font-bold text-amber-500 display-font mb-1">100+</div>
@@ -625,10 +566,8 @@ export default function SubscriptionPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <span><strong className="text-zinc-200">Your bro that actually delivers.</strong> Deep Dive reports powered by multiple analytical models, expert portfolio reviews for concentration risks, and Bro chat that pulls live market data into every answer.</span>
+                    <span><strong className="text-zinc-200">Your bro that actually delivers.</strong> Deep Dive reports powered by multiple analytical models, expert portfolio reviews, and Bro chat that pulls live market data into every answer.</span>
                   </li>
-
-
                   <li className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
                     <span><strong className="text-zinc-200">No commitment.</strong> Cancel anytime with one click. No annual contracts, no hidden fees, no questions asked.</span>

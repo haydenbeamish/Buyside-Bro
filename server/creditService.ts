@@ -3,7 +3,6 @@ import { users, usageLogs, newsFeed } from "@shared/schema";
 import { eq, desc, sql, and, gte, count } from "drizzle-orm";
 import type { User, InsertUsageLog, UsageLog, NewsFeedItem, InsertNewsFeedItem } from "@shared/schema";
 
-const MONTHLY_CREDIT_LIMIT_CENTS = 500; // $5 included in subscription
 const KIMI_INPUT_COST_PER_1K = 0.0006; // $0.0006 per 1K input tokens
 const KIMI_OUTPUT_COST_PER_1K = 0.0024; // $0.0024 per 1K output tokens
 
@@ -12,145 +11,6 @@ export function calculateCostCents(inputTokens: number, outputTokens: number): n
   const outputCost = (outputTokens / 1000) * KIMI_OUTPUT_COST_PER_1K;
   const totalCost = inputCost + outputCost;
   return Math.ceil(totalCost * 100);
-}
-
-function shouldResetMonthlyCredits(lastResetAt: Date | null): boolean {
-  // If never reset, needs initialization
-  if (!lastResetAt) return true;
-  
-  const now = new Date();
-  const resetDate = new Date(lastResetAt);
-  
-  const currentMonth = now.getFullYear() * 12 + now.getMonth();
-  const resetMonth = resetDate.getFullYear() * 12 + resetDate.getMonth();
-  
-  return currentMonth > resetMonth;
-}
-
-export async function getUserCredits(userId: string): Promise<{
-  monthlyUsedCents: number;
-  monthlyLimitCents: number;
-  purchasedCreditsCents: number;
-  availableCreditsCents: number;
-  isOverLimit: boolean;
-}> {
-  const [user] = await db.select().from(users).where(eq(users.id, userId));
-  
-  if (!user) {
-    return {
-      monthlyUsedCents: 0,
-      monthlyLimitCents: MONTHLY_CREDIT_LIMIT_CENTS,
-      purchasedCreditsCents: 0,
-      availableCreditsCents: MONTHLY_CREDIT_LIMIT_CENTS,
-      isOverLimit: false,
-    };
-  }
-
-  // Check if we need to reset monthly credits
-  if (shouldResetMonthlyCredits(user.monthlyCreditsResetAt)) {
-    await db.update(users)
-      .set({ 
-        monthlyCreditsUsedCents: 0,
-        monthlyCreditsResetAt: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, userId));
-    
-    const purchasedCreditsCents = user.creditBalanceCents || 0;
-    return {
-      monthlyUsedCents: 0,
-      monthlyLimitCents: MONTHLY_CREDIT_LIMIT_CENTS,
-      purchasedCreditsCents,
-      availableCreditsCents: MONTHLY_CREDIT_LIMIT_CENTS + purchasedCreditsCents,
-      isOverLimit: false,
-    };
-  }
-
-  const monthlyUsedCents = user.monthlyCreditsUsedCents || 0;
-  const purchasedCreditsCents = user.creditBalanceCents || 0;
-  const monthlyRemainingCents = Math.max(0, MONTHLY_CREDIT_LIMIT_CENTS - monthlyUsedCents);
-  const availableCreditsCents = monthlyRemainingCents + purchasedCreditsCents;
-  
-  return {
-    monthlyUsedCents,
-    monthlyLimitCents: MONTHLY_CREDIT_LIMIT_CENTS,
-    purchasedCreditsCents,
-    availableCreditsCents,
-    isOverLimit: availableCreditsCents <= 0,
-  };
-}
-
-export async function checkAndDeductCredits(
-  userId: string,
-  estimatedCostCents: number
-): Promise<{ allowed: boolean; message?: string }> {
-  return await db.transaction(async (tx) => {
-    // Atomic check-and-deduct: first try deducting from monthly credits
-    const monthlyResult = await tx.update(users)
-      .set({
-        monthlyCreditsUsedCents: sql`${users.monthlyCreditsUsedCents} + ${estimatedCostCents}`,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(users.id, userId),
-          sql`(${MONTHLY_CREDIT_LIMIT_CENTS} - COALESCE(${users.monthlyCreditsUsedCents}, 0)) >= ${estimatedCostCents}`
-        )
-      )
-      .returning({ id: users.id });
-
-    if (monthlyResult.length > 0) {
-      return { allowed: true };
-    }
-
-    // Monthly credits insufficient - try splitting between monthly remainder and purchased
-    const [user] = await tx.select().from(users).where(eq(users.id, userId));
-    if (!user) {
-      return {
-        allowed: false,
-        message: "You've used all your Bro credits for this month. Purchase additional credits to continue using Bro features.",
-      };
-    }
-
-    const monthlyUsed = user.monthlyCreditsUsedCents || 0;
-    const monthlyRemaining = Math.max(0, MONTHLY_CREDIT_LIMIT_CENTS - monthlyUsed);
-    const purchasedBalance = user.creditBalanceCents || 0;
-    const totalAvailable = monthlyRemaining + purchasedBalance;
-
-    if (totalAvailable < estimatedCostCents) {
-      return {
-        allowed: false,
-        message: "You've used all your Bro credits for this month. Purchase additional credits to continue using Bro features.",
-      };
-    }
-
-    // Atomically deduct from both monthly and purchased using WHERE to prevent over-deduction
-    const fromMonthly = monthlyRemaining;
-    const fromPurchased = estimatedCostCents - fromMonthly;
-
-    const splitResult = await tx.update(users)
-      .set({
-        monthlyCreditsUsedCents: sql`${users.monthlyCreditsUsedCents} + ${fromMonthly}`,
-        creditBalanceCents: sql`GREATEST(0, ${users.creditBalanceCents} - ${fromPurchased})`,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(users.id, userId),
-          sql`COALESCE(${users.creditBalanceCents}, 0) >= ${fromPurchased}`
-        )
-      )
-      .returning({ id: users.id });
-
-    if (splitResult.length === 0) {
-      return {
-        allowed: false,
-        message: "You've used all your Bro credits for this month. Purchase additional credits to continue using Bro features.",
-      };
-    }
-
-    return { allowed: true };
-  });
 }
 
 export async function recordUsage(
@@ -174,27 +34,8 @@ export async function recordUsage(
   });
 }
 
-export async function addPurchasedCredits(userId: string, amountCents: number): Promise<void> {
-  await db.update(users)
-    .set({ 
-      creditBalanceCents: sql`${users.creditBalanceCents} + ${amountCents}`,
-      updatedAt: new Date()
-    })
-    .where(eq(users.id, userId));
-}
-
-export async function resetMonthlyCredits(userId: string): Promise<void> {
-  await db.update(users)
-    .set({ 
-      monthlyCreditsUsedCents: 0,
-      monthlyCreditsResetAt: new Date(),
-      updatedAt: new Date()
-    })
-    .where(eq(users.id, userId));
-}
-
 export async function getUserUsageHistory(
-  userId: string, 
+  userId: string,
   limit = 50
 ): Promise<UsageLog[]> {
   return db.select()
@@ -261,19 +102,19 @@ export const MARKET_SCHEDULES = {
 
 export function getMarketEventTitle(market: string, eventType: string): string {
   const date = new Date();
-  const dateStr = date.toLocaleDateString('en-US', { 
+  const dateStr = date.toLocaleDateString('en-US', {
     weekday: 'long',
-    month: 'short', 
+    month: 'short',
     day: 'numeric',
     year: 'numeric'
   });
-  
+
   const eventLabels: Record<string, string> = {
     open: 'Market Open Update',
     midday: 'Midday Market Pulse',
     close: 'Market Close Wrap',
   };
-  
+
   return `${market} ${eventLabels[eventType] || 'Update'} - ${dateStr}`;
 }
 
@@ -310,11 +151,32 @@ export function isAdminUser(user: User | null | undefined): boolean {
   return ADMIN_BRO_EMAILS.includes(user?.email?.toLowerCase() ?? '');
 }
 
+export function isProTier(user: User | null | undefined): boolean {
+  if (!user) return false;
+  if (isAdminUser(user)) return true;
+  return (user as any).subscriptionTier === 'pro';
+}
+
+export function isStarterOrAbove(user: User | null | undefined): boolean {
+  if (!user) return false;
+  if (isAdminUser(user)) return true;
+  const tier = (user as any).subscriptionTier;
+  return tier === 'starter' || tier === 'pro';
+}
+
+export function getSubscriptionTier(user: User | null | undefined): string {
+  if (!user) return 'free';
+  if (isAdminUser(user)) return 'pro';
+  return (user as any).subscriptionTier || 'free';
+}
+
 export function getBroQueryLimit(user: User | null | undefined): number {
   if (!user) return 1;
-  if (user.email && ADMIN_BRO_EMAILS.includes(user.email.toLowerCase())) return 50;
-  if (user.subscriptionStatus === 'active') return 5;
-  return 1;
+  if (isAdminUser(user)) return 999;
+  const tier = getSubscriptionTier(user);
+  if (tier === 'pro') return 50; // monthly
+  if (tier === 'starter') return 5; // daily
+  return 1; // daily
 }
 
 export async function getDailyBroQueryCount(userId: string): Promise<number> {
@@ -334,17 +196,42 @@ export async function getDailyBroQueryCount(userId: string): Promise<number> {
   return result[0]?.count ?? 0;
 }
 
+export async function getMonthlyBroQueryCount(userId: string): Promise<number> {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const result = await db
+    .select({ count: count() })
+    .from(usageLogs)
+    .where(
+      and(
+        eq(usageLogs.userId, userId),
+        gte(usageLogs.createdAt, monthStart),
+        sql`${usageLogs.feature} IN ('chat','chat_conversation','stock_analysis','portfolio_analysis','portfolio_review','earnings_analysis','deep_analysis')`
+      )
+    );
+  return result[0]?.count ?? 0;
+}
+
 export async function getBroStatus(userId: string, user: User | null | undefined): Promise<{
   dailyUsed: number;
   dailyLimit: number;
   isPro: boolean;
-  credits: number;
+  tier: string;
+  monthlyUsed?: number;
+  monthlyLimit?: number;
 }> {
+  const tier = getSubscriptionTier(user);
   const dailyUsed = await getDailyBroQueryCount(userId);
-  const dailyLimit = getBroQueryLimit(user);
-  const isPro = user?.subscriptionStatus === 'active' || ADMIN_BRO_EMAILS.includes(user?.email?.toLowerCase() ?? '');
-  const creditInfo = await getUserCredits(userId);
-  return { dailyUsed, dailyLimit, isPro, credits: creditInfo.availableCreditsCents };
+  const dailyLimit = tier === 'pro' ? 50 : getBroQueryLimit(user);
+  const isPro = tier === 'pro' || isAdminUser(user);
+
+  if (tier === 'pro') {
+    const monthlyUsed = await getMonthlyBroQueryCount(userId);
+    return { dailyUsed, dailyLimit, isPro, tier, monthlyUsed, monthlyLimit: 50 };
+  }
+
+  return { dailyUsed, dailyLimit, isPro, tier };
 }
 
 export async function checkBroQueryAllowed(userId: string, user: User | null | undefined): Promise<{
@@ -352,16 +239,36 @@ export async function checkBroQueryAllowed(userId: string, user: User | null | u
   message?: string;
   requiresUpgrade?: boolean;
 }> {
+  const tier = getSubscriptionTier(user);
+
+  if (tier === 'pro') {
+    // Pro: 50 queries per month
+    const monthlyUsed = await getMonthlyBroQueryCount(userId);
+    if (monthlyUsed >= 50 && !isAdminUser(user)) {
+      return {
+        allowed: false,
+        message: "You've used all 50 Bro queries for this month. Your limit resets on the 1st.",
+        requiresUpgrade: false,
+      };
+    }
+    return { allowed: true };
+  }
+
+  // Free & Starter: daily limits
   const dailyUsed = await getDailyBroQueryCount(userId);
   const dailyLimit = getBroQueryLimit(user);
   if (dailyUsed >= dailyLimit) {
-    const isPro = user?.subscriptionStatus === 'active' || ADMIN_BRO_EMAILS.includes(user?.email?.toLowerCase() ?? '');
+    if (tier === 'starter') {
+      return {
+        allowed: false,
+        message: `You've used all ${dailyLimit} Bro queries for today. Upgrade to Pro for 50 queries per month, or come back tomorrow.`,
+        requiresUpgrade: false,
+      };
+    }
     return {
       allowed: false,
-      message: isPro
-        ? `You've used all ${dailyLimit} Bro queries for today. Come back tomorrow!`
-        : "You've used your free Bro query for today. Upgrade to Pro for 5 queries per day.",
-      requiresUpgrade: !isPro,
+      message: "You've used your free Bro query for today. Upgrade to Starter for 5 queries per day or Pro for 50 per month.",
+      requiresUpgrade: true,
     };
   }
   return { allowed: true };

@@ -364,12 +364,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             {/* Bro query status for logged-in users */}
             {isAuthenticated && broStatus && (
               <div className="flex items-center gap-2 sm:gap-3 mr-2 sm:mr-4 min-w-0 overflow-hidden">
-                <span className="text-[11px] sm:text-xs text-zinc-400 truncate">
-                  <span className="text-amber-400 font-mono">{broStatus.dailyUsed}/{broStatus.dailyLimit}</span> <span className="hidden xs:inline">Bro </span>queries
-                </span>
-                {broStatus.isPro && (
-                  <span className="text-[11px] sm:text-xs text-zinc-500 hidden sm:inline">
-                    <span className="text-amber-400 font-mono">${(broStatus.credits / 100).toFixed(2)}</span> credits
+                {broStatus.tier === 'pro' ? (
+                  <span className="text-[11px] sm:text-xs text-zinc-400 truncate">
+                    <span className="text-amber-400 font-mono">{broStatus.monthlyUsed ?? 0}/{broStatus.monthlyLimit ?? 50}</span> <span className="hidden xs:inline">monthly </span>queries
+                  </span>
+                ) : (
+                  <span className="text-[11px] sm:text-xs text-zinc-400 truncate">
+                    <span className="text-amber-400 font-mono">{broStatus.dailyUsed}/{broStatus.dailyLimit}</span> <span className="hidden xs:inline">Bro </span>queries
+                  </span>
+                )}
+                {broStatus.tier && broStatus.tier !== 'free' && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium hidden sm:inline ${broStatus.tier === 'pro' ? 'bg-amber-500/20 text-amber-400' : 'bg-zinc-700/50 text-zinc-300'}`}>
+                    {broStatus.tier === 'pro' ? 'PRO' : 'STARTER'}
                   </span>
                 )}
               </div>

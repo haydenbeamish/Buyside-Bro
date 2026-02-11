@@ -22,8 +22,9 @@ export function BroLimitModal({ open, onClose }: BroLimitModalProps) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-amber-400 text-xl">Want more Bro help?</DialogTitle>
-          <DialogDescription className="text-zinc-400 text-base pt-2">
-            $10/month gets you 5 Bro questions per day.
+          <DialogDescription className="text-zinc-400 text-base pt-2 space-y-2">
+            <span className="block">Starter — $10/month for 5 Bro queries per day.</span>
+            <span className="block">Pro — $100/month for 50 queries per month, plus hedging tools and trade tracker.</span>
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex gap-3 pt-4">
@@ -37,7 +38,7 @@ export function BroLimitModal({ open, onClose }: BroLimitModalProps) {
               navigate("/subscription");
             }}
           >
-            Upgrade
+            View Plans
           </Button>
         </DialogFooter>
       </DialogContent>

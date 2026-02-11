@@ -163,8 +163,8 @@ export default function PreviewPage() {
               <div className="p-3 rounded-lg bg-amber-900/20 border border-zinc-800">
                 <Zap className="w-6 h-6 text-amber-500" />
               </div>
-              <h4 className="display-font text-sm neon-green-subtle tracking-wider">$10/MONTH AFTER</h4>
-              <p className="text-zinc-400 text-sm">Includes $5 of Bro credits. Buy more as you need them.</p>
+              <h4 className="display-font text-sm neon-green-subtle tracking-wider">FROM $10/MONTH</h4>
+              <p className="text-zinc-400 text-sm">Includes 5 daily Bro queries and full analysis tools.</p>
             </div>
           </div>
         </div>
@@ -179,7 +179,7 @@ export default function PreviewPage() {
             Free to explore. No commitment required.
           </p>
           <p className="text-zinc-500 text-sm mb-8">
-            Upgrade for just $10/month. Need more Bro power? Grab extra credit packs anytime.
+            Starter at $10/month. Pro at $100/month for full trade tools and hedging.
           </p>
           <Link href="/dashboard">
             <button

@@ -1,13 +1,12 @@
 import type { Express, Request, Response } from "express";
 import { chatStorage } from "./storage";
-import { checkAndDeductCredits, recordUsage, checkBroQueryAllowed } from "../../creditService";
+import { recordUsage, checkBroQueryAllowed } from "../../creditService";
 import { isAuthenticated, authStorage } from "../auth";
 
 const LASER_BEAM_API = "https://api.laserbeamcapital.com";
 const LASER_BEAM_HEADERS: HeadersInit = {
   "X-API-Key": process.env.API_KEY || "",
 };
-const ESTIMATED_COST_CENTS = 10;
 
 async function proxySSEStream(
   upstreamResponse: globalThis.Response,
@@ -146,14 +145,6 @@ export function registerChatRoutes(app: Express): void {
             requiresUpgrade: broCheck.requiresUpgrade,
           });
         }
-        const creditCheck = await checkAndDeductCredits(userId, ESTIMATED_COST_CENTS);
-        if (!creditCheck.allowed) {
-          return res.status(402).json({
-            error: "Out of credits",
-            message: creditCheck.message,
-            requiresCredits: true
-          });
-        }
       }
 
       await chatStorage.createMessage(conversationId, "user", content);
@@ -224,14 +215,6 @@ export function registerChatRoutes(app: Express): void {
             error: "Daily limit reached",
             message: broCheck.message,
             requiresUpgrade: broCheck.requiresUpgrade,
-          });
-        }
-        const creditCheck = await checkAndDeductCredits(userId, ESTIMATED_COST_CENTS);
-        if (!creditCheck.allowed) {
-          return res.status(402).json({
-            error: "Out of credits",
-            message: creditCheck.message,
-            requiresCredits: true
           });
         }
       }

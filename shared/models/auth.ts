@@ -27,10 +27,8 @@ export const users = pgTable("users", {
   subscriptionStatus: varchar("subscription_status").default("none"),
   trialEndsAt: timestamp("trial_ends_at"),
   subscriptionEndsAt: timestamp("subscription_ends_at"),
-  // Credit system fields
-  creditBalanceCents: integer("credit_balance_cents").default(0).notNull(),
-  monthlyCreditsUsedCents: integer("monthly_credits_used_cents").default(0).notNull(),
-  monthlyCreditsResetAt: timestamp("monthly_credits_reset_at"),
+  // Subscription tier: 'free', 'starter', 'pro'
+  subscriptionTier: varchar("subscription_tier").default("free"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

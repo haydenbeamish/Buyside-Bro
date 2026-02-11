@@ -1,5 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { isAuthenticated, authStorage } from "../replit_integrations/auth";
+import { isStarterOrAbove } from "../creditService";
 import {
   registerDevice,
   unregisterDevice,
@@ -99,8 +100,8 @@ export function registerPushRoutes(app: Express): void {
       const enablingEmail = emailFields.some((f) => updates[f] === true);
       if (enablingEmail) {
         const user = await authStorage.getUser(userId);
-        if (!user || user.subscriptionStatus !== "active") {
-          return res.status(403).json({ error: "Pro subscription required to enable email alerts" });
+        if (!user || !isStarterOrAbove(user)) {
+          return res.status(403).json({ error: "Starter or Pro subscription required to enable email alerts" });
         }
       }
 

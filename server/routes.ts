@@ -11,16 +11,16 @@ import { isAuthenticated, authStorage } from "./replit_integrations/auth";
 import { stripeService } from "./stripeService";
 import { getStripePublishableKey, getUncachableStripeClient } from "./stripeClient";
 import {
-  getUserCredits,
   recordUsage,
   getUserUsageHistory,
   getNewsFeed,
   addNewsFeedItem,
   getMarketEventTitle,
-  checkAndDeductCredits,
   checkBroQueryAllowed,
   getBroStatus,
   isAdminUser,
+  isProTier,
+  isStarterOrAbove,
   MARKET_SCHEDULES,
   hasNewsFeedItemForMarketToday
 } from "./creditService";
@@ -376,6 +376,16 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+
+  // Run migration: add subscription_tier column
+  try {
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_tier VARCHAR DEFAULT 'free'`);
+    // Migrate existing active subscribers to 'starter' tier
+    await db.execute(sql`UPDATE users SET subscription_tier = 'starter' WHERE subscription_status = 'active' AND (subscription_tier IS NULL OR subscription_tier = 'free')`);
+    console.log("[Migration] subscription_tier column ensured");
+  } catch (e) {
+    console.error("[Migration] subscription_tier migration error:", e);
+  }
 
   const SITE_URL = "https://www.buysidebro.com";
 
@@ -899,14 +909,6 @@ export async function registerRoutes(
             requiresUpgrade: broCheck.requiresUpgrade,
           });
         }
-        const creditCheck = await checkAndDeductCredits(userId, 10);
-        if (!creditCheck.allowed) {
-          return res.status(402).json({
-            error: "Out of credits",
-            analysis: "You've used all your Bro credits. Purchase additional credits to continue using Bro features.",
-            requiresCredits: true
-          });
-        }
       }
 
       const holdings = await storage.getPortfolioHoldings(userId || "");
@@ -963,14 +965,6 @@ export async function registerRoutes(
             error: "Daily limit reached",
             review: `## Daily Limit Reached\n\n${broCheck.message}`,
             requiresUpgrade: broCheck.requiresUpgrade,
-          });
-        }
-        const creditCheck = await checkAndDeductCredits(userId, 30);
-        if (!creditCheck.allowed) {
-          return res.status(402).json({
-            error: "Out of credits",
-            review: "## Out of Bro Credits\n\nYou've used all your Bro credits. Purchase additional credits to continue using Bro features.",
-            requiresCredits: true
           });
         }
       }
@@ -1497,16 +1491,6 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
             sentiment: "neutral",
             keyPoints: [],
             requiresUpgrade: broCheck.requiresUpgrade,
-          });
-        }
-        const creditCheck = await checkAndDeductCredits(userId, 15);
-        if (!creditCheck.allowed) {
-          return res.status(402).json({
-            error: "Out of credits",
-            summary: "You've used all your Bro credits. Purchase additional credits to continue using Bro features.",
-            sentiment: "neutral",
-            keyPoints: [],
-            requiresCredits: true
           });
         }
       }
@@ -2110,10 +2094,12 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
 
       const isActive = user.subscriptionStatus === "active";
+      const tier = (user as any).subscriptionTier || "free";
 
       res.json({
         status: user.subscriptionStatus || "none",
         isActive,
+        tier,
         isTrialing: false,
         trialEndsAt: null,
         subscriptionEndsAt: user.subscriptionEndsAt,
@@ -2219,21 +2205,6 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
-  // Credit tracking API endpoints
-  app.get("/api/credits", isAuthenticated, async (req: any, res: Response) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-      const credits = await getUserCredits(userId);
-      res.json(credits);
-    } catch (error) {
-      console.error("Error fetching credits:", error);
-      res.status(500).json({ error: "Failed to fetch credits" });
-    }
-  });
-
   // Bro daily query status
   app.get("/api/bro/status", isAuthenticated, async (req: any, res: Response) => {
     try {
@@ -2247,91 +2218,6 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     } catch (error) {
       console.error("Error fetching bro status:", error);
       res.status(500).json({ error: "Failed to fetch bro status" });
-    }
-  });
-
-  app.get("/api/credits/usage", isAuthenticated, async (req: any, res: Response) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-      const limit = parseInt(req.query.limit as string) || 50;
-      const usage = await getUserUsageHistory(userId, limit);
-      res.json({ usage });
-    } catch (error) {
-      console.error("Error fetching usage history:", error);
-      res.status(500).json({ error: "Failed to fetch usage history" });
-    }
-  });
-
-  app.post("/api/credits/purchase", isAuthenticated, async (req: any, res: Response) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
-
-      const user = await authStorage.getUser(userId);
-      const { priceId } = req.body;
-
-      if (!priceId) {
-        return res.status(400).json({ error: "Price ID required" });
-      }
-
-      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
-      const host = req.get("host");
-      const successUrl = `${protocol}://${host}/subscription?credits=success`;
-      const cancelUrl = `${protocol}://${host}/subscription?credits=cancelled`;
-
-      const session = await stripeService.createCreditPurchaseSession(
-        priceId,
-        userId,
-        user?.stripeCustomerId || undefined,
-        successUrl,
-        cancelUrl
-      );
-
-      res.json({ sessionId: session.id, url: session.url });
-    } catch (error) {
-      console.error("Error creating credit purchase session:", error);
-      res.status(500).json({ error: "Failed to create checkout session" });
-    }
-  });
-
-  app.get("/api/credits/packs", async (req: Request, res: Response) => {
-    try {
-      const stripe = await getUncachableStripeClient();
-      const prices = await stripe.prices.list({
-        active: true,
-        type: 'one_time',
-        limit: 20,
-        expand: ['data.product'],
-      });
-
-      const packs = prices.data
-        .filter(price => {
-          const product = price.product as any;
-          return product && typeof product !== 'string' && product.active && product.metadata?.credits_cents;
-        })
-        .map(price => {
-          const product = price.product as any;
-          return {
-            id: product.id,
-            name: product.name,
-            description: product.description,
-            priceId: price.id,
-            amount: price.unit_amount,
-            currency: price.currency,
-            credits: parseInt(product.metadata?.credits_cents || '0'),
-          };
-        })
-        .sort((a, b) => (a.amount || 0) - (b.amount || 0));
-
-      res.json({ packs });
-    } catch (error) {
-      console.error("Error fetching credit packs:", error);
-      res.json({ packs: [] });
     }
   });
 
@@ -2738,8 +2624,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
         firstName: users.firstName,
         lastName: users.lastName,
         subscriptionStatus: users.subscriptionStatus,
-        creditBalanceCents: users.creditBalanceCents,
-        monthlyCreditsUsedCents: users.monthlyCreditsUsedCents,
+        subscriptionTier: users.subscriptionTier,
         createdAt: users.createdAt,
       }).from(users).orderBy(desc(users.createdAt));
 
@@ -2923,7 +2808,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     try {
       const userId = req.user.claims.sub;
       const user = await authStorage.getUser(userId);
-      if (!user || (user.subscriptionStatus !== "active" && !isAdminUser(user))) {
+      if (!user || !isProTier(user)) {
         return res.status(403).json({ error: "Pro subscription required" });
       }
 
@@ -3183,7 +3068,7 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     try {
       const userId = req.user.claims.sub;
       const user = await authStorage.getUser(userId);
-      if (!user || (user.subscriptionStatus !== "active" && !isAdminUser(user))) {
+      if (!user || !isProTier(user)) {
         return res.status(403).json({ error: "Pro subscription required" });
       }
 

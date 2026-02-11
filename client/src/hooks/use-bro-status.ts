@@ -6,7 +6,9 @@ interface BroStatus {
   dailyUsed: number;
   dailyLimit: number;
   isPro: boolean;
-  credits: number;
+  tier: string;
+  monthlyUsed?: number;
+  monthlyLimit?: number;
 }
 
 export function useBroStatus() {
@@ -27,12 +29,16 @@ export function useBroStatus() {
   }, []);
 
   const isFreeOverride = viewAs === "free";
+  const tier = isFreeOverride ? "free" : (broStatus?.tier ?? "free");
 
   return {
     broStatus,
     canQuery: broStatus ? broStatus.dailyUsed < broStatus.dailyLimit : false,
     isAtLimit: broStatus ? broStatus.dailyUsed >= broStatus.dailyLimit : false,
     isPro: isFreeOverride ? false : (broStatus?.isPro ?? false),
+    isStarter: tier === "starter",
+    isStarterOrAbove: tier === "starter" || tier === "pro",
+    tier,
     refetch,
   };
 }

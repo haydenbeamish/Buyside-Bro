@@ -366,8 +366,8 @@ function PricingBadges() {
             <div className="p-3 rounded-lg bg-amber-900/20 border border-zinc-800">
               <Zap className="w-6 h-6 text-amber-500" />
             </div>
-            <h4 className="display-font text-sm neon-green-subtle tracking-wider">$10/MONTH PRO</h4>
-            <p className="text-zinc-400 text-sm">Unlock expert analysis, portfolio tracking, alerts, and $5 of Bro credits.</p>
+            <h4 className="display-font text-sm neon-green-subtle tracking-wider">FROM $10/MONTH</h4>
+            <p className="text-zinc-400 text-sm">Unlock expert analysis, portfolio tracking, alerts, and 5 daily Bro queries.</p>
           </div>
         </div>
       </div>
@@ -386,7 +386,7 @@ function CTASection() {
           Free to explore. No commitment required.
         </p>
         <p className="text-zinc-500 text-sm mb-8">
-          Upgrade for just $10/month. Need more Bro power? Grab extra credit packs anytime.
+          Starter at $10/month. Pro at $100/month for full trade tools and hedging.
         </p>
         <Link href="/dashboard">
           <button
@@ -411,7 +411,7 @@ const faqItems = [
   },
   {
     question: "Is Buy Side Bro free to use?",
-    answer: "Yes, Buy Side Bro is free to explore. You can browse live markets, view global market data, and access basic features without any cost or credit card. For advanced analysis, portfolio tracking, and push notifications, the Pro subscription is available at $10/month which also includes $5 of Bro credits."
+    answer: "Yes, Buy Side Bro is free to explore. You can browse live markets, view global market data, and get 1 Bro query per day without any cost or credit card. For advanced analysis, portfolio tracking, and push notifications, the Starter plan is available at $10/month with 5 daily Bro queries. The Pro plan at $100/month adds 50 monthly queries, trade tools, and hedging strategies."
   },
   {
     question: "What markets does Buy Side Bro cover?",

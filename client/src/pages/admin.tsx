@@ -51,8 +51,7 @@ interface UserStat {
   firstName: string | null;
   lastName: string | null;
   subscriptionStatus: string | null;
-  creditBalanceCents: number;
-  monthlyCreditsUsedCents: number;
+  subscriptionTier: string | null;
   createdAt: string | null;
   totalAiCostCents: number;
   totalAiCalls: number;
@@ -465,7 +464,7 @@ export default function AdminPage() {
                       <th className="px-3 py-3 text-right">Bro Cost</th>
                       <th className="px-3 py-3 text-right">Bro Calls</th>
                       <th className="px-3 py-3 text-right">Page Views</th>
-                      <th className="px-3 py-3 text-right">Credits Used</th>
+                      <th className="px-3 py-3 text-right">Tier</th>
                       <th className="px-3 py-3 text-right">Last Active</th>
                       <th className="px-3 py-3 text-right">Joined</th>
                     </tr>
@@ -494,7 +493,7 @@ export default function AdminPage() {
                         <td className="px-3 py-3 text-right ticker-font text-amber-400">{formatCents(u.totalAiCostCents)}</td>
                         <td className="px-3 py-3 text-right ticker-font text-zinc-300">{u.totalAiCalls}</td>
                         <td className="px-3 py-3 text-right ticker-font text-zinc-300">{u.totalPageViews}</td>
-                        <td className="px-3 py-3 text-right ticker-font text-zinc-300">{formatCents(u.monthlyCreditsUsedCents)}</td>
+                        <td className="px-3 py-3 text-right ticker-font text-zinc-300">{u.subscriptionTier || "free"}</td>
                         <td className="px-3 py-3 text-right text-zinc-400 text-xs">{timeAgo(u.lastActive)}</td>
                         <td className="px-3 py-3 text-right text-zinc-500 text-xs">
                           {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "-"}
