@@ -1,6 +1,5 @@
 export interface StreamAnalysisOptions {
   ticker: string;
-  model?: string;
   mode?: string;
 }
 
@@ -33,7 +32,6 @@ export async function streamAnalysis(
     credentials: "include",
     body: JSON.stringify({
       ticker: options.ticker.toUpperCase(),
-      model: options.model,
       mode: options.mode,
     }),
     signal: abortSignal,

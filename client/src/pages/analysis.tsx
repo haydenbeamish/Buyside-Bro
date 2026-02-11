@@ -756,7 +756,6 @@ export default function AnalysisPage() {
   const [streamingRecommendation, setStreamingRecommendation] = useState<any>(null);
   const [streamProgress, setStreamProgress] = useState(0);
   const [streamMessage, setStreamMessage] = useState("");
-  const [selectedModel, setSelectedModel] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
   const contentBufferRef = useRef("");
   const renderFrameRef = useRef<number | null>(null);
@@ -764,16 +763,6 @@ export default function AnalysisPage() {
   const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
   const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
   const [showBroLimit, setShowBroLimit] = useState(false);
-
-  const { data: modelsData } = useQuery<{ models: { id: string; name: string; provider: string }[] }>({
-    queryKey: ["/api/fundamental-analysis/models"],
-  });
-
-  useEffect(() => {
-    if (modelsData?.models?.length && !selectedModel) {
-      setSelectedModel(modelsData.models[0].id);
-    }
-  }, [modelsData, selectedModel]);
 
   const handleAnalyze = useCallback((symbol: string) => {
     if (!isAuthenticated && symbol.toUpperCase() !== "MSFT") {
@@ -825,7 +814,7 @@ export default function AnalysisPage() {
 
     try {
       await streamAnalysis(
-        { ticker: activeTicker, model: selectedModel || undefined, mode: "deep_dive" },
+        { ticker: activeTicker, mode: "deep_dive" },
         {
           onProgress: (progress, message) => {
             setStreamProgress(progress);
@@ -891,7 +880,7 @@ export default function AnalysisPage() {
       setDeepError(err.message || "Failed to start analysis. Please try again.");
       setStreamState("error");
     }
-  }, [gate, isAtLimit, activeTicker, selectedModel, profile, refetchBroStatus]);
+  }, [gate, isAtLimit, activeTicker, profile, refetchBroStatus]);
 
   // Ticker change: abort stream, reset state, load cached
   const prevTickerRef = useRef<string | null>(activeTicker);
@@ -1162,17 +1151,6 @@ export default function AnalysisPage() {
                   Get a comprehensive hedge fund quality fundamental analysis with buy/hold/sell recommendation for {activeTicker}.
                 </p>
                 <div className="flex items-center justify-center gap-3">
-                  {modelsData?.models && modelsData.models.length > 1 && (
-                    <select
-                      value={selectedModel}
-                      onChange={(e) => setSelectedModel(e.target.value)}
-                      className="bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"
-                    >
-                      {modelsData.models.map((m) => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                      ))}
-                    </select>
-                  )}
                   <Button
                     variant="terminal"
                     className="uppercase tracking-wider"
