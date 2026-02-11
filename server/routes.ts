@@ -1560,6 +1560,116 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
+  // Streaming deep analysis endpoint using Laser Beam Capital API
+  app.post("/api/fundamental-analysis/analyze/stream", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { ticker, model, mode } = req.body;
+      if (!ticker) {
+        return res.status(400).json({ error: "Ticker is required" });
+      }
+      const upperTicker = ticker.toUpperCase();
+      if (!isValidTicker(upperTicker)) {
+        return res.status(400).json({ error: "Invalid ticker symbol" });
+      }
+
+      // Check daily Bro query limit
+      if (userId) {
+        const user = await authStorage.getUser(userId);
+        const broCheck = await checkBroQueryAllowed(userId, user);
+        if (!broCheck.allowed) {
+          return res.status(429).json({
+            error: "Daily limit reached",
+            message: broCheck.message,
+            requiresUpgrade: broCheck.requiresUpgrade,
+          });
+        }
+      }
+
+      const upstreamResponse = await fetch(`${LASER_BEAM_API}/api/fundamental-analysis/analyze/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
+        body: JSON.stringify({
+          ticker: upperTicker,
+          model: model || "moonshotai/kimi-k2.5",
+          mode: mode || "deep_dive",
+        }),
+      });
+
+      if (!upstreamResponse.ok) {
+        const errorText = await upstreamResponse.text();
+        console.error("Streaming analysis failed:", upstreamResponse.status, errorText);
+        return res.status(upstreamResponse.status).json({ error: "Failed to start streaming analysis" });
+      }
+
+      // Log usage for daily Bro query counter
+      if (userId) {
+        await recordUsage(userId, 'deep_analysis', 'laserbeam/fundamental', 0, 0);
+      }
+
+      // Set SSE headers and pipe the upstream stream through
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders();
+
+      const upstreamBody = upstreamResponse.body;
+      if (!upstreamBody) {
+        res.end();
+        return;
+      }
+
+      // Pipe the ReadableStream (from fetch) to the Express response (Node writable)
+      const reader = (upstreamBody as any).getReader();
+      const pump = async () => {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            res.write(value);
+          }
+        } catch (err) {
+          console.error("Stream pipe error:", err);
+        } finally {
+          res.end();
+        }
+      };
+
+      // If client disconnects, cancel the upstream reader
+      req.on("close", () => {
+        reader.cancel().catch(() => {});
+      });
+
+      await pump();
+    } catch (error) {
+      console.error("Streaming analysis error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to start streaming analysis" });
+      } else {
+        res.end();
+      }
+    }
+  });
+
+  // Models endpoint for fundamental analysis
+  app.get("/api/fundamental-analysis/models", async (_req: any, res: Response) => {
+    try {
+      const response = await fetch(`${LASER_BEAM_API}/api/fundamental-analysis/models`, {
+        headers: LASER_BEAM_HEADERS,
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return res.json(data);
+      }
+      throw new Error("Upstream failed");
+    } catch (error) {
+      // Fallback response
+      res.json({
+        models: [{ id: "moonshotai/kimi-k2.5", name: "Kimi K2.5", provider: "Moonshot AI" }],
+      });
+    }
+  });
+
   // Deep analysis async job endpoints using Laser Beam Capital API
   // Route used by earnings page (POST body with ticker and mode)
   app.post("/api/fundamental-analysis/jobs", isAuthenticated, async (req: any, res: Response) => {

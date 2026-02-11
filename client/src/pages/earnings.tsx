@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiRequest, ApiError } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { streamAnalysis, StreamError } from "@/lib/stream-analysis";
 import {
   Search,
   ArrowRight,
@@ -89,14 +88,8 @@ interface DeepAnalysisResultData {
   currentPrice?: number;
 }
 
-interface JobStatus {
-  jobId: string;
-  status: "pending" | "processing" | "completed" | "failed";
-  progress: number;
-  message: string;
-}
-
 type AnalysisMode = "preview" | "review" | "deep";
+type StreamState = "idle" | "loading" | "streaming" | "done" | "error";
 
 function StockSearchInput({
   value,
@@ -496,38 +489,39 @@ export default function EarningsAnalysisPage() {
   const searchString = useSearch();
   const urlParams = new URLSearchParams(searchString);
   const urlTicker = urlParams.get("ticker");
-  const urlJobId = urlParams.get("jobId");
   const urlMode = urlParams.get("mode") as AnalysisMode | null;
 
   const [searchTicker, setSearchTicker] = useState("");
   const [activeTicker, setActiveTicker] = useState<string | null>(urlTicker || null);
   const [mode, setMode] = useState<AnalysisMode>(urlMode || "preview");
-  const [jobId, setJobId] = useState<string | null>(urlJobId || null);
-  const [jobStatus, setJobStatus] = useState<JobStatus | null>(
-    urlJobId ? { jobId: urlJobId, status: "pending", progress: 0, message: "Starting analysis..." } : null
-  );
   const [result, setResult] = useState<DeepAnalysisResultData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isStarting, setIsStarting] = useState(false);
-  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollAttemptRef = useRef<number>(0);
-  const jobStartTimeRef = useRef<number>(Date.now());
-  const hasAutoStarted = useRef(!!urlJobId);
-  const { toast } = useToast();
-  const POLLING_TIMEOUT_MS = 6 * 60 * 1000; // 6 minutes (deep analysis can take up to 5 min)
 
-  const [deepJobId, setDeepJobId] = useState<string | null>(null);
-  const [deepJobStatus, setDeepJobStatus] = useState<JobStatus | null>(null);
-  const [deepResult, setDeepResult] = useState<DeepAnalysisResultData | null>(null);
-  const [deepError, setDeepError] = useState<string | null>(null);
-  const deepPollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const deepPollAttemptRef = useRef<number>(0);
-  const deepJobStartTimeRef = useRef<number>(Date.now());
-  const [showDeepCompletionAnimation, setShowDeepCompletionAnimation] = useState(false);
+  // Unified streaming state
+  const [streamState, setStreamState] = useState<StreamState>("idle");
+  const [streamingContent, setStreamingContent] = useState("");
+  const [streamingRecommendation, setStreamingRecommendation] = useState<any>(null);
+  const [streamProgress, setStreamProgress] = useState(0);
+  const [streamMessage, setStreamMessage] = useState("");
+  const [streamingMode, setStreamingMode] = useState<AnalysisMode>("preview");
+  const [selectedModel, setSelectedModel] = useState("");
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const contentBufferRef = useRef("");
+  const renderFrameRef = useRef<number | null>(null);
 
   const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
   const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
   const [showBroLimit, setShowBroLimit] = useState(false);
+
+  const { data: modelsData } = useQuery<{ models: { id: string; name: string; provider: string }[] }>({
+    queryKey: ["/api/fundamental-analysis/models"],
+  });
+
+  useEffect(() => {
+    if (modelsData?.models?.length && !selectedModel) {
+      setSelectedModel(modelsData.models[0].id);
+    }
+  }, [modelsData, selectedModel]);
 
   const { data: profile, isLoading: profileLoading, isError: profileError } = useQuery<StockProfile>({
     queryKey: ["/api/analysis/profile", activeTicker],
@@ -549,281 +543,132 @@ export default function EarningsAnalysisPage() {
 
   const hasDataErrors = profileError || chartError || metricsError;
 
-  const startAnalysis = useCallback(async (ticker: string, analysisMode: AnalysisMode) => {
+  const handleStartAnalysis = useCallback(async (ticker: string, analysisMode: AnalysisMode) => {
     if (!gate()) return;
     if (isAtLimit) {
       setShowBroLimit(true);
       return;
     }
-    setDeepError(null);
-    setDeepJobId(null);
-    setDeepJobStatus(null);
-    setDeepResult(null);
-    setShowDeepCompletionAnimation(false);
-    if (deepPollingRef.current) {
-      clearTimeout(deepPollingRef.current);
-      deepPollingRef.current = null;
-    }
-    setIsStarting(true);
-    setError(null);
+
+    // Abort any existing stream
+    abortControllerRef.current?.abort();
+    if (renderFrameRef.current) cancelAnimationFrame(renderFrameRef.current);
+
+    // Map mode to API mode
+    const apiMode = analysisMode === "preview" ? "earnings_preview"
+      : analysisMode === "review" ? "earnings_review"
+      : "deep_dive";
+
+    // Reset state
+    setStreamState("loading");
+    setStreamingContent("");
+    setStreamingRecommendation(null);
+    setStreamProgress(0);
+    setStreamMessage("Starting analysis...");
+    setStreamingMode(analysisMode);
+    setMode(analysisMode);
     setResult(null);
-    setJobId(null);
-    setJobStatus(null);
-    jobStartTimeRef.current = Date.now();
-    pollAttemptRef.current = 0;
-    if (pollingRef.current) {
-      clearTimeout(pollingRef.current);
-      pollingRef.current = null;
-    }
+    setError(null);
+    contentBufferRef.current = "";
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const res = await apiRequest("POST", "/api/fundamental-analysis/jobs", {
-        ticker: ticker.toUpperCase(),
-        mode: analysisMode,
-      });
-      const data = await res.json();
-      if (data.jobId) {
-        setJobId(data.jobId);
-        setJobStatus({ jobId: data.jobId, status: "pending", progress: 0, message: "Starting analysis..." });
-        refetchBroStatus();
-      } else {
-        throw new Error("No job ID returned");
-      }
+      await streamAnalysis(
+        { ticker: ticker.toUpperCase(), model: selectedModel || undefined, mode: apiMode },
+        {
+          onProgress: (progress, message) => {
+            setStreamProgress(progress);
+            setStreamMessage(message);
+          },
+          onContent: (chunk, fullContent) => {
+            contentBufferRef.current = fullContent;
+            // Batched rendering via rAF
+            if (!renderFrameRef.current) {
+              renderFrameRef.current = requestAnimationFrame(() => {
+                setStreamingContent(contentBufferRef.current);
+                setStreamState("streaming");
+                renderFrameRef.current = null;
+              });
+            }
+          },
+          onRecommendation: (rec) => {
+            setStreamingRecommendation(rec);
+          },
+          onDone: (fullContent, recommendation) => {
+            if (renderFrameRef.current) {
+              cancelAnimationFrame(renderFrameRef.current);
+              renderFrameRef.current = null;
+            }
+            const analysisResult: DeepAnalysisResultData = {
+              ticker: ticker.toUpperCase(),
+              mode: analysisMode === "preview" ? "Earnings Preview"
+                : analysisMode === "review" ? "Earnings Review"
+                : "Deep Analysis",
+              recommendation: recommendation?.recommendation || recommendation || {
+                action: "Hold",
+                confidence: 50,
+                targetPrice: 0,
+                upside: 0,
+                timeHorizon: "",
+                reasoning: "",
+              },
+              analysis: fullContent,
+              companyName: profile?.companyName,
+              currentPrice: profile?.price,
+            };
+            setResult(analysisResult);
+            setStreamState("done");
+            refetchBroStatus();
+          },
+          onError: (errorMsg) => {
+            setError(errorMsg);
+            setStreamState("error");
+          },
+        },
+        controller.signal,
+      );
     } catch (err: any) {
-      if (err instanceof ApiError && err.status === 429) {
+      if (err.name === "AbortError") return;
+      if (err instanceof StreamError && err.status === 429) {
         setShowBroLimit(true);
+        setStreamState("idle");
         return;
       }
-      setError("Failed to start analysis. Please try again.");
-      toast({
-        title: "Error",
-        description: "Failed to start analysis. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsStarting(false);
+      setError(err.message || "Failed to start analysis. Please try again.");
+      setStreamState("error");
     }
-  }, [toast, gate, isAtLimit, refetchBroStatus]);
-
-  const pollJobStatus = useCallback(async (currentJobId: string) => {
-    const elapsed = Date.now() - jobStartTimeRef.current;
-    if (elapsed > POLLING_TIMEOUT_MS) {
-      setError("Analysis timed out after 5 minutes. The server may be busy — please try again.");
-      if (pollingRef.current) {
-        clearTimeout(pollingRef.current);
-        pollingRef.current = null;
-      }
-      return;
-    }
-    try {
-      const res = await fetch(`/api/analysis/deep/job/${currentJobId}`);
-      if (!res.ok) throw new Error("Job not found");
-      const status = await res.json();
-      if (status.jobId !== currentJobId) return;
-      setJobStatus(status);
-      if (status.status === "completed") {
-        const resultRes = await fetch(`/api/analysis/deep/result/${currentJobId}`);
-        if (resultRes.ok) {
-          const raw = await resultRes.json();
-          const resultData = raw?.data || raw;
-          setResult(resultData);
-        }
-        if (pollingRef.current) {
-          clearTimeout(pollingRef.current);
-          pollingRef.current = null;
-        }
-        return;
-      } else if (status.status === "failed") {
-        setError("Analysis failed. Please try again.");
-        if (pollingRef.current) {
-          clearTimeout(pollingRef.current);
-          pollingRef.current = null;
-        }
-        return;
-      }
-    } catch (e) {
-      console.error("Poll error:", e);
-    }
-    // Schedule next poll with exponential backoff: 1s, 2s, 4s, 8s, capped at 10s
-    pollAttemptRef.current += 1;
-    const INITIAL_DELAY = 1000;
-    const MAX_DELAY = 10000;
-    const delay = Math.min(INITIAL_DELAY * Math.pow(2, pollAttemptRef.current), MAX_DELAY);
-    pollingRef.current = setTimeout(() => pollJobStatus(currentJobId), delay);
-  }, [POLLING_TIMEOUT_MS]);
-
-  useEffect(() => {
-    if (jobId && jobStatus?.status !== "completed" && jobStatus?.status !== "failed") {
-      pollAttemptRef.current = 0;
-      const INITIAL_DELAY = 1000;
-      pollingRef.current = setTimeout(() => pollJobStatus(jobId), INITIAL_DELAY);
-      return () => {
-        if (pollingRef.current) {
-          clearTimeout(pollingRef.current);
-          pollingRef.current = null;
-        }
-      };
-    }
-  }, [jobId, jobStatus?.status, pollJobStatus]);
-
-  const startDeepAnalysis = useMutation({
-    mutationFn: async (ticker: string) => {
-      const res = await apiRequest("POST", `/api/analysis/deep/${ticker}`);
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setDeepJobId(data.jobId);
-      setDeepJobStatus({ jobId: data.jobId, status: "pending", progress: 0, message: "Starting analysis..." });
-      setDeepResult(null);
-      setDeepError(null);
-      deepPollAttemptRef.current = 0;
-      deepJobStartTimeRef.current = Date.now();
-      refetchBroStatus();
-    },
-    onError: (error: any) => {
-      if (error instanceof ApiError && error.status === 429) {
-        setShowBroLimit(true);
-        return;
-      }
-      setDeepError("Failed to start analysis. Please try again.");
-    },
-  });
-
-  const pollDeepJobStatus = useCallback(async (currentJobId: string) => {
-    const elapsed = Date.now() - deepJobStartTimeRef.current;
-    if (elapsed > POLLING_TIMEOUT_MS) {
-      setDeepError("Analysis timed out. Please try again.");
-      setDeepJobStatus(null);
-      if (deepPollingRef.current) {
-        clearTimeout(deepPollingRef.current);
-        deepPollingRef.current = null;
-      }
-      return;
-    }
-    try {
-      const res = await fetch(`/api/analysis/deep/job/${currentJobId}`);
-      if (!res.ok) throw new Error("Job not found");
-      const status = await res.json();
-      if (status.jobId !== currentJobId) return;
-
-      if (status.status === "completed") {
-        const resultRes = await fetch(`/api/analysis/deep/result/${currentJobId}`);
-        if (resultRes.ok) {
-          const raw = await resultRes.json();
-          setDeepResult(raw?.data || raw);
-        } else {
-          setDeepError("Failed to load analysis result. Please try again.");
-        }
-        setDeepJobStatus(status);
-        if (deepPollingRef.current) {
-          clearTimeout(deepPollingRef.current);
-          deepPollingRef.current = null;
-        }
-        return;
-      } else if (status.status === "failed") {
-        setDeepJobStatus(status);
-        setDeepError("Analysis failed. Please try again.");
-        if (deepPollingRef.current) {
-          clearTimeout(deepPollingRef.current);
-          deepPollingRef.current = null;
-        }
-        return;
-      } else {
-        setDeepJobStatus(status);
-      }
-    } catch (e) {
-      console.error("Deep poll error:", e);
-    }
-    deepPollAttemptRef.current += 1;
-    const INITIAL_DELAY = 1000;
-    const MAX_DELAY = 10000;
-    const delay = Math.min(INITIAL_DELAY * Math.pow(2, deepPollAttemptRef.current), MAX_DELAY);
-    deepPollingRef.current = setTimeout(() => pollDeepJobStatus(currentJobId), delay);
-  }, [POLLING_TIMEOUT_MS]);
-
-  useEffect(() => {
-    if (deepJobId && deepJobStatus?.status !== "completed" && deepJobStatus?.status !== "failed") {
-      deepPollAttemptRef.current = 0;
-      const INITIAL_DELAY = 1000;
-      deepPollingRef.current = setTimeout(() => pollDeepJobStatus(deepJobId), INITIAL_DELAY);
-      return () => {
-        if (deepPollingRef.current) {
-          clearTimeout(deepPollingRef.current);
-          deepPollingRef.current = null;
-        }
-      };
-    }
-  }, [deepJobId, deepJobStatus?.status, pollDeepJobStatus]);
-
-  const isDeepJobComplete = deepJobStatus?.status === "completed";
-
-  useEffect(() => {
-    if (isDeepJobComplete && deepResult) {
-      setShowDeepCompletionAnimation(true);
-      const timer = setTimeout(() => setShowDeepCompletionAnimation(false), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [isDeepJobComplete, deepResult]);
-
-  const isDeepLoading = startDeepAnalysis.isPending ||
-    (deepJobStatus?.status === "pending" || deepJobStatus?.status === "processing");
+  }, [gate, isAtLimit, selectedModel, profile, refetchBroStatus]);
 
   const handleSubmit = (ticker: string) => {
     if (!gate()) return;
+    abortControllerRef.current?.abort();
+    if (renderFrameRef.current) {
+      cancelAnimationFrame(renderFrameRef.current);
+      renderFrameRef.current = null;
+    }
     setActiveTicker(ticker);
     setResult(null);
     setError(null);
-    setJobId(null);
-    setJobStatus(null);
-    setDeepJobId(null);
-    setDeepJobStatus(null);
-    setDeepResult(null);
-    setDeepError(null);
-    setShowDeepCompletionAnimation(false);
-    if (deepPollingRef.current) {
-      clearTimeout(deepPollingRef.current);
-      deepPollingRef.current = null;
-    }
-    hasAutoStarted.current = false;
+    setStreamState("idle");
+    setStreamingContent("");
+    setStreamingRecommendation(null);
+    setStreamProgress(0);
+    setStreamMessage("");
+    contentBufferRef.current = "";
   };
 
-  const clearEarningsState = useCallback(() => {
-    setResult(null);
-    setError(null);
-    setJobId(null);
-    setJobStatus(null);
-    setIsStarting(false);
-    if (pollingRef.current) {
-      clearTimeout(pollingRef.current);
-      pollingRef.current = null;
-    }
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      if (renderFrameRef.current) {
+        cancelAnimationFrame(renderFrameRef.current);
+        renderFrameRef.current = null;
+      }
+    };
   }, []);
-
-  const clearDeepState = useCallback(() => {
-    setDeepError(null);
-    setDeepJobId(null);
-    setDeepJobStatus(null);
-    setDeepResult(null);
-    setShowDeepCompletionAnimation(false);
-    if (deepPollingRef.current) {
-      clearTimeout(deepPollingRef.current);
-      deepPollingRef.current = null;
-    }
-  }, []);
-
-  const handleStartDeep = useCallback(() => {
-    if (!gate()) return;
-    if (isAtLimit) {
-      setShowBroLimit(true);
-      return;
-    }
-    if (activeTicker) {
-      clearEarningsState();
-      clearDeepState();
-      startDeepAnalysis.mutate(activeTicker);
-    }
-  }, [gate, isAtLimit, activeTicker, startDeepAnalysis, clearEarningsState, clearDeepState]);
-
-  const isLoading = isStarting || jobStatus?.status === "pending" || jobStatus?.status === "processing";
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -939,81 +784,125 @@ export default function EarningsAnalysisPage() {
               </div>
             )}
 
-            {/* Mode action cards — show when stock loaded, not analysing, no result */}
-            {activeTicker && !isLoading && !result && !error && !isDeepLoading && !deepResult && !deepError && !showDeepCompletionAnimation && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <button
-                  type="button"
-                  onClick={() => { setMode("preview"); startAnalysis(activeTicker, "preview"); }}
-                  className="bg-zinc-900 border border-zinc-800 hover:border-amber-500/50 rounded-lg p-6 cursor-pointer transition-all text-left group hover:shadow-[0_0_20px_rgba(245,158,11,0.1)]"
-                  data-testid="card-earnings-preview"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
-                      <Eye className="h-5 w-5 text-amber-400" />
-                    </div>
-                    <h3 className="font-semibold text-lg text-white">Earnings Preview</h3>
+            {/* Mode action cards — show when stock loaded, idle, no result */}
+            {activeTicker && streamState === "idle" && !result && !error && (
+              <>
+                {modelsData?.models && modelsData.models.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-zinc-400">Model:</span>
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      className="bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"
+                    >
+                      {modelsData.models.map((m) => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
                   </div>
-                  <p className="text-sm text-zinc-400">Analyse what to expect before earnings are reported</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setMode("review"); startAnalysis(activeTicker, "review"); }}
-                  className="bg-zinc-900 border border-zinc-800 hover:border-amber-500/50 rounded-lg p-6 cursor-pointer transition-all text-left group hover:shadow-[0_0_20px_rgba(245,158,11,0.1)]"
-                  data-testid="card-earnings-review"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
-                      <FileSearch className="h-5 w-5 text-amber-400" />
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleStartAnalysis(activeTicker, "preview")}
+                    className="bg-zinc-900 border border-zinc-800 hover:border-amber-500/50 rounded-lg p-6 cursor-pointer transition-all text-left group hover:shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                    data-testid="card-earnings-preview"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+                        <Eye className="h-5 w-5 text-amber-400" />
+                      </div>
+                      <h3 className="font-semibold text-lg text-white">Earnings Preview</h3>
                     </div>
-                    <h3 className="font-semibold text-lg text-white">Earnings Review</h3>
-                  </div>
-                  <p className="text-sm text-zinc-400">Evaluate results after earnings have been reported</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleStartDeep}
-                  className="bg-zinc-900 border border-zinc-800 hover:border-amber-500/50 rounded-lg p-6 cursor-pointer transition-all text-left group hover:shadow-[0_0_20px_rgba(245,158,11,0.1)]"
-                  data-testid="card-deep-analysis"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
-                      <Sparkles className="h-5 w-5 text-amber-400" />
+                    <p className="text-sm text-zinc-400">Analyse what to expect before earnings are reported</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStartAnalysis(activeTicker, "review")}
+                    className="bg-zinc-900 border border-zinc-800 hover:border-amber-500/50 rounded-lg p-6 cursor-pointer transition-all text-left group hover:shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                    data-testid="card-earnings-review"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+                        <FileSearch className="h-5 w-5 text-amber-400" />
+                      </div>
+                      <h3 className="font-semibold text-lg text-white">Earnings Review</h3>
                     </div>
-                    <h3 className="font-semibold text-lg text-white">Deep Analysis</h3>
-                  </div>
-                  <p className="text-sm text-zinc-400">Comprehensive AI fundamental analysis with buy/hold/sell recommendation</p>
-                </button>
-              </div>
+                    <p className="text-sm text-zinc-400">Evaluate results after earnings have been reported</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleStartAnalysis(activeTicker, "deep")}
+                    className="bg-zinc-900 border border-zinc-800 hover:border-amber-500/50 rounded-lg p-6 cursor-pointer transition-all text-left group hover:shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                    data-testid="card-deep-analysis"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+                        <Sparkles className="h-5 w-5 text-amber-400" />
+                      </div>
+                      <h3 className="font-semibold text-lg text-white">Deep Analysis</h3>
+                    </div>
+                    <p className="text-sm text-zinc-400">Comprehensive AI fundamental analysis with buy/hold/sell recommendation</p>
+                  </button>
+                </div>
+              </>
             )}
 
-            {error ? (
+            {error || streamState === "error" ? (
               <div className="bg-zinc-900 border border-red-500/30 rounded-lg p-6">
                 <div className="flex items-center gap-3">
                   <AlertCircle className="h-6 w-6 text-red-500" />
                   <div>
                     <p className="text-white font-medium">Analysis Failed</p>
-                    <p className="text-sm text-zinc-400">{error}</p>
+                    <p className="text-sm text-zinc-400">{error || "An error occurred"}</p>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
                     className="ml-auto border-zinc-700"
-                    onClick={() => activeTicker && startAnalysis(activeTicker, mode)}
+                    onClick={() => {
+                      setError(null);
+                      setStreamState("idle");
+                      if (activeTicker) handleStartAnalysis(activeTicker, mode);
+                    }}
                     data-testid="button-retry-analysis"
                   >
                     Retry
                   </Button>
                 </div>
               </div>
-            ) : isLoading ? (
+            ) : streamState === "loading" ? (
               <AnalysisLoader
                 ticker={activeTicker || ""}
-                mode={mode}
-                progress={jobStatus?.progress || 0}
-                message={jobStatus?.message || "Starting analysis..."}
-                isComplete={false}
+                mode={streamingMode}
+                progress={streamProgress}
+                message={streamMessage || "Starting analysis..."}
               />
+            ) : streamState === "streaming" ? (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-amber-950/10 border border-amber-500/20 rounded-lg p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Brain className="h-6 w-6 text-amber-500 animate-pulse" />
+                    <h3 className="font-bold text-xl text-white">Streaming Analysis</h3>
+                    <Badge variant="outline" className="border-amber-500/50 text-amber-400 uppercase text-xs">
+                      {streamingMode === "preview" ? "Earnings Preview" : streamingMode === "review" ? "Earnings Review" : "Deep Dive"}
+                    </Badge>
+                    <span className="flex items-center gap-1.5 ml-auto">
+                      <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-xs text-green-400">Live</span>
+                    </span>
+                  </div>
+                  {streamingRecommendation && (
+                    <div className="mb-4">
+                      <RecommendationBadge
+                        action={streamingRecommendation.action || streamingRecommendation.recommendation?.action || "Hold"}
+                        confidence={streamingRecommendation.confidence || streamingRecommendation.recommendation?.confidence || 50}
+                      />
+                    </div>
+                  )}
+                </div>
+                {streamingContent && <MarkdownSection content={streamingContent} />}
+              </div>
             ) : result ? (
               <>
                 <AnalysisResult result={result} />
@@ -1024,7 +913,7 @@ export default function EarningsAnalysisPage() {
                       variant="outline"
                       size="sm"
                       className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
-                      onClick={() => { setMode("preview"); startAnalysis(activeTicker, "preview"); }}
+                      onClick={() => activeTicker && handleStartAnalysis(activeTicker, "preview")}
                       data-testid="button-reanalyse-preview"
                     >
                       <Eye className="h-3.5 w-3.5" />
@@ -1034,7 +923,7 @@ export default function EarningsAnalysisPage() {
                       variant="outline"
                       size="sm"
                       className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
-                      onClick={() => { setMode("review"); startAnalysis(activeTicker, "review"); }}
+                      onClick={() => activeTicker && handleStartAnalysis(activeTicker, "review")}
                       data-testid="button-reanalyse-review"
                     >
                       <FileSearch className="h-3.5 w-3.5" />
@@ -1044,76 +933,8 @@ export default function EarningsAnalysisPage() {
                       variant="outline"
                       size="sm"
                       className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
-                      onClick={handleStartDeep}
+                      onClick={() => activeTicker && handleStartAnalysis(activeTicker, "deep")}
                       data-testid="button-reanalyse-deep"
-                    >
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Deep Analysis
-                    </Button>
-                  </div>
-                </div>
-              </>
-            ) : null}
-
-            {deepError ? (
-              <div className="bg-zinc-900 border border-red-500/30 rounded-lg p-6">
-                <div className="flex items-center gap-3">
-                  <AlertCircle className="h-6 w-6 text-red-500" />
-                  <div>
-                    <p className="text-white font-medium">Deep Analysis Failed</p>
-                    <p className="text-sm text-zinc-400">{deepError}</p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="ml-auto border-zinc-700"
-                    onClick={handleStartDeep}
-                    data-testid="button-retry-deep-analysis"
-                  >
-                    Retry
-                  </Button>
-                </div>
-              </div>
-            ) : isDeepLoading || showDeepCompletionAnimation ? (
-              <AnalysisLoader
-                ticker={activeTicker || ""}
-                mode="deep"
-                progress={deepJobStatus?.progress || 0}
-                message={showDeepCompletionAnimation ? "Analysis complete!" : (deepJobStatus?.message || "Starting analysis...")}
-                isComplete={isDeepJobComplete}
-              />
-            ) : deepResult ? (
-              <>
-                <AnalysisResult result={deepResult} />
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 pb-4">
-                  <span className="text-sm text-zinc-500">Want a different perspective?</span>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
-                      onClick={() => { setMode("preview"); startAnalysis(activeTicker, "preview"); }}
-                      data-testid="button-deep-to-preview"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      Earnings Preview
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
-                      onClick={() => { setMode("review"); startAnalysis(activeTicker, "review"); }}
-                      data-testid="button-deep-to-review"
-                    >
-                      <FileSearch className="h-3.5 w-3.5" />
-                      Earnings Review
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:text-white hover:border-amber-500/50 gap-2"
-                      onClick={handleStartDeep}
-                      data-testid="button-rerun-deep"
                     >
                       <Sparkles className="h-3.5 w-3.5" />
                       Deep Analysis

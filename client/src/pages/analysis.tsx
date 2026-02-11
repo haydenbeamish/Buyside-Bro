@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,8 @@ import {
   ChevronUp,
   ExternalLink,
 } from "lucide-react";
-import { apiRequest, ApiError } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
+import { streamAnalysis, StreamError } from "@/lib/stream-analysis";
 import { useLoginGate } from "@/hooks/use-login-gate";
 import { LoginGateModal } from "@/components/login-gate-modal";
 import { useBroStatus } from "@/hooks/use-bro-status";
@@ -85,12 +86,7 @@ interface DeepAnalysisResult {
   currentPrice?: number;
 }
 
-interface JobStatus {
-  jobId: string;
-  status: "pending" | "processing" | "completed" | "failed";
-  progress: number;
-  message: string;
-}
+type StreamState = "idle" | "loading" | "streaming" | "done" | "error";
 
 interface ForwardMetrics {
   ticker: string;
@@ -747,23 +743,37 @@ export default function AnalysisPage() {
   const searchString = useSearch();
   const urlParams = new URLSearchParams(searchString);
   const urlTicker = urlParams.get("ticker");
-  const urlJobId = urlParams.get("jobId");
 
   const [searchTicker, setSearchTicker] = useState(urlTicker || "MSFT");
   const [activeTicker, setActiveTicker] = useState<string | null>(urlTicker || "MSFT");
-  const [deepJobId, setDeepJobId] = useState<string | null>(urlJobId || null);
-  const [deepJobStatus, setDeepJobStatus] = useState<JobStatus | null>(
-    urlJobId ? { jobId: urlJobId, status: "pending", progress: 0, message: "Starting analysis..." } : null
-  );
   const [deepResult, setDeepResult] = useState<DeepAnalysisResult | null>(null);
   const [deepError, setDeepError] = useState<string | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pollAttemptRef = useRef<number>(0);
   const deepResultCache = useRef<Record<string, DeepAnalysisResult>>({});
+
+  // Streaming state
+  const [streamState, setStreamState] = useState<StreamState>("idle");
+  const [streamingContent, setStreamingContent] = useState("");
+  const [streamingRecommendation, setStreamingRecommendation] = useState<any>(null);
+  const [streamProgress, setStreamProgress] = useState(0);
+  const [streamMessage, setStreamMessage] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const contentBufferRef = useRef("");
+  const renderFrameRef = useRef<number | null>(null);
 
   const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
   const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
   const [showBroLimit, setShowBroLimit] = useState(false);
+
+  const { data: modelsData } = useQuery<{ models: { id: string; name: string; provider: string }[] }>({
+    queryKey: ["/api/fundamental-analysis/models"],
+  });
+
+  useEffect(() => {
+    if (modelsData?.models?.length && !selectedModel) {
+      setSelectedModel(modelsData.models[0].id);
+    }
+  }, [modelsData, selectedModel]);
 
   const handleAnalyze = useCallback((symbol: string) => {
     if (!isAuthenticated && symbol.toUpperCase() !== "MSFT") {
@@ -783,128 +793,122 @@ export default function AnalysisPage() {
     enabled: !!activeTicker,
   });
 
-
   const { data: forwardMetrics, isLoading: metricsLoading } = useQuery<ForwardMetrics>({
     queryKey: ["/api/analysis/forward", activeTicker],
     enabled: !!activeTicker,
   });
 
-
-  const startDeepAnalysis = useMutation({
-    mutationFn: async (ticker: string) => {
-      const res = await apiRequest("POST", `/api/analysis/deep/${ticker}`);
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setDeepJobId(data.jobId);
-      setDeepJobStatus({ jobId: data.jobId, status: "pending", progress: 0, message: "Starting analysis..." });
-      setDeepResult(null);
-      setDeepError(null);
-      pollAttemptRef.current = 0;
-      refetchBroStatus();
-    },
-    onError: (error: any) => {
-      if (error instanceof ApiError && error.status === 429) {
-        setShowBroLimit(true);
-        return;
-      }
-      setDeepError("Failed to start analysis. Please try again.");
-      console.error("Deep analysis error:", error);
-    },
-  });
-
-  const pollStartTimeRef = useRef<number>(Date.now());
-  const POLL_TIMEOUT_MS = 6 * 60 * 1000; // 6 minutes max (deep analysis can take up to 5 min)
-
-  const pollJobStatus = useCallback(async (jobId: string) => {
-    // Check if we've exceeded the max polling time
-    if (Date.now() - pollStartTimeRef.current > POLL_TIMEOUT_MS) {
-      setDeepError("Analysis timed out after 6 minutes. Please try again.");
-      setDeepJobStatus(null);
-      if (pollingRef.current) {
-        clearTimeout(pollingRef.current);
-        pollingRef.current = null;
-      }
+  const handleRunDeepAnalysis = useCallback(async () => {
+    if (!gate()) return;
+    if (isAtLimit) {
+      setShowBroLimit(true);
       return;
     }
+    if (!activeTicker) return;
+
+    // Abort any existing stream
+    abortControllerRef.current?.abort();
+    if (renderFrameRef.current) cancelAnimationFrame(renderFrameRef.current);
+
+    // Reset streaming state
+    setStreamState("loading");
+    setStreamingContent("");
+    setStreamingRecommendation(null);
+    setStreamProgress(0);
+    setStreamMessage("Starting analysis...");
+    setDeepResult(null);
+    setDeepError(null);
+    contentBufferRef.current = "";
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
-      const res = await fetch(`/api/analysis/deep/job/${jobId}`);
-      if (!res.ok) throw new Error("Job not found");
-      const status = await res.json();
-      // Guard against stale updates - only update if this is still the current job
-      if (status.jobId !== jobId) {
-        return; // Ignore stale update
-      }
-
-      if (status.status === "completed") {
-        // Fetch result BEFORE updating status so the loader stays visible
-        const resultRes = await fetch(`/api/analysis/deep/result/${jobId}`);
-        if (resultRes.ok) {
-          const raw = await resultRes.json();
-          const result = raw?.data || raw;
-          setDeepResult(result);
-          if (activeTicker) {
+      await streamAnalysis(
+        { ticker: activeTicker, model: selectedModel || undefined, mode: "deep_dive" },
+        {
+          onProgress: (progress, message) => {
+            setStreamProgress(progress);
+            setStreamMessage(message);
+          },
+          onContent: (chunk, fullContent) => {
+            contentBufferRef.current = fullContent;
+            if (streamState !== "streaming") {
+              setStreamState("streaming");
+            }
+            // Batched rendering via rAF
+            if (!renderFrameRef.current) {
+              renderFrameRef.current = requestAnimationFrame(() => {
+                setStreamingContent(contentBufferRef.current);
+                setStreamState("streaming");
+                renderFrameRef.current = null;
+              });
+            }
+          },
+          onRecommendation: (rec) => {
+            setStreamingRecommendation(rec);
+          },
+          onDone: (fullContent, recommendation) => {
+            // Flush any remaining buffered content
+            if (renderFrameRef.current) {
+              cancelAnimationFrame(renderFrameRef.current);
+              renderFrameRef.current = null;
+            }
+            const result: DeepAnalysisResult = {
+              ticker: activeTicker,
+              mode: "deep_dive",
+              recommendation: recommendation?.recommendation || recommendation || {
+                action: "Hold",
+                confidence: 50,
+                targetPrice: 0,
+                upside: 0,
+                timeHorizon: "",
+                reasoning: "",
+              },
+              analysis: fullContent,
+              companyName: profile?.companyName,
+              currentPrice: profile?.price,
+            };
+            setDeepResult(result);
             deepResultCache.current[activeTicker] = result;
-          }
-        } else {
-          setDeepError("Failed to load analysis result. Please try again.");
-        }
-        // Update status after result is set so both render together
-        setDeepJobStatus(status);
-        if (pollingRef.current) {
-          clearTimeout(pollingRef.current);
-          pollingRef.current = null;
-        }
+            setStreamState("done");
+            refetchBroStatus();
+          },
+          onError: (errorMsg) => {
+            setDeepError(errorMsg);
+            setStreamState("error");
+          },
+        },
+        controller.signal,
+      );
+    } catch (err: any) {
+      if (err.name === "AbortError") return;
+      if (err instanceof StreamError && err.status === 429) {
+        setShowBroLimit(true);
+        setStreamState("idle");
         return;
-      } else if (status.status === "failed") {
-        setDeepJobStatus(status);
-        setDeepError("Analysis failed. Please try again.");
-        if (pollingRef.current) {
-          clearTimeout(pollingRef.current);
-          pollingRef.current = null;
-        }
-        return;
-      } else {
-        setDeepJobStatus(status);
       }
-    } catch (e) {
-      console.error("Poll error:", e);
+      setDeepError(err.message || "Failed to start analysis. Please try again.");
+      setStreamState("error");
     }
-    // Schedule next poll with exponential backoff: 1s, 2s, 4s, 8s, capped at 10s
-    pollAttemptRef.current += 1;
-    const INITIAL_DELAY = 1000;
-    const MAX_DELAY = 10000;
-    const delay = Math.min(INITIAL_DELAY * Math.pow(2, pollAttemptRef.current), MAX_DELAY);
-    pollingRef.current = setTimeout(() => pollJobStatus(jobId), delay);
-  }, []);
+  }, [gate, isAtLimit, activeTicker, selectedModel, profile, refetchBroStatus]);
 
-  useEffect(() => {
-    if (deepJobId && deepJobStatus?.status !== "completed" && deepJobStatus?.status !== "failed") {
-      pollAttemptRef.current = 0;
-      pollStartTimeRef.current = Date.now();
-      const INITIAL_DELAY = 1000;
-      pollingRef.current = setTimeout(() => pollJobStatus(deepJobId), INITIAL_DELAY);
-      return () => {
-        if (pollingRef.current) {
-          clearTimeout(pollingRef.current);
-          pollingRef.current = null;
-        }
-      };
-    }
-  }, [deepJobId, deepJobStatus?.status, pollJobStatus]);
-
+  // Ticker change: abort stream, reset state, load cached
   const prevTickerRef = useRef<string | null>(activeTicker);
   useEffect(() => {
     if (activeTicker && activeTicker !== prevTickerRef.current) {
-      if (pollingRef.current) {
-        clearTimeout(pollingRef.current);
-        pollingRef.current = null;
+      abortControllerRef.current?.abort();
+      if (renderFrameRef.current) {
+        cancelAnimationFrame(renderFrameRef.current);
+        renderFrameRef.current = null;
       }
-      setDeepJobId(null);
-      setDeepJobStatus(null);
+      setStreamState("idle");
+      setStreamingContent("");
+      setStreamingRecommendation(null);
+      setStreamProgress(0);
+      setStreamMessage("");
       setDeepError(null);
-      setShowCompletionAnimation(false);
+      contentBufferRef.current = "";
       const cached = deepResultCache.current[activeTicker];
       if (cached) {
         setDeepResult(cached);
@@ -914,15 +918,17 @@ export default function AnalysisPage() {
     }
     prevTickerRef.current = activeTicker;
     return () => {
-      if (pollingRef.current) {
-        clearTimeout(pollingRef.current);
-        pollingRef.current = null;
+      abortControllerRef.current?.abort();
+      if (renderFrameRef.current) {
+        cancelAnimationFrame(renderFrameRef.current);
+        renderFrameRef.current = null;
       }
     };
   }, [activeTicker]);
 
+  // Load MSFT cached analysis for unauthenticated users
   useEffect(() => {
-    if (!isAuthenticated && activeTicker === "MSFT" && !deepResult && !deepJobId) {
+    if (!isAuthenticated && activeTicker === "MSFT" && !deepResult && streamState === "idle") {
       fetch("/api/analysis/deep/cached/MSFT")
         .then(res => res.ok ? res.json() : null)
         .then(data => {
@@ -933,24 +939,7 @@ export default function AnalysisPage() {
         })
         .catch(() => {});
     }
-  }, [isAuthenticated, activeTicker]);
-
-  const isJobComplete = deepJobStatus?.status === "completed";
-  const [showCompletionAnimation, setShowCompletionAnimation] = useState(false);
-
-  // When job completes, briefly show 100% progress before revealing the result
-  useEffect(() => {
-    if (isJobComplete && deepResult) {
-      setShowCompletionAnimation(true);
-      const timer = setTimeout(() => {
-        setShowCompletionAnimation(false);
-      }, 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [isJobComplete, deepResult]);
-
-  const isDeepLoading = startDeepAnalysis.isPending ||
-    (deepJobStatus?.status === "pending" || deepJobStatus?.status === "processing");
+  }, [isAuthenticated, activeTicker, streamState]);
 
   const formatMarketCap = (value: number) => {
     if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
@@ -1109,36 +1098,22 @@ export default function AnalysisPage() {
             )}
 
 
-            {deepError ? (
+            {deepError || streamState === "error" ? (
               <div className="bg-zinc-900 border border-red-500/30 rounded-lg p-6">
                 <div className="flex items-center gap-3">
                   <AlertCircle className="h-6 w-6 text-red-500" />
                   <div>
                     <p className="text-white font-medium">Analysis Failed</p>
-                    <p className="text-sm text-zinc-400">{deepError}</p>
+                    <p className="text-sm text-zinc-400">{deepError || "An error occurred"}</p>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
                     className="ml-auto border-zinc-700"
                     onClick={() => {
-                      if (!gate()) return;
-                      if (isAtLimit) {
-                        setShowBroLimit(true);
-                        return;
-                      }
-                      if (activeTicker) {
-                        // Clear error and state before retrying
-                        setDeepError(null);
-                        setDeepJobId(null);
-                        setDeepJobStatus(null);
-                        setDeepResult(null);
-                        if (pollingRef.current) {
-                          clearTimeout(pollingRef.current);
-                          pollingRef.current = null;
-                        }
-                        startDeepAnalysis.mutate(activeTicker);
-                      }
+                      setDeepError(null);
+                      setStreamState("idle");
+                      handleRunDeepAnalysis();
                     }}
                     data-testid="button-retry-analysis"
                   >
@@ -1146,13 +1121,37 @@ export default function AnalysisPage() {
                   </Button>
                 </div>
               </div>
-            ) : isDeepLoading || showCompletionAnimation ? (
+            ) : streamState === "loading" ? (
               <DeepAnalysisLoader
                 ticker={activeTicker || ""}
-                progress={deepJobStatus?.progress || 0}
-                message={showCompletionAnimation ? "Analysis complete!" : (deepJobStatus?.message || "Starting analysis...")}
-                isComplete={isJobComplete}
+                progress={streamProgress}
+                message={streamMessage || "Starting analysis..."}
               />
+            ) : streamState === "streaming" ? (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-br from-zinc-900 via-zinc-900 to-amber-950/10 border border-amber-500/20 rounded-lg p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Brain className="h-6 w-6 text-amber-500 animate-pulse" />
+                    <h3 className="font-bold text-xl text-white">Streaming Analysis</h3>
+                    <Badge variant="outline" className="border-amber-500/50 text-amber-400 uppercase text-xs">
+                      Deep Dive
+                    </Badge>
+                    <span className="flex items-center gap-1.5 ml-auto">
+                      <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-xs text-green-400">Live</span>
+                    </span>
+                  </div>
+                  {streamingRecommendation && (
+                    <div className="mb-4">
+                      <RecommendationBadge
+                        action={streamingRecommendation.action || streamingRecommendation.recommendation?.action || "Hold"}
+                        confidence={streamingRecommendation.confidence || streamingRecommendation.recommendation?.confidence || 50}
+                      />
+                    </div>
+                  )}
+                </div>
+                {streamingContent && <MarkdownSection content={streamingContent} />}
+              </div>
             ) : deepResult ? (
               <DeepAnalysisResult result={deepResult} />
             ) : (
@@ -1162,32 +1161,28 @@ export default function AnalysisPage() {
                 <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
                   Get a comprehensive AI-powered fundamental analysis with buy/hold/sell recommendation for {activeTicker}.
                 </p>
-                <Button
-                  variant="terminal"
-                  className="uppercase tracking-wider"
-                  onClick={() => {
-                    if (!gate()) return;
-                    if (isAtLimit) {
-                      setShowBroLimit(true);
-                      return;
-                    }
-                    if (activeTicker) {
-                      setDeepError(null);
-                      setDeepJobId(null);
-                      setDeepJobStatus(null);
-                      setDeepResult(null);
-                      if (pollingRef.current) {
-                        clearTimeout(pollingRef.current);
-                        pollingRef.current = null;
-                      }
-                      startDeepAnalysis.mutate(activeTicker);
-                    }
-                  }}
-                  disabled={startDeepAnalysis.isPending}
-                  data-testid="button-run-deep-analysis"
-                >
-                  Run Deep Analysis
-                </Button>
+                <div className="flex items-center justify-center gap-3">
+                  {modelsData?.models && modelsData.models.length > 1 && (
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      className="bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"
+                    >
+                      {modelsData.models.map((m) => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  )}
+                  <Button
+                    variant="terminal"
+                    className="uppercase tracking-wider"
+                    onClick={handleRunDeepAnalysis}
+                    disabled={streamState === "loading" || streamState === "streaming"}
+                    data-testid="button-run-deep-analysis"
+                  >
+                    Run Deep Analysis
+                  </Button>
+                </div>
               </div>
             )}
 
