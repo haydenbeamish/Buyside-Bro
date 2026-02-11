@@ -159,18 +159,17 @@ export async function setupAuth(app: Express) {
         console.error("[Auth Callback] Authentication failed - no user returned. Info:", info);
         return res.redirect("/");
       }
-      req.logIn(user, (loginErr) => {
+      (req.logIn as Function)(user, { keepSessionInfo: true }, (loginErr: any) => {
         if (loginErr) {
           console.error("[Auth Callback] Error during login:", loginErr);
           return res.redirect("/");
         }
-        // Explicitly save session before redirect to prevent race condition
-        // where browser follows redirect before session is persisted
         req.session.save((saveErr) => {
           if (saveErr) {
             console.error("[Auth Callback] Error saving session:", saveErr);
           }
-          return res.redirect("/whats-up");
+          res.setHeader("Content-Type", "text/html");
+          res.end(`<html><head><meta http-equiv="refresh" content="0;url=/whats-up"></head><body></body></html>`);
         });
       });
     })(req, res, next);
