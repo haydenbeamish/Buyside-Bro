@@ -647,6 +647,112 @@ export async function registerRoutes(
     }
   });
 
+  // US Market session status (computed from server time, no external API)
+  app.get("/api/markets/us-status", async (_req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    try {
+      const now = new Date();
+      const etFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        hour: 'numeric', minute: 'numeric', second: 'numeric',
+        weekday: 'short', hour12: false,
+      });
+      const aestFormatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Australia/Sydney',
+        hour: 'numeric', minute: 'numeric', second: 'numeric',
+        weekday: 'short', hour12: false,
+      });
+
+      const etParts = etFormatter.formatToParts(now);
+      const hour = parseInt(etParts.find(p => p.type === 'hour')?.value || '0');
+      const minute = parseInt(etParts.find(p => p.type === 'minute')?.value || '0');
+      const weekday = etParts.find(p => p.type === 'weekday')?.value || '';
+      const currentMinutes = hour * 60 + minute;
+
+      const isWeekend = weekday === 'Sat' || weekday === 'Sun';
+      const PRE_OPEN = 4 * 60;       // 4:00 AM
+      const MARKET_OPEN = 9 * 60 + 30; // 9:30 AM
+      const MARKET_CLOSE = 16 * 60;    // 4:00 PM
+      const AFTER_CLOSE = 20 * 60;     // 8:00 PM
+
+      let status: string;
+      let nextEvent: string;
+      let minutesToNext: number;
+
+      if (isWeekend) {
+        status = 'closed';
+        nextEvent = 'Pre-market Monday';
+        const daysUntilMon = weekday === 'Sat' ? 2 : 1;
+        minutesToNext = daysUntilMon * 24 * 60 + (PRE_OPEN - currentMinutes);
+      } else if (currentMinutes < PRE_OPEN) {
+        status = 'closed';
+        nextEvent = 'Pre-market opens';
+        minutesToNext = PRE_OPEN - currentMinutes;
+      } else if (currentMinutes < MARKET_OPEN) {
+        status = 'pre-market';
+        nextEvent = 'Market opens';
+        minutesToNext = MARKET_OPEN - currentMinutes;
+      } else if (currentMinutes < MARKET_CLOSE) {
+        status = 'open';
+        nextEvent = 'Market closes';
+        minutesToNext = MARKET_CLOSE - currentMinutes;
+      } else if (currentMinutes < AFTER_CLOSE) {
+        status = 'after-hours';
+        nextEvent = 'After-hours ends';
+        minutesToNext = AFTER_CLOSE - currentMinutes;
+      } else {
+        status = 'closed';
+        nextEvent = 'Pre-market tomorrow';
+        minutesToNext = (24 * 60 - currentMinutes) + PRE_OPEN;
+      }
+
+      const etTimeStr = etParts.filter(p => ['hour', 'minute', 'second'].includes(p.type)).map(p => p.value).join(':').replace(/:(?=\d:)/, ':');
+      const aestTimeStr = aestFormatter.format(now);
+
+      res.json({
+        status,
+        currentTimeET: etFormatter.format(now),
+        currentTimeAEST: aestTimeStr,
+        nextEvent,
+        minutesToNext,
+      });
+    } catch (error) {
+      console.error("US status error:", error);
+      res.json({ status: 'unknown', currentTimeET: '', currentTimeAEST: '', nextEvent: '', minutesToNext: 0 });
+    }
+  });
+
+  // Intraday chart data for US indices (proxied from LaserBeam API)
+  app.get("/api/markets/intraday", async (req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    try {
+      const symbolsParam = (req.query.symbols as string) || "SPY,QQQ,DIA";
+
+      const cacheKey = `intraday_${symbolsParam.replace(/,/g, "_")}`;
+      const cached = await storage.getCachedData(cacheKey);
+      if (cached) {
+        return res.json(cached);
+      }
+
+      const response = await fetchWithTimeout(
+        `${LASER_BEAM_API}/api/markets/intraday?symbols=${encodeURIComponent(symbolsParam)}`,
+        { headers: LASER_BEAM_HEADERS },
+        15000
+      );
+
+      if (!response.ok) {
+        throw new Error(`LaserBeam intraday API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+      await storage.setCachedData(cacheKey, data, 2); // 2-minute cache
+      res.json(data);
+    } catch (error) {
+      console.error("Intraday API error:", error);
+      res.status(500).json({ error: "Failed to fetch intraday data", symbols: {} });
+    }
+  });
+
   app.post("/api/admin/clear-market-cache", isAdmin, async (req: any, res: Response) => {
     try {
       const cacheKeys = ["markets", "markets_full", "market_summary"];

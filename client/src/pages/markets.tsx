@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import AsxUsaMarketsSection from "@/components/asx-usa-markets";
 
 
 type FlashCells = Record<string, "up" | "down">;
@@ -619,6 +620,8 @@ export default function MarketsPage() {
             <MarketsTable items={markets?.forex || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
         </Tabs>
+
+        <AsxUsaMarketsSection markets={markets} />
 
       </div>
     </div>
