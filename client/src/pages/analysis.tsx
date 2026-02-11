@@ -739,7 +739,7 @@ function AILoadingAnimation({ ticker }: { ticker: string }) {
 }
 
 export default function AnalysisPage() {
-  useDocumentTitle("Company Analysis", "AI-powered deep dive stock analysis with BUY/HOLD/SELL recommendations, confidence scores, and target prices. Hedge fund quality research using SEC filings, financials, and multiple AI models on Buy Side Bro.");
+  useDocumentTitle("Company Analysis", "Hedge fund quality deep dive stock analysis with BUY/HOLD/SELL recommendations, confidence scores, and target prices. Expert research using SEC filings, financials, and multiple analytical models on Buy Side Bro.");
   const searchString = useSearch();
   const urlParams = new URLSearchParams(searchString);
   const urlTicker = urlParams.get("ticker");
@@ -1159,7 +1159,7 @@ export default function AnalysisPage() {
                 <Brain className="h-10 w-10 text-amber-500/60 mx-auto mb-4" />
                 <h3 className="font-semibold text-white mb-2">Deep Analysis</h3>
                 <p className="text-sm text-zinc-500 max-w-md mx-auto mb-6">
-                  Get a comprehensive AI-powered fundamental analysis with buy/hold/sell recommendation for {activeTicker}.
+                  Get a comprehensive hedge fund quality fundamental analysis with buy/hold/sell recommendation for {activeTicker}.
                 </p>
                 <div className="flex items-center justify-center gap-3">
                   {modelsData?.models && modelsData.models.length > 1 && (

@@ -132,8 +132,8 @@ export function welcomeEmail(params: { firstName?: string }): { subject: string;
               <ul style="margin:0 0 16px;padding-left:20px;">
                 <li style="margin-bottom:8px;">Track live global market data across US, ASX, and European markets</li>
                 <li style="margin-bottom:8px;">Build your watchlist and portfolio</li>
-                <li style="margin-bottom:8px;">Get AI-powered stock analysis</li>
-                <li style="margin-bottom:8px;">Chat with Ask Bro, your AI markets assistant</li>
+                <li style="margin-bottom:8px;">Get hedge fund quality stock analysis</li>
+                <li style="margin-bottom:8px;">Chat with Ask Bro, your CFA-certified research analyst</li>
                 <li style="margin-bottom:8px;">Receive daily market close wrap emails</li>
               </ul>
               <p style="margin:0;">Head to the dashboard to get started.</p>

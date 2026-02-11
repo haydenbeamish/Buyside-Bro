@@ -3,25 +3,25 @@ import { getUncachableStripeClient } from '../server/stripeClient';
 const CREDIT_PACKS = [
   {
     name: '$10 Credit Pack',
-    description: '100 AI credits for stock analysis and chat',
+    description: '100 Bro credits for stock analysis and chat',
     amount: 1000,
     credits_cents: 1000,
   },
   {
     name: '$25 Credit Pack',
-    description: '250 AI credits for stock analysis and chat',
+    description: '250 Bro credits for stock analysis and chat',
     amount: 2500,
     credits_cents: 2500,
   },
   {
     name: '$50 Credit Pack',
-    description: '500 AI credits for stock analysis and chat',
+    description: '500 Bro credits for stock analysis and chat',
     amount: 5000,
     credits_cents: 5000,
   },
   {
     name: '$100 Credit Pack',
-    description: '1000 AI credits for stock analysis and chat',
+    description: '1000 Bro credits for stock analysis and chat',
     amount: 10000,
     credits_cents: 10000,
   },

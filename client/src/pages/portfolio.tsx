@@ -80,7 +80,7 @@ function formatEarningsDate(date: string | null): string {
 }
 
 export default function PortfolioPage() {
-  useDocumentTitle("Portfolio Tracker", "Track your investment portfolio with automated holdings import, AI thematic classification, sector exposure analysis, net/gross exposure breakdowns, and AI-powered portfolio reviews on Buy Side Bro.");
+  useDocumentTitle("Portfolio Tracker", "Track your investment portfolio with automated holdings import, thematic classification, sector exposure analysis, net/gross exposure breakdowns, and expert portfolio reviews on Buy Side Bro.");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newHolding, setNewHolding] = useState({
     ticker: "",

@@ -485,7 +485,7 @@ function AnalysisResult({ result }: { result: DeepAnalysisResultData }) {
 }
 
 export default function EarningsAnalysisPage() {
-  useDocumentTitle("Earnings Analysis", "AI-powered earnings analysis with preview and review summaries, consensus expectations, beat/miss analysis, and guidance changes. Powered by Claude, Gemini, and DeepSeek AI models on Buy Side Bro.");
+  useDocumentTitle("Earnings Analysis", "Expert earnings analysis with preview and review summaries, consensus expectations, beat/miss analysis, and guidance changes. Powered by Claude, Gemini, and DeepSeek analytical models on Buy Side Bro.");
   const searchString = useSearch();
   const urlParams = new URLSearchParams(searchString);
   const urlTicker = urlParams.get("ticker");
@@ -842,7 +842,7 @@ export default function EarningsAnalysisPage() {
                       </div>
                       <h3 className="font-semibold text-lg text-white">Deep Analysis</h3>
                     </div>
-                    <p className="text-sm text-zinc-400">Comprehensive AI fundamental analysis with buy/hold/sell recommendation</p>
+                    <p className="text-sm text-zinc-400">Comprehensive fundamental analysis with buy/hold/sell recommendation</p>
                   </button>
                 </div>
               </>

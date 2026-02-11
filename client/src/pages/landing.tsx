@@ -144,9 +144,9 @@ function HeroSection() {
   const { isAuthenticated } = useAuth();
   const valueProps = [
     "100+ live tickers — indices, futures, forex, commodities",
-    "AI Deep Dive reports with BUY/HOLD/SELL recommendations",
+    "Deep Dive reports with BUY/HOLD/SELL recommendations",
     "Automated portfolio tracking & performance analytics",
-    "Chat Bro — your AI-powered research assistant"
+    "Chat Bro — your CFA-certified research analyst on the buyside"
   ];
 
   return (
@@ -156,7 +156,7 @@ function HeroSection() {
           <div className="lg:w-1/2 flex justify-center order-2 lg:order-1">
             <img
               src={heroImg}
-              alt="Buy Side Bro terminal mascot - your AI-powered financial markets assistant"
+              alt="Buy Side Bro terminal mascot - your bro on the buyside"
               className="w-56 h-56 sm:w-72 sm:h-72 md:w-96 md:h-96 lg:w-[28rem] lg:h-[28rem] object-contain"
               width="448"
               height="448"
@@ -169,7 +169,7 @@ function HeroSection() {
               Markets. Stocks.<br />Portfolios. Sorted.
             </h1>
             <p className="text-amber-400 text-xl md:text-2xl mb-8 display-font italic">
-              Your AI-Powered Investment Research Terminal.
+              Your Bro on the Buyside. CFA-Certified. Hedge Fund Grade.
             </p>
 
             <div className="space-y-3 mb-8">
@@ -182,7 +182,7 @@ function HeroSection() {
             </div>
 
             <p className="text-zinc-500 text-xs mb-6">
-              Free stock analysis terminal &amp; Bloomberg alternative. Live market data, AI-powered research, and portfolio analytics — no subscription required to start.
+              Free stock analysis terminal &amp; Bloomberg alternative. Live market data, hedge fund quality research, and portfolio analytics — no subscription required to start.
             </p>
 
             <Link href={isAuthenticated ? "/whats-up" : "/dashboard"}>
@@ -202,8 +202,8 @@ const featureShowcase = [
     image: screenshotWhatsUp,
     icon: Sparkles,
     title: "WHAT'S UP",
-    subtitle: "AI-generated market wraps for every region",
-    description: "Start every session with AI-generated regional wraps for US, ASX, European, and Asian markets — auto-triggered on each market close. Get top gainers and losers narratives, overnight recaps, and closing summaries all in one feed.",
+    subtitle: "Analyst-written market wraps for every region",
+    description: "Start every session with professionally crafted regional wraps for US, ASX, European, and Asian markets — auto-triggered on each market close. Get top gainers and losers narratives, overnight recaps, and closing summaries all in one feed.",
   },
   {
     image: screenshotMarkets,
@@ -216,8 +216,8 @@ const featureShowcase = [
     image: screenshotPortfolio,
     icon: Briefcase,
     title: "PORTFOLIO TRACKER",
-    subtitle: "Automated holdings with AI-powered insights",
-    description: "Automatically import holdings from your NAV Portfolio Notebook via email. View net/gross exposure, long/short split, cash, futures, and options breakdowns. AI thematic classification of holdings, sector and market cap exposure analysis, plus an AI portfolio review that flags concentration risks.",
+    subtitle: "Automated holdings with expert-driven insights",
+    description: "Automatically import holdings from your NAV Portfolio Notebook via email. View net/gross exposure, long/short split, cash, futures, and options breakdowns. Thematic classification of holdings, sector and market cap exposure analysis, plus a portfolio review that flags concentration risks — like having a hedge fund analyst audit your book.",
   },
   {
     image: screenshotWatchlist,
@@ -230,29 +230,29 @@ const featureShowcase = [
     image: screenshotDeepAnalysis,
     icon: BarChart3,
     title: "COMPANY ANALYSIS",
-    subtitle: "Deep Dive reports — hedge fund quality AI research",
-    description: "Run Deep Dive reports that deliver hedge fund quality research in 3–5 minutes. Choose from multiple AI models including Claude, Gemini, and DeepSeek. Sources include SEC filings, ASX announcements, financials, and web search. Get structured BUY/HOLD/SELL recommendations with confidence scores and target prices. Plus Quick Snapshots with P&L tables, forward P/E charts, and Bloomberg-style fundamentals.",
+    subtitle: "Deep Dive reports — hedge fund quality research",
+    description: "Run Deep Dive reports that deliver hedge fund quality research in 3–5 minutes. Choose from multiple analytical models including Claude, Gemini, and DeepSeek. Sources include SEC filings, ASX announcements, financials, and web search. Get structured BUY/HOLD/SELL recommendations with confidence scores and target prices. Plus Quick Snapshots with P&L tables, forward P/E charts, and Bloomberg-style fundamentals.",
   },
   {
     image: screenshotEarnings,
     icon: Brain,
     title: "EARNINGS ANALYSIS",
-    subtitle: "AI-powered previews & reviews with multiple models",
-    description: "Run Deep Analysis mode for comprehensive earnings breakdowns or quick preview/review summaries. See consensus expectations, beat/miss analysis, and guidance changes — all powered by your choice of AI models including Claude, Gemini, and DeepSeek.",
+    subtitle: "Expert previews & reviews with multiple models",
+    description: "Run Deep Analysis mode for comprehensive earnings breakdowns or quick preview/review summaries. See consensus expectations, beat/miss analysis, and guidance changes — all powered by your choice of analytical models including Claude, Gemini, and DeepSeek.",
   },
   {
     image: screenshotAskBro,
     icon: Bot,
     title: "ASK BRO",
-    subtitle: "Your AI research assistant with live data awareness",
+    subtitle: "Your CFA-certified research analyst with live data awareness",
     description: "Ask complex financial questions and get data-backed answers. Bro auto-detects tickers and pulls real-time market data into every response. Conversation memory retains up to 50 messages so you can drill deeper with natural follow-ups.",
   },
   {
     image: screenshotWhatsUp,
     icon: Newspaper,
-    title: "NEWS & AI SUMMARIES",
-    subtitle: "AI-curated news across your portfolio",
-    description: "Company news sourced from ASX announcements, SEC EDGAR, and financial news feeds. AI reads and summarizes 72 hours of news for up to 10 stocks at once. Auto-generate portfolio news summaries across all your top holdings.",
+    title: "NEWS & SUMMARIES",
+    subtitle: "Analyst-curated news across your portfolio",
+    description: "Company news sourced from ASX announcements, SEC EDGAR, and financial news feeds. Bro reads and summarizes 72 hours of news for up to 10 stocks at once. Auto-generate portfolio news summaries across all your top holdings.",
   },
   {
     image: screenshotPortfolio,
@@ -266,7 +266,7 @@ const featureShowcase = [
     icon: Bell,
     title: "PUSH NOTIFICATIONS",
     subtitle: "Real-time alerts when it matters",
-    description: "Get price alerts on watchlist tickers when moves exceed your thresholds. Receive market summary notifications when AI wraps are ready so you never miss a beat.",
+    description: "Get price alerts on watchlist tickers when moves exceed your thresholds. Receive market summary notifications when market wraps are ready so you never miss a beat.",
   },
 ];
 
@@ -342,7 +342,7 @@ function PricingBadges() {
               <Zap className="w-6 h-6 text-amber-500" />
             </div>
             <h4 className="display-font text-sm neon-green-subtle tracking-wider">$10/MONTH PRO</h4>
-            <p className="text-zinc-400 text-sm">Unlock AI analysis, portfolio tracking, alerts, and $5 of Bro credits.</p>
+            <p className="text-zinc-400 text-sm">Unlock expert analysis, portfolio tracking, alerts, and $5 of Bro credits.</p>
           </div>
         </div>
       </div>
@@ -382,23 +382,23 @@ function CTASection() {
 const faqItems = [
   {
     question: "What is Buy Side Bro?",
-    answer: "Buy Side Bro is a free AI-powered financial markets dashboard that provides live global market data across 100+ tickers, AI deep dive stock analysis with BUY/HOLD/SELL recommendations, portfolio tracking, watchlist management with push alerts, earnings analysis, and an AI research assistant. Think of it as a Bloomberg alternative without the $25,000/year price tag."
+    answer: "Buy Side Bro is like having a sophisticated hedge fund analyst on speed dial. It's a free financial markets dashboard that provides live global market data across 100+ tickers, deep dive stock analysis with BUY/HOLD/SELL recommendations, portfolio tracking, watchlist management with push alerts, earnings analysis, and a CFA-certified research analyst at your fingertips. Think of it as a Bloomberg alternative without the $25,000/year price tag."
   },
   {
     question: "Is Buy Side Bro free to use?",
-    answer: "Yes, Buy Side Bro is free to explore. You can browse live markets, view global market data, and access basic features without any cost or credit card. For advanced AI analysis, portfolio tracking, and push notifications, the Pro subscription is available at $10/month which also includes $5 of AI credits."
+    answer: "Yes, Buy Side Bro is free to explore. You can browse live markets, view global market data, and access basic features without any cost or credit card. For advanced analysis, portfolio tracking, and push notifications, the Pro subscription is available at $10/month which also includes $5 of Bro credits."
   },
   {
     question: "What markets does Buy Side Bro cover?",
     answer: "Buy Side Bro covers 100+ tickers across global indices (S&P 500, NASDAQ, Dow Jones, ASX 200, FTSE 100, Nikkei 225, and more), futures, commodities (gold, oil, natural gas), forex pairs, US sectors, ASX sectors, and thematic ETFs. All data is live with integrated TradingView charts."
   },
   {
-    question: "How does the AI stock analysis work?",
-    answer: "Buy Side Bro's Deep Dive analysis generates hedge fund quality research reports in 3\u20135 minutes. It sources data from SEC filings, ASX announcements, financial statements, and web search, then uses AI models including Claude, Gemini, and DeepSeek to produce structured BUY/HOLD/SELL recommendations with confidence scores, target prices, and detailed investment theses."
+    question: "How does the stock analysis work?",
+    answer: "Buy Side Bro's Deep Dive analysis generates hedge fund quality research reports in 3\u20135 minutes. It sources data from SEC filings, ASX announcements, financial statements, and web search, then leverages multiple analytical models including Claude, Gemini, and DeepSeek to produce structured BUY/HOLD/SELL recommendations with confidence scores, target prices, and detailed investment theses."
   },
   {
-    question: "What is the Ask Bro AI assistant?",
-    answer: "Ask Bro is Buy Side Bro's AI research assistant that can answer complex financial questions with data-backed responses. It automatically detects stock tickers and pulls real-time market data into every response. Conversation memory retains up to 50 messages so you can drill deeper with natural follow-up questions."
+    question: "What is Ask Bro?",
+    answer: "Ask Bro is your bro on the buyside — a CFA-certified research analyst that can answer complex financial questions with data-backed responses. He automatically detects stock tickers and pulls real-time market data into every response. Conversation memory retains up to 50 messages so you can drill deeper with natural follow-up questions."
   },
 ];
 

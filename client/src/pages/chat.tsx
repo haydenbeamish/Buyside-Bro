@@ -153,7 +153,7 @@ function ThinkingLoader() {
 }
 
 export default function ChatPage() {
-  useDocumentTitle("Ask Bro", "Ask Bro is your AI-powered financial research assistant. Get data-backed answers to complex market questions with real-time ticker detection and live market data on Buy Side Bro.");
+  useDocumentTitle("Ask Bro", "Ask Bro is your bro on the buyside — a CFA-certified research analyst. Get data-backed answers to complex market questions with real-time ticker detection and live market data on Buy Side Bro.");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [streamingMessage, setStreamingMessage] = useState("");

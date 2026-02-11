@@ -20,7 +20,7 @@ async function seedProducts() {
     
     const product = await stripe.products.create({
       name: 'Buy Side Bro Pro',
-      description: 'Full access to Buy Side Bro financial markets dashboard - real-time market data, AI-powered stock analysis, portfolio tracking, and more. Includes a 2-week free trial.',
+      description: 'Full access to Buy Side Bro financial markets dashboard - real-time market data, hedge fund quality stock analysis, portfolio tracking, and more. Includes a 2-week free trial.',
       metadata: {
         type: 'subscription',
         trialDays: '14',

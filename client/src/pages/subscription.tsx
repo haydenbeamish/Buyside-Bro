@@ -307,14 +307,14 @@ export default function SubscriptionPage() {
 
   const proFeatures = [
     { icon: Globe, text: "Live global market data", desc: "100+ tickers: futures, commodities, forex, sectors, thematics with TradingView charts" },
-    { icon: Brain, text: "AI Deep Dive reports", desc: "Hedge fund quality research with BUY/HOLD/SELL, target prices, and confidence scores" },
+    { icon: Brain, text: "Deep Dive reports", desc: "Hedge fund quality research with BUY/HOLD/SELL, target prices, and confidence scores" },
     { icon: Bot, text: "5 Bro queries per day", desc: "Chat with live data awareness, conversation memory, and real-time market data" },
-    { icon: Mail, text: "Daily market wrap emails", desc: "AI-generated close summaries for US, ASX, European, and Asian markets" },
+    { icon: Mail, text: "Daily market wrap emails", desc: "Analyst-written close summaries for US, ASX, European, and Asian markets" },
     { icon: LineChart, text: "Advanced stock analysis", desc: "Quick snapshots with P&L tables, price charts, Bloomberg fundamentals, and SEC/ASX filings" },
-    { icon: BarChart3, text: "Earnings insights", desc: "AI-powered previews and reviews with consensus estimates and price targets" },
-    { icon: BriefcaseBusiness, text: "Portfolio tracking & analytics", desc: "Automated holdings, exposure breakdown, thematic classification, and AI portfolio review" },
+    { icon: BarChart3, text: "Earnings insights", desc: "Expert previews and reviews with consensus estimates and price targets" },
+    { icon: BriefcaseBusiness, text: "Portfolio tracking & analytics", desc: "Automated holdings, exposure breakdown, thematic classification, and expert portfolio review" },
     { icon: TrendingUp, text: "NAV & performance reporting", desc: "Monthly returns, Sharpe ratio, benchmark comparison, and Bloomberg export" },
-    { icon: Newspaper, text: "News & AI summaries", desc: "Company news, AI news digests, and portfolio news auto-summaries" },
+    { icon: Newspaper, text: "News & summaries", desc: "Company news, curated digests, and portfolio news auto-summaries" },
     { icon: Bell, text: "Push notifications", desc: "Price alerts on watchlist and market summary notifications" },
   ];
 
@@ -322,13 +322,13 @@ export default function SubscriptionPage() {
     { feature: "Live market dashboard", free: true, pro: true },
     { feature: "Global markets (100+ tickers)", free: true, pro: true },
     { feature: "Ask Bro queries", free: "1/day", pro: "5/day" },
-    { feature: "AI Deep Dive reports", free: false, pro: true },
+    { feature: "Deep Dive reports", free: false, pro: true },
     { feature: "Stock analysis & snapshots", free: false, pro: true },
     { feature: "Earnings insights", free: false, pro: true },
     { feature: "Portfolio tracking & analytics", free: false, pro: true },
     { feature: "NAV & performance reporting", free: false, pro: true },
     { feature: "Daily market wrap emails", free: false, pro: true },
-    { feature: "News & AI summaries", free: false, pro: true },
+    { feature: "News & summaries", free: false, pro: true },
     { feature: "Push notifications", free: false, pro: true },
     { feature: "Custom watchlists", free: false, pro: true },
   ];
@@ -344,7 +344,7 @@ export default function SubscriptionPage() {
           <p className="text-zinc-400 text-sm sm:text-lg max-w-2xl mx-auto">
             {isActive
               ? "Manage your subscription and billing details."
-              : "Why pay $30,000/yr for a Bloomberg Terminal? Get AI-powered market intelligence for less than a Netflix subscription."}
+              : "Why pay $30,000/yr for a Bloomberg Terminal? Get hedge fund grade market intelligence for less than a Netflix subscription."}
           </p>
         </div>
 
@@ -600,15 +600,15 @@ export default function SubscriptionPage() {
               </div>
               <div className="bg-zinc-900/30 rounded-lg p-5 border border-zinc-800 text-center">
                 <div className="text-3xl sm:text-4xl font-bold text-amber-500 display-font mb-1">$5</div>
-                <div className="text-zinc-500 text-sm">AI credits free every month</div>
+                <div className="text-zinc-500 text-sm">Bro credits free every month</div>
                 <div className="mt-3 h-px bg-zinc-800" />
-                <p className="text-zinc-400 text-xs mt-3">Covers Deep Dive reports, Bro queries, and AI analysis each month at no extra cost</p>
+                <p className="text-zinc-400 text-xs mt-3">Covers Deep Dive reports, Bro queries, and expert analysis each month at no extra cost</p>
               </div>
               <div className="bg-zinc-900/30 rounded-lg p-5 border border-zinc-800 text-center">
                 <div className="text-3xl sm:text-4xl font-bold text-amber-500 display-font mb-1">100+</div>
                 <div className="text-zinc-500 text-sm">Live tickers tracked</div>
                 <div className="mt-3 h-px bg-zinc-800" />
-                <p className="text-zinc-400 text-xs mt-3">6+ AI models including Claude, Gemini, DeepSeek, and more powering your research</p>
+                <p className="text-zinc-400 text-xs mt-3">6+ analytical models including Claude, Gemini, DeepSeek, and more powering your research</p>
               </div>
             </div>
 
@@ -619,11 +619,11 @@ export default function SubscriptionPage() {
                 <ul className="space-y-3 text-zinc-400 text-sm">
                   <li className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <span><strong className="text-zinc-200">Save thousands.</strong> Professional-grade market data and AI analysis that rivals tools costing 100x more.</span>
+                    <span><strong className="text-zinc-200">Save thousands.</strong> Professional-grade market data and hedge fund quality analysis that rivals tools costing 100x more.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <Check className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <span><strong className="text-zinc-200">AI that actually helps.</strong> Deep Dive reports powered by multiple AI models, AI portfolio reviews for concentration risks, and Bro chat that pulls live market data into every answer.</span>
+                    <span><strong className="text-zinc-200">Your bro that actually delivers.</strong> Deep Dive reports powered by multiple analytical models, expert portfolio reviews for concentration risks, and Bro chat that pulls live market data into every answer.</span>
                   </li>
 
 

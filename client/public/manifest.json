@@ -1,7 +1,7 @@
 {
   "name": "Buy Side Bro",
   "short_name": "BuySideBro",
-  "description": "Free financial markets dashboard with live global market data, AI-powered stock analysis, portfolio tracking, and earnings insights.",
+  "description": "Free financial markets dashboard with live global market data, hedge fund quality stock analysis, portfolio tracking, and earnings insights. Your bro on the buyside.",
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
