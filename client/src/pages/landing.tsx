@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   TrendingUp, BarChart3,
   Twitter, Menu, X, Briefcase, Bot,
-  ArrowRight, CheckCircle2, LogOut, Shield, Zap, Clock, Eye, Brain, Sparkles
+  ArrowRight, CheckCircle2, LogOut, Shield, Zap, Clock, Eye, Brain, Sparkles,
+  Bell, Newspaper
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import { useAuth } from "@/hooks/use-auth";
@@ -142,10 +143,10 @@ function TopNav() {
 function HeroSection() {
   const { isAuthenticated } = useAuth();
   const valueProps = [
-    "Real time global market data",
-    "Deep stock analysis",
-    "Portfolio tracking & insights",
-    "Ask your bro any question"
+    "100+ live tickers — indices, futures, forex, commodities",
+    "AI Deep Dive reports with BUY/HOLD/SELL recommendations",
+    "Automated portfolio tracking & performance analytics",
+    "Chat Bro — your AI-powered research assistant"
   ];
 
   return (
@@ -168,7 +169,7 @@ function HeroSection() {
               Markets. Stocks.<br />Portfolios. Sorted.
             </h1>
             <p className="text-amber-400 text-xl md:text-2xl mb-8 display-font italic">
-              The Buy Side Terminal. Rebuilt.
+              Your AI-Powered Investment Research Terminal.
             </p>
 
             <div className="space-y-3 mb-8">
@@ -197,50 +198,71 @@ const featureShowcase = [
     image: screenshotWhatsUp,
     icon: Sparkles,
     title: "WHAT'S UP",
-    subtitle: "Your daily Bro market briefing",
-    description: "Start every session with a Bro-generated summary of what's moving. Get overnight market recaps, midday pulse checks, and closing wraps for the ASX, US, and European markets — all in one feed.",
+    subtitle: "AI-generated market wraps for every region",
+    description: "Start every session with AI-generated regional wraps for US, ASX, European, and Asian markets — auto-triggered on each market close. Get top gainers and losers narratives, overnight recaps, and closing summaries all in one feed.",
   },
   {
     image: screenshotMarkets,
     icon: TrendingUp,
     title: "LIVE MARKETS",
-    subtitle: "Global indices, futures, commodities, forex, and thematics",
-    description: "Track 8 categories of market data in real-time: Global Markets, Futures, Commodities, USA Thematics, USA Sectors, Equal Weight, ASX Sectors, and Forex. Sort by 1-day, 1-month, quarterly, and yearly performance with moving average comparisons.",
+    subtitle: "100+ tickers with TradingView charts",
+    description: "Track 100+ tickers across indices, futures, commodities, forex, US sectors, ASX sectors, and thematics with integrated TradingView charts. View 1-day, 1-month, 3-month, and 1-year performance with 10/20/100/200-day moving average analysis.",
   },
   {
     image: screenshotPortfolio,
     icon: Briefcase,
     title: "PORTFOLIO TRACKER",
-    subtitle: "Manage your holdings with Bro Powered insights",
-    description: "Track total value, gain/loss, and day changes at a glance. Add positions from any global exchange, see cost basis and P&L per holding, and view your allocation breakdown. Hit \"Get Your Bro's Opinion\" for a full Bro portfolio review.",
+    subtitle: "Automated holdings with AI-powered insights",
+    description: "Automatically import holdings from your NAV Portfolio Notebook via email. View net/gross exposure, long/short split, cash, futures, and options breakdowns. AI thematic classification of holdings, sector and market cap exposure analysis, plus an AI portfolio review that flags concentration risks.",
   },
   {
     image: screenshotWatchlist,
     icon: Eye,
     title: "WATCHLIST",
-    subtitle: "Monitor the stocks you care about",
-    description: "Build a watchlist of any stock worldwide. Track price, day change, volume spikes, market cap, P/E ratios, and 52-week range at a glance. Add inline notes, sort by any column, and export to CSV.",
+    subtitle: "Monitor stocks with push notification alerts",
+    description: "Build a watchlist of any stock worldwide. Track price, day change, volume spikes, market cap, P/E ratios, and 52-week range at a glance. Set push notification price alerts when moves exceed your thresholds. Add inline notes, sort by any column, and export to CSV.",
   },
   {
     image: screenshotDeepAnalysis,
     icon: BarChart3,
     title: "COMPANY ANALYSIS",
-    subtitle: "Hedge fund quality research at your fingertips",
-    description: "Search any stock for a full company profile, 15+ key metrics, 1-year price chart, and SEC filings. Bro automatically runs a deep fundamental analysis with buy/hold/sell recommendations, target prices, and confidence scores.",
+    subtitle: "Deep Dive reports — hedge fund quality AI research",
+    description: "Run Deep Dive reports that deliver hedge fund quality research in 3–5 minutes. Choose from multiple AI models including Claude, Gemini, and DeepSeek. Sources include SEC filings, ASX announcements, financials, and web search. Get structured BUY/HOLD/SELL recommendations with confidence scores and target prices. Plus Quick Snapshots with P&L tables, forward P/E charts, and Bloomberg-style fundamentals.",
   },
   {
     image: screenshotEarnings,
     icon: Brain,
     title: "EARNINGS ANALYSIS",
-    subtitle: "Preview upcoming and review past earnings",
-    description: "See upcoming earnings dates with EPS and revenue estimates. Run Bro Powered earnings previews before the announcement or post-earnings reviews after — complete with price targets and actionable recommendations.",
+    subtitle: "AI-powered previews & reviews with multiple models",
+    description: "Run Deep Analysis mode for comprehensive earnings breakdowns or quick preview/review summaries. See consensus expectations, beat/miss analysis, and guidance changes — all powered by your choice of AI models including Claude, Gemini, and DeepSeek.",
   },
   {
     image: screenshotAskBro,
     icon: Bot,
     title: "ASK BRO",
-    subtitle: "Your autonomous financial research agent",
-    description: "Ask complex financial questions and get data-backed answers. Compare revenue growth, analyze P/E ratios, break down operating margins — your bro thinks, plans, and researches using real-time market data.",
+    subtitle: "Your AI research assistant with live data awareness",
+    description: "Ask complex financial questions and get data-backed answers. Bro auto-detects tickers and pulls real-time market data into every response. Conversation memory retains up to 50 messages so you can drill deeper with natural follow-ups.",
+  },
+  {
+    image: screenshotWhatsUp,
+    icon: Newspaper,
+    title: "NEWS & AI SUMMARIES",
+    subtitle: "AI-curated news across your portfolio",
+    description: "Company news sourced from ASX announcements, SEC EDGAR, and financial news feeds. AI reads and summarizes 72 hours of news for up to 10 stocks at once. Auto-generate portfolio news summaries across all your top holdings.",
+  },
+  {
+    image: screenshotPortfolio,
+    icon: TrendingUp,
+    title: "NAV & PERFORMANCE",
+    subtitle: "Automated performance tracking & benchmarking",
+    description: "Automated NAV tracking from IRESS emails. View monthly performance with MTD, QTD, FY, annualized returns, and Sharpe ratio. Compare against MSCI ACWI in AUD benchmark. Export to Bloomberg format with SharePoint upload support.",
+  },
+  {
+    image: screenshotWatchlist,
+    icon: Bell,
+    title: "PUSH NOTIFICATIONS",
+    subtitle: "Real-time alerts when it matters",
+    description: "Get price alerts on watchlist tickers when moves exceed your thresholds. Receive market summary notifications when AI wraps are ready so you never miss a beat.",
   },
 ];
 
@@ -255,7 +277,7 @@ function FeatureShowcase() {
           Professional-grade market intelligence. No Bloomberg terminal required.
         </p>
         <p className="text-amber-400 text-sm md:text-base display-font">
-          7 powerful tools. Free to explore. No credit card.
+          10 powerful tools. Free to explore. No credit card.
         </p>
       </div>
 
@@ -301,8 +323,8 @@ function PricingBadges() {
             <div className="p-3 rounded-lg bg-amber-900/20 border border-zinc-800">
               <Clock className="w-6 h-6 text-amber-500" />
             </div>
-            <h4 className="display-font text-sm neon-green-subtle tracking-wider">FREE FOREVER</h4>
-            <p className="text-zinc-400 text-sm">Full access to every feature. No restrictions. Upgrade when you're ready.</p>
+            <h4 className="display-font text-sm neon-green-subtle tracking-wider">FREE TO EXPLORE</h4>
+            <p className="text-zinc-400 text-sm">Browse live markets and get started. No credit card required.</p>
           </div>
           <div className="flex flex-col items-center gap-3">
             <div className="p-3 rounded-lg bg-amber-900/20 border border-zinc-800">
@@ -315,8 +337,8 @@ function PricingBadges() {
             <div className="p-3 rounded-lg bg-amber-900/20 border border-zinc-800">
               <Zap className="w-6 h-6 text-amber-500" />
             </div>
-            <h4 className="display-font text-sm neon-green-subtle tracking-wider">$10/MONTH AFTER</h4>
-            <p className="text-zinc-400 text-sm">Includes $5 of Bro credits. Buy more as you need them.</p>
+            <h4 className="display-font text-sm neon-green-subtle tracking-wider">$10/MONTH PRO</h4>
+            <p className="text-zinc-400 text-sm">Unlock AI analysis, portfolio tracking, alerts, and $5 of Bro credits.</p>
           </div>
         </div>
       </div>
@@ -388,6 +410,7 @@ function Footer() {
             <nav aria-label="Quick links" className="space-y-2">
               <Link href="/whats-up"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">What's Up</span></Link>
               <Link href="/earnings"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Earnings</span></Link>
+              <Link href="/news"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">News</span></Link>
               <Link href="/chat"><span className="block text-zinc-400 hover:text-amber-400 transition-colors text-sm">Ask Bro</span></Link>
             </nav>
           </div>
