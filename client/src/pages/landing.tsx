@@ -148,7 +148,7 @@ function HeroSection() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-20 pb-32">
+    <section className="relative flex items-center justify-center pt-20 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="flex flex-col lg:flex-row items-center lg:items-end justify-between gap-8 lg:gap-16">
           <div className="lg:w-1/2 flex justify-center order-2 lg:order-1">
