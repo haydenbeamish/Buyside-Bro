@@ -47,6 +47,8 @@ import { useDocumentTitle } from "@/hooks/use-document-title";
 import { StockSearch } from "@/components/stock-search";
 import { PercentDisplay } from "@/components/percent-display";
 import { ThinkingLoader } from "@/components/thinking-loader";
+import { useExamplePortfolio } from "@/hooks/use-example-portfolio";
+import { ExamplePortfolioBanner } from "@/components/example-portfolio-banner";
 
 interface PortfolioStats {
   totalValue: number;
@@ -106,8 +108,14 @@ export default function PortfolioPage() {
     enabled: isAuthenticated, refetchInterval: 60000,
   });
 
+  // Example portfolio hook — shows sample data for new users with no holdings
+  const { displayHoldings, displayStats, isExample, dismissExample, clearAndAdd } = useExamplePortfolio(
+    holdings,
+    () => setIsAddOpen(true)
+  );
+
   // Compute stats from live enriched data instead of stale DB prices
-  const stats: PortfolioStats | undefined = holdings ? (() => {
+  const realStats: PortfolioStats | undefined = holdings ? (() => {
     let totalValue = 0;
     let totalCost = 0;
     let dayChange = 0;
@@ -121,11 +129,14 @@ export default function PortfolioPage() {
     const dayChangePercent = totalValue > 0 ? (dayChange / (totalValue - dayChange)) * 100 : 0;
     return { totalValue, totalGain, totalGainPercent, dayChange, dayChangePercent };
   })() : undefined;
+
+  const stats = isExample ? displayStats : realStats;
   const statsLoading = holdingsLoading;
 
   const sortedHoldings = useMemo(() => {
-    if (!holdings) return [];
-    return [...holdings].sort((a, b) => {
+    const source = isExample ? displayHoldings : holdings;
+    if (!source) return [];
+    return [...source].sort((a, b) => {
       let aVal: any;
       let bVal: any;
       switch (sortKey) {
@@ -142,7 +153,7 @@ export default function PortfolioPage() {
       if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
-  }, [holdings, sortKey, sortDir]);
+  }, [holdings, displayHoldings, isExample, sortKey, sortDir]);
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -394,7 +405,7 @@ export default function PortfolioPage() {
             {holdingsLoading ? (
               <Skeleton className="h-8 w-12 bg-zinc-800" />
             ) : (
-              <p className="text-xl sm:text-2xl font-bold font-mono text-white">{holdings?.length || 0}</p>
+              <p className="text-xl sm:text-2xl font-bold font-mono text-white">{(isExample ? displayHoldings?.length : holdings?.length) || 0}</p>
             )}
           </div>
         </div>
@@ -419,6 +430,13 @@ export default function PortfolioPage() {
 
           <TabsContent value="holdings">
         <div className="mb-8">
+          {isExample && (
+            <ExamplePortfolioBanner
+              variant="holdings"
+              onAddHoldings={clearAndAdd}
+              onDismiss={dismissExample}
+            />
+          )}
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
             <div className="overflow-x-auto relative scroll-fade-right">
               {holdingsLoading ? (
@@ -468,15 +486,17 @@ export default function PortfolioPage() {
                               <div className="text-sm"><PercentDisplay value={holding.pnlPercent || 0} /></div>
                               <div className="text-xs"><PercentDisplay value={holding.dayChangePercent || 0} /></div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteTarget({ id: holding.id, ticker: holding.ticker })}
-                              className="text-zinc-500 hover:text-red-500 min-h-[44px] min-w-[44px]"
-                              data-testid={`button-delete-${holding.ticker}`}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {!isExample && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteTarget({ id: holding.id, ticker: holding.ticker })}
+                                className="text-zinc-500 hover:text-red-500 min-h-[44px] min-w-[44px]"
+                                data-testid={`button-delete-${holding.ticker}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                       );
@@ -553,15 +573,17 @@ export default function PortfolioPage() {
                               {holding.pe ? holding.pe.toFixed(1) : "-"}
                             </td>
                             <td className="px-3 py-2.5">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setDeleteTarget({ id: holding.id, ticker: holding.ticker })}
+                              {!isExample && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setDeleteTarget({ id: holding.id, ticker: holding.ticker })}
                                   className="text-zinc-500 hover:text-red-500 min-h-[44px] min-w-[44px]"
-                                data-testid={`button-delete-${holding.ticker}`}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                                  data-testid={`button-delete-${holding.ticker}`}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </td>
                           </tr>
                         );
@@ -586,8 +608,8 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        {/* Bro's Analysis Section */}
-        {holdings && holdings.length > 0 && (
+        {/* Bro's Analysis Section — hidden during example mode */}
+        {!isExample && holdings && holdings.length > 0 && (
         <div ref={broSectionRef} className="bg-zinc-900 border border-amber-500/30 rounded-lg shadow-[0_0_20px_rgba(255,215,0,0.1)]">
           <div className="flex items-center justify-between p-4 border-b border-zinc-800">
             <div className="flex items-center gap-3">
@@ -685,7 +707,12 @@ export default function PortfolioPage() {
           </TabsContent>
 
           <TabsContent value="hedging">
-            {isPro ? (
+            {isExample ? (
+              <div className="space-y-4">
+                <ExamplePortfolioBanner variant="hedging" />
+                <HedgingSection holdings={displayHoldings || []} totalValue={displayStats?.totalValue || 0} />
+              </div>
+            ) : isPro ? (
               <HedgingSection holdings={holdings || []} totalValue={stats?.totalValue || 0} />
             ) : (
               <div className="space-y-4">
