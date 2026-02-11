@@ -5,7 +5,7 @@ import {
   TrendingUp, BarChart3,
   Twitter, Menu, X, Briefcase, Bot,
   ArrowRight, CheckCircle2, LogOut, Shield, Zap, Clock, Eye, Brain, Sparkles,
-  Bell, Newspaper
+  Bell, Newspaper, ChevronDown, HelpCircle
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import { useAuth } from "@/hooks/use-auth";
@@ -180,6 +180,10 @@ function HeroSection() {
                 </div>
               ))}
             </div>
+
+            <p className="text-zinc-500 text-xs mb-6">
+              Free stock analysis terminal &amp; Bloomberg alternative. Live market data, AI-powered research, and portfolio analytics — no subscription required to start.
+            </p>
 
             <Link href={isAuthenticated ? "/whats-up" : "/dashboard"}>
               <button className="bg-amber-600 hover:bg-amber-400 text-black font-bold px-6 sm:px-10 py-3 sm:py-4 rounded text-base sm:text-lg uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(255,215,0,0.3)] hover:shadow-[0_0_30px_rgba(255,215,0,0.5)]" data-testid="button-launch-terminal">
@@ -375,6 +379,70 @@ function CTASection() {
   );
 }
 
+const faqItems = [
+  {
+    question: "What is Buy Side Bro?",
+    answer: "Buy Side Bro is a free AI-powered financial markets dashboard that provides live global market data across 100+ tickers, AI deep dive stock analysis with BUY/HOLD/SELL recommendations, portfolio tracking, watchlist management with push alerts, earnings analysis, and an AI research assistant. Think of it as a Bloomberg alternative without the $25,000/year price tag."
+  },
+  {
+    question: "Is Buy Side Bro free to use?",
+    answer: "Yes, Buy Side Bro is free to explore. You can browse live markets, view global market data, and access basic features without any cost or credit card. For advanced AI analysis, portfolio tracking, and push notifications, the Pro subscription is available at $10/month which also includes $5 of AI credits."
+  },
+  {
+    question: "What markets does Buy Side Bro cover?",
+    answer: "Buy Side Bro covers 100+ tickers across global indices (S&P 500, NASDAQ, Dow Jones, ASX 200, FTSE 100, Nikkei 225, and more), futures, commodities (gold, oil, natural gas), forex pairs, US sectors, ASX sectors, and thematic ETFs. All data is live with integrated TradingView charts."
+  },
+  {
+    question: "How does the AI stock analysis work?",
+    answer: "Buy Side Bro's Deep Dive analysis generates hedge fund quality research reports in 3\u20135 minutes. It sources data from SEC filings, ASX announcements, financial statements, and web search, then uses AI models including Claude, Gemini, and DeepSeek to produce structured BUY/HOLD/SELL recommendations with confidence scores, target prices, and detailed investment theses."
+  },
+  {
+    question: "What is the Ask Bro AI assistant?",
+    answer: "Ask Bro is Buy Side Bro's AI research assistant that can answer complex financial questions with data-backed responses. It automatically detects stock tickers and pulls real-time market data into every response. Conversation memory retains up to 50 messages so you can drill deeper with natural follow-up questions."
+  },
+];
+
+function FAQSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  return (
+    <section className="py-20 px-4 border-t border-zinc-800" aria-label="Frequently Asked Questions">
+      <div className="max-w-3xl mx-auto">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-amber-900/20 border border-zinc-800 mb-4">
+            <HelpCircle className="w-4 h-4 text-amber-500" />
+            <span className="display-font text-xs neon-green-subtle tracking-widest">FAQ</span>
+          </div>
+          <h2 className="display-font text-2xl md:text-4xl font-bold text-white uppercase tracking-wider">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-zinc-400 mt-3">Everything you need to know about Buy Side Bro</p>
+        </div>
+
+        <div className="space-y-3">
+          {faqItems.map((item, i) => (
+            <div key={i} className="border border-zinc-800 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setOpenIndex(openIndex === i ? null : i)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-zinc-900/50 transition-colors"
+                aria-expanded={openIndex === i}
+              >
+                <span className="text-white font-medium text-sm md:text-base pr-4">{item.question}</span>
+                <ChevronDown className={`w-5 h-5 text-amber-500 flex-shrink-0 transition-transform ${openIndex === i ? "rotate-180" : ""}`} />
+              </button>
+              {openIndex === i && (
+                <div className="px-5 pb-4">
+                  <p className="text-zinc-400 text-sm leading-relaxed">{item.answer}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Footer() {
   return (
     <footer className="py-12 px-4 border-t border-zinc-800 mb-12">
@@ -469,6 +537,7 @@ export default function LandingPage() {
         <FeatureShowcase />
         <PricingBadges />
         <CTASection />
+        <FAQSection />
       </main>
       <Footer />
       <TickerTape />

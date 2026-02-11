@@ -168,7 +168,7 @@ function SortHeader({ label, sortKey: colKey, currentKey, currentDir, onToggle, 
 }
 
 export default function WatchlistPage() {
-  useDocumentTitle("Watchlist");
+  useDocumentTitle("Watchlist", "Build and monitor your stock watchlist with real-time prices, volume spikes, P/E ratios, 52-week ranges, and push notification price alerts on Buy Side Bro.");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("dayChangePercent");
   const [sortDir, setSortDir] = useState<SortDir>("desc");

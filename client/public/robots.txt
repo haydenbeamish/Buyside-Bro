@@ -1,0 +1,19 @@
+# Buy Side Bro - robots.txt
+User-agent: *
+Allow: /
+Allow: /dashboard
+Allow: /analysis
+Allow: /earnings
+Allow: /watchlist
+Allow: /portfolio
+Allow: /chat
+Allow: /whats-up
+Allow: /news
+Allow: /subscription
+Allow: /preview
+
+Disallow: /api/
+Disallow: /admin
+
+# Sitemap
+Sitemap: https://www.buysidebro.com/sitemap.xml

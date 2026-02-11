@@ -195,7 +195,7 @@ function NewsFeed() {
 }
 
 export default function WhatsUpPage() {
-  useDocumentTitle("What's Up");
+  useDocumentTitle("What's Up", "AI-generated market wraps for US, ASX, European, and Asian markets. Get top gainers and losers, overnight recaps, and closing summaries auto-triggered on each market close on Buy Side Bro.");
   const { data: summary, isLoading } = useQuery<MarketSummary>({
     queryKey: ["/api/markets/summary"],
   });

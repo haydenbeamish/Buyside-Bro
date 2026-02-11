@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useLoginGate } from "@/hooks/use-login-gate";
 import { LoginGateModal } from "@/components/login-gate-modal";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 
 interface NewsArticle {
   title: string;
@@ -32,6 +33,7 @@ interface NewsData {
 }
 
 export default function NewsPage() {
+  useDocumentTitle("Financial News", "AI-curated financial news with summaries from ASX announcements, SEC EDGAR, and global news feeds. Auto-generate portfolio news summaries across your holdings on Buy Side Bro.");
   const [searchQuery, setSearchQuery] = useState("");
   const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
 

@@ -364,7 +364,7 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
 }
 
 export default function MarketsPage() {
-  useDocumentTitle("Live Markets");
+  useDocumentTitle("Live Markets", "Track 100+ live tickers across global indices, futures, commodities, forex, and sectors with integrated TradingView charts. Real-time market data with moving average analysis on Buy Side Bro.");
   const { data: markets, isLoading } = useQuery<MarketsData>({
     queryKey: ["/api/markets/full"],
     refetchInterval: 30000,

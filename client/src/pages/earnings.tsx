@@ -492,7 +492,7 @@ function AnalysisResult({ result }: { result: DeepAnalysisResultData }) {
 }
 
 export default function EarningsAnalysisPage() {
-  useDocumentTitle("Earnings Analysis");
+  useDocumentTitle("Earnings Analysis", "AI-powered earnings analysis with preview and review summaries, consensus expectations, beat/miss analysis, and guidance changes. Powered by Claude, Gemini, and DeepSeek AI models on Buy Side Bro.");
   const searchString = useSearch();
   const urlParams = new URLSearchParams(searchString);
   const urlTicker = urlParams.get("ticker");
