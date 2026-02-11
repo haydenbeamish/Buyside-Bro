@@ -2057,34 +2057,41 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.get("/api/subscription/products", async (req: Request, res: Response) => {
     try {
-      const rows = await stripeService.listProductsWithPrices();
+      const stripe = await getUncachableStripeClient();
+      const prices = await stripe.prices.list({
+        active: true,
+        type: 'recurring',
+        limit: 10,
+        expand: ['data.product'],
+      });
 
       const productsMap = new Map();
-      for (const row of rows as any[]) {
-        if (!productsMap.has(row.product_id)) {
-          productsMap.set(row.product_id, {
-            id: row.product_id,
-            name: row.product_name,
-            description: row.product_description,
-            active: row.product_active,
-            metadata: row.product_metadata,
+      for (const price of prices.data) {
+        const product = price.product as any;
+        if (!product || typeof product === 'string') continue;
+        if (!product.active) continue;
+
+        if (!productsMap.has(product.id)) {
+          productsMap.set(product.id, {
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            active: product.active,
+            metadata: product.metadata,
             prices: []
           });
         }
-        if (row.price_id) {
-          productsMap.get(row.product_id).prices.push({
-            id: row.price_id,
-            unit_amount: row.unit_amount,
-            currency: row.currency,
-            recurring: row.recurring,
-            active: row.price_active,
-          });
-        }
+        productsMap.get(product.id).prices.push({
+          id: price.id,
+          unit_amount: price.unit_amount,
+          currency: price.currency,
+          recurring: price.recurring,
+          active: price.active,
+        });
       }
 
       res.json({ products: Array.from(productsMap.values()) });
     } catch (error) {
-      // Return empty products if the stripe schema/tables don't exist yet
       console.error("Error listing products:", error);
       res.json({ products: [] });
     }
@@ -2127,10 +2134,20 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
       }
 
       let { priceId } = req.body;
+      const stripe = await getUncachableStripeClient();
 
-      // If no priceId provided, look up the first active recurring price from Stripe API
+      if (priceId) {
+        try {
+          const existing = await stripe.prices.retrieve(priceId);
+          if (!existing.active || !existing.recurring) {
+            priceId = null;
+          }
+        } catch {
+          priceId = null;
+        }
+      }
+
       if (!priceId) {
-        const stripe = await getUncachableStripeClient();
         const prices = await stripe.prices.list({
           active: true,
           type: 'recurring',
@@ -2284,22 +2301,32 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
   app.get("/api/credits/packs", async (req: Request, res: Response) => {
     try {
-      const rows = await stripeService.listCreditPacks();
-      
-      const packs = rows.map((row: any) => {
-        const metadata = typeof row.product_metadata === 'string' 
-          ? JSON.parse(row.product_metadata) 
-          : row.product_metadata;
-        return {
-          id: row.product_id,
-          name: row.product_name,
-          description: row.product_description,
-          priceId: row.price_id,
-          amount: row.unit_amount,
-          currency: row.currency,
-          credits: parseInt(metadata?.credits_cents || '0'),
-        };
+      const stripe = await getUncachableStripeClient();
+      const prices = await stripe.prices.list({
+        active: true,
+        type: 'one_time',
+        limit: 20,
+        expand: ['data.product'],
       });
+
+      const packs = prices.data
+        .filter(price => {
+          const product = price.product as any;
+          return product && typeof product !== 'string' && product.active && product.metadata?.credits_cents;
+        })
+        .map(price => {
+          const product = price.product as any;
+          return {
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            priceId: price.id,
+            amount: price.unit_amount,
+            currency: price.currency,
+            credits: parseInt(product.metadata?.credits_cents || '0'),
+          };
+        })
+        .sort((a, b) => (a.amount || 0) - (b.amount || 0));
 
       res.json({ packs });
     } catch (error) {

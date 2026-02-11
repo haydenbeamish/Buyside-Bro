@@ -164,10 +164,6 @@ export function registerChatRoutes(app: Express): void {
         content: m.content,
       }));
 
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Connection", "keep-alive");
-
       const response = await fetch(`${LASER_BEAM_API}/api/chat/bro`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
@@ -180,6 +176,10 @@ export function registerChatRoutes(app: Express): void {
       if (!response.ok || !response.body) {
         throw new Error(`Laser Beam API error: ${response.status}`);
       }
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
 
       const fullResponse = await proxySSEStream(response, res);
 
@@ -236,10 +236,6 @@ export function registerChatRoutes(app: Express): void {
         }
       }
 
-      res.setHeader("Content-Type", "text/event-stream");
-      res.setHeader("Cache-Control", "no-cache");
-      res.setHeader("Connection", "keep-alive");
-
       const response = await fetch(`${LASER_BEAM_API}/api/chat/bro`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
@@ -249,6 +245,10 @@ export function registerChatRoutes(app: Express): void {
       if (!response.ok || !response.body) {
         throw new Error(`Laser Beam API error: ${response.status}`);
       }
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
 
       const fullResponse = await proxySSEStream(response, res);
 

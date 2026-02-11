@@ -224,6 +224,9 @@ export default function ChatPage() {
           if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
+              if (data.error) {
+                throw new Error(data.error);
+              }
               if (data.content) {
                 fullResponse += data.content;
                 setStreamingMessage(fullResponse);
@@ -235,13 +238,23 @@ export default function ChatPage() {
                 setIsStreaming(false);
                 setStreamingMessage("");
                 refetchBroStatus();
+                return;
               }
-            } catch {
-              // Ignore parse errors
+            } catch (parseErr) {
+              if (parseErr instanceof Error && parseErr.message !== "Unexpected") {
+                throw parseErr;
+              }
             }
           }
         }
       }
+      // Stream ended without data.done — reset state
+      if (fullResponse) {
+        const assistantMsgId = ++messageIdRef.current;
+        setMessages(prev => [...prev, { id: assistantMsgId, role: "assistant", content: fullResponse }]);
+      }
+      setIsStreaming(false);
+      setStreamingMessage("");
     } catch (error) {
       toast({
         title: "Error",
