@@ -308,6 +308,7 @@ export default function PortfolioPage() {
                     <StockSearch
                       value={newHolding.ticker}
                       onSelect={(symbol) => setNewHolding({ ...newHolding, ticker: symbol })}
+                      onChangeValue={(val) => setNewHolding({ ...newHolding, ticker: val })}
                       inputTestId="input-stock-search"
                       optionIdPrefix="portfolio-option"
                     />

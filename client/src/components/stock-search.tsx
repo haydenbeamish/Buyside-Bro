@@ -17,6 +17,7 @@ interface StockSearchProps {
   value?: string;
   clearOnSelect?: boolean;
   onSubmit?: (ticker: string) => void;
+  onChangeValue?: (value: string) => void;
   inputTestId?: string;
   optionIdPrefix?: string;
 }
@@ -30,6 +31,7 @@ export function StockSearch({
   value = "",
   clearOnSelect = false,
   onSubmit,
+  onChangeValue,
   inputTestId = "input-stock-search",
   optionIdPrefix = "stock-option",
 }: StockSearchProps) {
@@ -137,8 +139,8 @@ export function StockSearch({
             const val = e.target.value.toUpperCase();
             userTypedRef.current = true;
             setQuery(val);
-            onSelect(val, "");
             setActiveIndex(-1);
+            onChangeValue?.(val);
           }}
           onFocus={() => results.length > 0 && setIsOpen(true)}
           onKeyDown={handleKeyDown}

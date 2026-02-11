@@ -1005,6 +1005,7 @@ export default function AnalysisPage() {
           <StockSearch
             value={searchTicker}
             onSelect={(symbol) => setSearchTicker(symbol)}
+            onChangeValue={(val) => setSearchTicker(val)}
             onSubmit={(symbol) => handleAnalyze(symbol)}
             className="flex-1"
             inputTestId="input-search-ticker"
