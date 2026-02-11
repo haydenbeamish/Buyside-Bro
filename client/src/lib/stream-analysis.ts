@@ -90,16 +90,18 @@ export async function streamAnalysis(
                 callbacks.onMode?.(data.mode);
                 break;
               case "progress":
-                callbacks.onProgress?.(data.progress ?? 0, data.message ?? "");
+                callbacks.onProgress?.(data.progress ?? 0, data.message || data.step || "");
                 break;
-              case "content":
-                if (data.content) {
-                  fullContent += data.content;
-                  callbacks.onContent?.(data.content, fullContent);
+              case "content": {
+                const chunk = data.content || data.text;
+                if (chunk) {
+                  fullContent += chunk;
+                  callbacks.onContent?.(chunk, fullContent);
                 }
                 break;
+              }
               case "recommendation":
-                recommendation = data.recommendation || data;
+                recommendation = data.recommendation || data.data || data;
                 callbacks.onRecommendation?.(recommendation);
                 break;
               case "done":
@@ -108,17 +110,19 @@ export async function streamAnalysis(
               case "error":
                 callbacks.onError?.(data.message || data.error || "Stream error");
                 return;
-              default:
+              default: {
                 // If no type field, check for content directly
-                if (data.content) {
-                  fullContent += data.content;
-                  callbacks.onContent?.(data.content, fullContent);
+                const fallbackChunk = data.content || data.text;
+                if (fallbackChunk) {
+                  fullContent += fallbackChunk;
+                  callbacks.onContent?.(fallbackChunk, fullContent);
                 }
                 if (data.done) {
                   callbacks.onDone?.(fullContent, recommendation);
                   return;
                 }
                 break;
+              }
             }
           } catch {
             // Ignore JSON parse errors for malformed lines
