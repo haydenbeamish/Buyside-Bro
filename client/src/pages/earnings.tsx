@@ -504,7 +504,6 @@ export default function EarningsAnalysisPage() {
   const [streamProgress, setStreamProgress] = useState(0);
   const [streamMessage, setStreamMessage] = useState("");
   const [streamingMode, setStreamingMode] = useState<AnalysisMode>("preview");
-  const [selectedModel, setSelectedModel] = useState("");
   const abortControllerRef = useRef<AbortController | null>(null);
   const contentBufferRef = useRef("");
   const renderFrameRef = useRef<number | null>(null);
@@ -512,16 +511,6 @@ export default function EarningsAnalysisPage() {
   const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
   const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
   const [showBroLimit, setShowBroLimit] = useState(false);
-
-  const { data: modelsData } = useQuery<{ models: { id: string; name: string; provider: string }[] }>({
-    queryKey: ["/api/fundamental-analysis/models"],
-  });
-
-  useEffect(() => {
-    if (modelsData?.models?.length && !selectedModel) {
-      setSelectedModel(modelsData.models[0].id);
-    }
-  }, [modelsData, selectedModel]);
 
   const { data: profile, isLoading: profileLoading, isError: profileError } = useQuery<StockProfile>({
     queryKey: ["/api/analysis/profile", activeTicker],
@@ -576,7 +565,7 @@ export default function EarningsAnalysisPage() {
 
     try {
       await streamAnalysis(
-        { ticker: ticker.toUpperCase(), model: selectedModel || undefined, mode: apiMode },
+        { ticker: ticker.toUpperCase(), mode: apiMode },
         {
           onProgress: (progress, message) => {
             setStreamProgress(progress);
@@ -639,7 +628,7 @@ export default function EarningsAnalysisPage() {
       setError(err.message || "Failed to start analysis. Please try again.");
       setStreamState("error");
     }
-  }, [gate, isAtLimit, selectedModel, profile, refetchBroStatus]);
+  }, [gate, isAtLimit, profile, refetchBroStatus]);
 
   const handleSubmit = (ticker: string) => {
     if (!gate()) return;
@@ -787,20 +776,6 @@ export default function EarningsAnalysisPage() {
             {/* Mode action cards — show when stock loaded, idle, no result */}
             {activeTicker && streamState === "idle" && !result && !error && (
               <>
-                {modelsData?.models && modelsData.models.length > 1 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-zinc-400">Model:</span>
-                    <select
-                      value={selectedModel}
-                      onChange={(e) => setSelectedModel(e.target.value)}
-                      className="bg-zinc-800 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm"
-                    >
-                      {modelsData.models.map((m) => (
-                        <option key={m.id} value={m.id}>{m.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <button
                     type="button"
