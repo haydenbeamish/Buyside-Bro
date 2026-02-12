@@ -5,7 +5,7 @@ import { isAuthenticated, authStorage } from "../auth";
 
 const LASER_BEAM_API = "https://api.laserbeamcapital.com";
 const LASER_BEAM_HEADERS: HeadersInit = {
-  "X-API-Key": process.env.API_KEY || "",
+  "X-API-Key": process.env.LASERBEAMNODE_API_KEY || "",
 };
 
 async function proxySSEStream(

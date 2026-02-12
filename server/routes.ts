@@ -52,11 +52,11 @@ function normalizeTicker(ticker: string): string {
 }
 
 const LASER_BEAM_API = "https://api.laserbeamcapital.com";
-if (!process.env.API_KEY) {
-  console.error("WARNING: API_KEY environment variable is not set! Market data API calls will fail with 401.");
+if (!process.env.LASERBEAMNODE_API_KEY) {
+  console.error("WARNING: LASERBEAMNODE_API_KEY environment variable is not set! Market data API calls will fail with 401.");
 }
 const LASER_BEAM_HEADERS: HeadersInit = {
-  "X-API-Key": process.env.API_KEY || "",
+  "X-API-Key": process.env.LASERBEAMNODE_API_KEY || "",
 };
 
 // Fallback market data constants
