@@ -20,6 +20,7 @@ import {
   LogOut,
   RefreshCw,
   Percent,
+  BarChart2,
 } from "lucide-react";
 import {
   BarChart,
@@ -30,6 +31,10 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  LineChart,
+  Line,
+  Legend,
+  CartesianGrid,
 } from "recharts";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { queryClient } from "@/lib/queryClient";
@@ -98,6 +103,14 @@ interface AiUsage {
 interface ApiCostSummary {
   summary: { total_calls: number; total_cost: number; total_tokens: number };
   breakdown: { label: string; total_calls: number; total_cost: number; total_tokens: number }[];
+}
+
+interface UsageSummary {
+  featureUsage: { action: string; label: string; hits: number; uniqueUsers: number; pct: number }[];
+  featureDaily: Record<string, any>[];
+  featureDailyKeys: string[];
+  hourlyHeatmap: { dow: number; hour: number; hits: number }[];
+  topPages: { path: string; hits: number; uniqueUsers: number }[];
 }
 
 function StatCard({ icon: Icon, label, value, sub }: { icon: any; label: string; value: string | number; sub?: string }) {
@@ -205,7 +218,7 @@ function ViewAsSwitcher() {
 export default function AdminPage() {
   useDocumentTitle("Admin Dashboard");
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<"overview" | "users" | "activity" | "costs">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "users" | "activity" | "costs" | "usage">("overview");
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -264,6 +277,11 @@ export default function AdminPage() {
     enabled: isAdmin && activeTab === "costs",
   });
 
+  const { data: usageSummary, isLoading: usageLoading } = useQuery<UsageSummary>({
+    queryKey: ["/api/admin/usage-summary"],
+    enabled: isAdmin && activeTab === "usage",
+  });
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await queryClient.invalidateQueries({ predicate: (q) => (q.queryKey[0] as string)?.startsWith?.("/api/admin") });
@@ -310,6 +328,7 @@ export default function AdminPage() {
     { id: "users" as const, label: "Users", icon: Users },
     { id: "activity" as const, label: "Activity", icon: Activity },
     { id: "costs" as const, label: "Costs", icon: DollarSign },
+    { id: "usage" as const, label: "Usage", icon: BarChart2 },
   ];
 
   const costsLoading = aiLoading || apiCostTotalsLoading;
@@ -740,6 +759,170 @@ export default function AdminPage() {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* ==================== USAGE TAB ==================== */}
+      {activeTab === "usage" && (
+        <div className="space-y-6">
+          {usageLoading ? (
+            <div className="space-y-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-64 bg-zinc-800" />
+              ))}
+            </div>
+          ) : usageSummary ? (
+            <>
+              {/* 1. Feature Ranking – horizontal bar chart */}
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                <h3 className="text-sm text-zinc-400 uppercase tracking-wider mb-4">Feature Ranking (30 Days)</h3>
+                <div className="space-y-2">
+                  {usageSummary.featureUsage.map((f) => {
+                    const maxHits = usageSummary.featureUsage[0]?.hits || 1;
+                    return (
+                      <div key={f.action} className="group">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-zinc-300 w-28 truncate flex-shrink-0">{f.label}</span>
+                          <div className="flex-1 bg-zinc-800 rounded-full h-5 overflow-hidden">
+                            <div
+                              className="h-full bg-amber-500/70 rounded-full transition-all"
+                              style={{ width: `${(f.hits / maxHits) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-xs ticker-font text-amber-400 w-16 text-right flex-shrink-0">{f.hits.toLocaleString()}</span>
+                        </div>
+                        <div className="flex gap-4 ml-[7.75rem] mt-0.5">
+                          <span className="text-[10px] text-zinc-500">{f.pct}% of total</span>
+                          <span className="text-[10px] text-zinc-500">{f.uniqueUsers} unique users</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {usageSummary.featureUsage.length === 0 && (
+                    <div className="text-center text-zinc-500 text-sm py-8">No usage data yet</div>
+                  )}
+                </div>
+              </div>
+
+              {/* 2. Feature Trends (14 Days) – multi-line chart */}
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                <h3 className="text-sm text-zinc-400 uppercase tracking-wider mb-4">Feature Trends (14 Days)</h3>
+                {usageSummary.featureDaily.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={usageSummary.featureDaily}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fill: "#a1a1aa", fontSize: 10 }}
+                        tickFormatter={(v) => new Date(v).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      />
+                      <YAxis tick={{ fill: "#a1a1aa", fontSize: 10 }} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#18181b", border: "1px solid #333333", borderRadius: "6px" }}
+                        labelStyle={{ color: "#a1a1aa" }}
+                        labelFormatter={(v) => new Date(v).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 11, color: "#a1a1aa" }} />
+                      {usageSummary.featureDailyKeys.map((key, i) => {
+                        const colors = ["#FFD700", "#4ade80", "#60a5fa", "#f87171", "#c084fc", "#fb923c", "#22d3ee", "#a3e635"];
+                        return (
+                          <Line
+                            key={key}
+                            type="monotone"
+                            dataKey={key}
+                            stroke={colors[i % colors.length]}
+                            strokeWidth={2}
+                            dot={false}
+                            connectNulls
+                          />
+                        );
+                      })}
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] text-zinc-500 text-sm">No trend data yet</div>
+                )}
+              </div>
+
+              {/* 3. Peak Hours Heatmap */}
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                <h3 className="text-sm text-zinc-400 uppercase tracking-wider mb-4">Peak Hours Heatmap (30 Days)</h3>
+                <div className="overflow-x-auto">
+                  <div className="min-w-[640px]">
+                    {/* Hour labels */}
+                    <div className="flex ml-12">
+                      {Array.from({ length: 24 }).map((_, h) => (
+                        <div key={h} className="flex-1 text-center text-[9px] text-zinc-500 ticker-font">{h}</div>
+                      ))}
+                    </div>
+                    {/* Grid rows */}
+                    {(() => {
+                      const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                      const maxHits = Math.max(...usageSummary.hourlyHeatmap.map((r) => r.hits), 1);
+                      const heatMap = new Map<string, number>();
+                      usageSummary.hourlyHeatmap.forEach((r) => heatMap.set(`${r.dow}-${r.hour}`, r.hits));
+                      return dayLabels.map((label, dow) => (
+                        <div key={dow} className="flex items-center">
+                          <span className="w-12 text-xs text-zinc-500 text-right pr-2 flex-shrink-0">{label}</span>
+                          <div className="flex flex-1">
+                            {Array.from({ length: 24 }).map((_, h) => {
+                              const hits = heatMap.get(`${dow}-${h}`) || 0;
+                              const intensity = hits / maxHits;
+                              return (
+                                <div
+                                  key={h}
+                                  className="flex-1 aspect-square rounded-sm m-[1px] relative group cursor-default"
+                                  style={{
+                                    backgroundColor: hits === 0
+                                      ? "rgba(39, 39, 42, 0.5)"
+                                      : `rgba(245, 158, 11, ${0.15 + intensity * 0.85})`,
+                                  }}
+                                >
+                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10 bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-[10px] text-zinc-300 whitespace-nowrap pointer-events-none">
+                                    {label} {h}:00 — {hits.toLocaleString()} hits
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Top API Paths */}
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                <h3 className="text-sm text-zinc-400 uppercase tracking-wider mb-4">Top API Paths (30 Days)</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase tracking-wider">
+                        <th className="px-4 py-3 text-left">#</th>
+                        <th className="px-3 py-3 text-left">Path</th>
+                        <th className="px-3 py-3 text-right">Hits</th>
+                        <th className="px-3 py-3 text-right">Unique Users</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usageSummary.topPages.map((row, i) => (
+                        <tr key={row.path} className="border-b border-zinc-800/50 hover:bg-amber-900/5 transition-colors">
+                          <td className="px-4 py-2.5 text-xs text-zinc-500">{i + 1}</td>
+                          <td className="px-3 py-2.5 text-xs ticker-font text-zinc-300 truncate max-w-xs">{row.path}</td>
+                          <td className="px-3 py-2.5 text-right ticker-font text-amber-400">{row.hits.toLocaleString()}</td>
+                          <td className="px-3 py-2.5 text-right ticker-font text-zinc-300">{row.uniqueUsers.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                      {usageSummary.topPages.length === 0 && (
+                        <tr><td colSpan={4} className="px-4 py-8 text-center text-zinc-500">No path data yet</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          ) : null}
         </div>
       )}
     </div>

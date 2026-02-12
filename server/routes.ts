@@ -25,7 +25,7 @@ import {
   hasNewsFeedItemForMarketToday
 } from "./creditService";
 import { db } from "./db";
-import { desc, sql, eq, gte, count, and, isNotNull } from "drizzle-orm";
+import { desc, sql, eq, gte, count, countDistinct, and, isNotNull } from "drizzle-orm";
 
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || "hbeamish1@gmail.com")
   .split(",")
@@ -2974,6 +2974,116 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     } catch (error) {
       console.error("Admin AI usage error:", error);
       res.status(500).json({ error: "Failed to fetch AI usage" });
+    }
+  });
+
+  // ---- Usage summary (feature-level aggregations) ----
+  const ACTION_FRIENDLY_NAMES: Record<string, string> = {
+    view_markets: "Markets",
+    view_portfolio: "Portfolio",
+    edit_portfolio: "Edit Portfolio",
+    view_watchlist: "Watchlist",
+    edit_watchlist: "Edit Watchlist",
+    analysis: "Analysis",
+    view_earnings: "Earnings",
+    view_news: "News",
+    chat: "Ask Bro",
+    credits: "Credits",
+    subscription: "Subscription",
+    stock_search: "Stock Search",
+    newsfeed: "News Feed",
+    push_notifications: "Push Notifications",
+    auth: "Auth",
+    login: "Login",
+    logout: "Logout",
+    other: "Other",
+  };
+
+  app.get("/api/admin/usage-summary", isAdmin, async (_req: Request, res: Response) => {
+    try {
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+      // 1. featureUsage – per-action totals, unique users, % of total (30 days)
+      const featureRows = await db.select({
+        action: activityLogs.action,
+        hits: count(),
+        uniqueUsers: countDistinct(activityLogs.userId),
+      }).from(activityLogs)
+        .where(gte(activityLogs.createdAt, thirtyDaysAgo))
+        .groupBy(activityLogs.action)
+        .orderBy(desc(count()));
+
+      const totalHits = featureRows.reduce((s, r) => s + Number(r.hits), 0);
+      const featureUsage = featureRows.map((r) => ({
+        action: r.action,
+        label: ACTION_FRIENDLY_NAMES[r.action] || r.action,
+        hits: Number(r.hits),
+        uniqueUsers: Number(r.uniqueUsers),
+        pct: totalHits > 0 ? Math.round((Number(r.hits) / totalHits) * 1000) / 10 : 0,
+      }));
+
+      // 2. featureDaily – daily breakdown for top-8 features (14 days)
+      const top8Actions = featureRows.slice(0, 8).map((r) => r.action);
+      const dailyRows = await db.select({
+        date: sql<string>`DATE(created_at)`,
+        action: activityLogs.action,
+        hits: count(),
+      }).from(activityLogs)
+        .where(gte(activityLogs.createdAt, fourteenDaysAgo))
+        .groupBy(sql`DATE(created_at)`, activityLogs.action)
+        .orderBy(sql`DATE(created_at)`);
+
+      // Pivot into { date, Feature1: n, Feature2: n, ... }
+      const dateMap = new Map<string, Record<string, any>>();
+      for (const row of dailyRows) {
+        if (!top8Actions.includes(row.action)) continue;
+        const key = String(row.date);
+        if (!dateMap.has(key)) dateMap.set(key, { date: key });
+        const friendlyName = ACTION_FRIENDLY_NAMES[row.action] || row.action;
+        dateMap.get(key)![friendlyName] = Number(row.hits);
+      }
+      const featureDaily = Array.from(dateMap.values());
+      const featureDailyKeys = top8Actions.map((a) => ACTION_FRIENDLY_NAMES[a] || a);
+
+      // 3. hourlyHeatmap – hits by day-of-week (0=Sun) and hour (30 days)
+      const heatmapRows = await db.select({
+        dow: sql<number>`EXTRACT(DOW FROM created_at)`,
+        hour: sql<number>`EXTRACT(HOUR FROM created_at)`,
+        hits: count(),
+      }).from(activityLogs)
+        .where(gte(activityLogs.createdAt, thirtyDaysAgo))
+        .groupBy(sql`EXTRACT(DOW FROM created_at)`, sql`EXTRACT(HOUR FROM created_at)`)
+        .orderBy(sql`EXTRACT(DOW FROM created_at)`, sql`EXTRACT(HOUR FROM created_at)`);
+
+      const hourlyHeatmap = heatmapRows.map((r) => ({
+        dow: Number(r.dow),
+        hour: Number(r.hour),
+        hits: Number(r.hits),
+      }));
+
+      // 4. topPages – top 20 API paths by hit count + unique users (30 days)
+      const topPages = await db.select({
+        path: activityLogs.path,
+        hits: count(),
+        uniqueUsers: countDistinct(activityLogs.userId),
+      }).from(activityLogs)
+        .where(gte(activityLogs.createdAt, thirtyDaysAgo))
+        .groupBy(activityLogs.path)
+        .orderBy(desc(count()))
+        .limit(20);
+
+      res.json({
+        featureUsage,
+        featureDaily,
+        featureDailyKeys,
+        hourlyHeatmap: hourlyHeatmap.map((r) => ({ ...r, hits: Number(r.hits) })),
+        topPages: topPages.map((r) => ({ path: r.path, hits: Number(r.hits), uniqueUsers: Number(r.uniqueUsers) })),
+      });
+    } catch (error) {
+      console.error("Admin usage summary error:", error);
+      res.status(500).json({ error: "Failed to fetch usage summary" });
     }
   });
 
