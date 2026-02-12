@@ -253,13 +253,13 @@ export default function SubscriptionPage() {
   const proDisplayPrice = proPrice ? (proPrice.unit_amount / 100).toFixed(0) : "100";
 
   const starterFeatures = [
+    { icon: Bot, text: "5 Bro queries per day", desc: "5x more AI queries for Deep Dives, analysis, and chat" },
+    { icon: Mail, text: "Daily market wrap emails", desc: "Close summaries for US, ASX, European, and Asian markets" },
     { icon: Globe, text: "Live global market data", desc: "100+ tickers: futures, commodities, forex, sectors, thematics" },
-    { icon: Bot, text: "5 Bro queries per day", desc: "Chat with live data awareness and conversation memory" },
     { icon: Brain, text: "Deep Dive reports", desc: "Hedge fund quality research with BUY/HOLD/SELL and target prices" },
     { icon: LineChart, text: "Stock analysis", desc: "Quick snapshots with P&L tables, charts, and fundamentals" },
     { icon: BarChart3, text: "Earnings insights", desc: "Expert previews and reviews with consensus estimates" },
     { icon: BriefcaseBusiness, text: "Portfolio tracking", desc: "Holdings, exposure breakdown, and expert review" },
-    { icon: Mail, text: "Market wrap emails", desc: "Daily close summaries for US, ASX, European, Asian markets" },
     { icon: Bell, text: "Push notifications", desc: "Price alerts and market summary notifications" },
   ];
 
@@ -274,15 +274,15 @@ export default function SubscriptionPage() {
     { feature: "Live market dashboard", free: true, starter: true, pro: true },
     { feature: "Global markets (100+ tickers)", free: true, starter: true, pro: true },
     { feature: "Ask Bro queries", free: "1/day", starter: "5/day", pro: "50/mo" },
-    { feature: "Deep Dive reports", free: false, starter: true, pro: true },
-    { feature: "Stock analysis & snapshots", free: false, starter: true, pro: true },
-    { feature: "Earnings insights", free: false, starter: true, pro: true },
-    { feature: "Portfolio tracking & analytics", free: false, starter: true, pro: true },
+    { feature: "Deep Dive reports", free: "1/day", starter: "5/day", pro: "50/mo" },
+    { feature: "Stock analysis & snapshots", free: "1/day", starter: "5/day", pro: "50/mo" },
+    { feature: "Earnings insights", free: "1/day", starter: "5/day", pro: "50/mo" },
+    { feature: "Portfolio tracking & analytics", free: true, starter: true, pro: true },
     { feature: "Daily market wrap emails", free: false, starter: true, pro: true },
-    { feature: "Push notifications", free: false, starter: true, pro: true },
-    { feature: "Custom watchlists", free: false, starter: true, pro: true },
+    { feature: "Push notifications", free: true, starter: true, pro: true },
+    { feature: "Custom watchlists", free: true, starter: true, pro: true },
     { feature: "Hedging strategies", free: false, starter: false, pro: true },
-    { feature: "Trade tracker & journal", free: false, starter: "Demo", pro: true },
+    { feature: "Trade tracker & journal", free: "Demo", starter: "Demo", pro: true },
   ];
 
   return (

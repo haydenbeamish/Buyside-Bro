@@ -26,13 +26,13 @@ const markets = [
 export function MarketWrapEmailCTA() {
   const { isAuthenticated } = useAuth();
   const { gate, showLoginModal, closeLoginModal } = useLoginGate();
-  const { isPro } = useBroStatus();
+  const { isStarterOrAbove } = useBroStatus();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   const { data: prefs, isLoading: prefsLoading } = useQuery<EmailPrefs & Record<string, any>>({
     queryKey: ["/api/push/preferences"],
-    enabled: isAuthenticated && isPro,
+    enabled: isAuthenticated && isStarterOrAbove,
   });
 
   const updateMutation = useMutation({
@@ -46,8 +46,8 @@ export function MarketWrapEmailCTA() {
     onError: (error: any) => {
       if (error?.status === 403) {
         toast({
-          title: "Pro subscription required",
-          description: "Upgrade to Pro to enable market wrap emails.",
+          title: "Subscription required",
+          description: "Upgrade to Starter or Pro to enable market wrap emails.",
           variant: "destructive",
         });
       } else {
@@ -90,7 +90,7 @@ export function MarketWrapEmailCTA() {
               Sign in to subscribe
             </Button>
           </div>
-        ) : !isPro ? (
+        ) : !isStarterOrAbove ? (
           <div>
             <p className="text-zinc-400 text-sm mb-4">
               Receive a closing bell summary after every US, ASX, and European market close — delivered straight to your inbox.
@@ -100,7 +100,7 @@ export function MarketWrapEmailCTA() {
               onClick={() => setLocation("/subscription")}
             >
               <Crown className="w-4 h-4 mr-2" />
-              Go Pro to unlock
+              Upgrade to unlock
             </Button>
           </div>
         ) : (
