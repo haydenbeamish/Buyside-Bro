@@ -538,18 +538,18 @@ export default function MarketsPage() {
                 Futures
               </TabsTrigger>
               <TabsTrigger 
-                value="commodities"
-                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
-                data-testid="tab-commodities"
-              >
-                Commodities
-              </TabsTrigger>
-              <TabsTrigger 
                 value="usa-thematics"
                 className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
                 data-testid="tab-usa-thematics"
               >
                 USA Thematics
+              </TabsTrigger>
+              <TabsTrigger 
+                value="commodities"
+                className="data-[state=active]:bg-zinc-800 data-[state=active]:text-white text-zinc-400 rounded-md px-3 py-2 text-xs sm:text-sm ticker-font whitespace-nowrap"
+                data-testid="tab-commodities"
+              >
+                Commodities
               </TabsTrigger>
               <TabsTrigger 
                 value="usa-sectors"
@@ -594,13 +594,13 @@ export default function MarketsPage() {
               flashCells={flashCells}
             />
           </TabsContent>
-          <TabsContent value="commodities">
-            <MarketBreadthStrip items={markets?.commodities || []} />
-            <MarketsTable items={markets?.commodities || []} isLoading={isLoading} flashCells={flashCells} />
-          </TabsContent>
           <TabsContent value="usa-thematics">
             <MarketBreadthStrip items={markets?.usaThematics || []} />
             <MarketsTable items={markets?.usaThematics || []} isLoading={isLoading} flashCells={flashCells} />
+          </TabsContent>
+          <TabsContent value="commodities">
+            <MarketBreadthStrip items={markets?.commodities || []} />
+            <MarketsTable items={markets?.commodities || []} isLoading={isLoading} flashCells={flashCells} />
           </TabsContent>
           <TabsContent value="usa-sectors">
             <MarketBreadthStrip items={markets?.usaSectors || []} />
