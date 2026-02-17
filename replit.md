@@ -23,7 +23,7 @@ Preferred communication style: Simple, everyday language.
 - **Language**: TypeScript with ESM modules
 - **ORM**: Drizzle ORM with PostgreSQL
 - **API Pattern**: RESTful endpoints
-- **Authentication**: Replit Auth (OpenID Connect) with PostgreSQL-backed sessions.
+- **Authentication**: Auth0 (OpenID Connect) with PostgreSQL-backed sessions. Secrets: `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`.
 - **Subscription**: Stripe integration for managing "Buy Side Bro Pro" subscriptions and credit packs.
 - **AI Credit System**: Tracks OpenRouter API usage in a `usage_logs` table, enforcing monthly allowances and credit pack purchases.
 - **Admin Dashboard**: Accessible to specific users, providing activity logging, user management, and AI usage statistics.
@@ -57,7 +57,7 @@ Preferred communication style: Simple, everyday language.
   - `/api/chat/bro` — AI chat streaming endpoint (SSE, uses Claude Opus 4). Stream ends with `data: [DONE]`
   - `/api/cached-analysis/MSFT` — pre-cached MSFT deep analysis (refreshed daily on that server). Returns `{ loading: true }` if not ready yet
 - **OpenRouter**: Used for AI/LLM functionalities (stock analysis summaries in routes.ts), specifically Moonshot AI's Kimi K2.5 model. Chat is now proxied through Laser Beam Capital.
-- **Replit Auth**: For user authentication (Google, Apple, GitHub, X, email/password).
+- **Auth0**: For user authentication (Google, Apple, GitHub, X, email/password). Uses standard OIDC flow via `openid-client` library.
 - **Stripe**: For subscription management and credit pack purchases.
 - **Yahoo Finance**: Data source for Market Cap and Trailing P/E Ratio (via Laser Beam Capital API).
 - **FMP (Financial Modeling Prep)**: Data source for Forward P/E Ratio, stock search (via Laser Beam Capital API).
