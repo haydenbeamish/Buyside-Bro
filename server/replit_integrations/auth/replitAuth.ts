@@ -59,16 +59,17 @@ function updateUserSession(
   user.expires_at = claims!.exp;
 }
 
-async function upsertUser(claims: any): Promise<boolean> {
-  const existingUser = await authStorage.getUser(claims["sub"]);
-  await authStorage.upsertUser({
+async function upsertUser(claims: any): Promise<{ isNewUser: boolean; user: any }> {
+  const existingById = await authStorage.getUser(claims["sub"]);
+  const user = await authStorage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
   });
-  return !existingUser;
+  const isNewUser = !existingById && user.createdAt?.getTime() === user.updatedAt?.getTime();
+  return { isNewUser, user };
 }
 
 export async function setupAuth(app: Express) {
@@ -84,21 +85,27 @@ export async function setupAuth(app: Express) {
     verified: passport.AuthenticateCallback
   ) => {
     try {
-      const user = {};
-      updateUserSession(user, tokens);
-      const claims = tokens.claims();
-      const isNewUser = await upsertUser(claims);
+      const sessionUser = {};
+      updateUserSession(sessionUser, tokens);
+      const claims = tokens.claims()!;
+      const { isNewUser, user: dbUser } = await upsertUser(claims);
+
+      if (dbUser.id !== claims.sub) {
+        console.log(`[Auth] Email merge: session sub overridden from ${claims.sub} to ${dbUser.id}`);
+        (sessionUser as any).claims.sub = dbUser.id;
+      }
+
       console.log("[Auth] User verified successfully:", (claims as any)?.email || claims?.sub);
 
       if (isNewUser && claims && (claims as any)?.email) {
         sendWelcomeEmail(
-          claims.sub!,
+          dbUser.id,
           (claims as any).email,
           (claims as any).first_name
         ).catch((e: any) => console.error("[Email] Welcome email error:", e));
       }
 
-      verified(null, user);
+      verified(null, sessionUser);
     } catch (error) {
       console.error("[Auth] Error in verify function:", error);
       verified(error as Error);
@@ -130,6 +137,7 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
+    console.log(`[Auth] Login initiated — hostname: ${req.hostname}, callbackURL: https://${req.hostname}/api/callback`);
     ensureStrategy(req.hostname);
     // Wrap res.redirect so the OIDC state stored in the session by
     // Passport is flushed to the DB before the 302 is sent. Without
