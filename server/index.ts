@@ -26,6 +26,7 @@ function validateEnvVars(): void {
     { name: "LASERBEAMNODE_API_KEY", reason: "external market data will not work" },
     { name: "OPENROUTER_API_KEY", reason: "AI chat features will not work" },
     { name: "INTERNAL_API_KEY", reason: "internal API authentication will not work" },
+    { name: "FRONTEND_API_KEY", reason: "frontend API key validation will fall back to LASERBEAMNODE_API_KEY" },
     { name: "ADMIN_EMAILS", reason: "admin access will fall back to default" },
   ];
 
@@ -115,6 +116,16 @@ const paymentLimiter = rateLimit({
 });
 app.use("/api/subscription/checkout", paymentLimiter);
 app.use("/api/credits/purchase", paymentLimiter);
+
+// Stricter rate limiting for chat endpoints (SSE streaming)
+const chatLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // 10 messages per minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: true, message: "Too many chat requests, please slow down" },
+});
+app.use("/api/chat/bro", chatLimiter);
 
 // Health check endpoint
 app.get("/health", async (_req: Request, res: Response) => {

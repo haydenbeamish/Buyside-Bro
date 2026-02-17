@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { chatStorage } from "./storage";
 import { recordUsage, checkBroQueryAllowed } from "../../creditService";
 import { isAuthenticated, authStorage } from "../auth";
+import { requireApiKey } from "../../middleware/apiKey";
 
 const LASER_BEAM_API = "https://api.laserbeamcapital.com";
 const LASER_BEAM_HEADERS: HeadersInit = {
@@ -65,6 +66,90 @@ async function proxySSEStream(
 }
 
 export function registerChatRoutes(app: Express): void {
+  // Primary chat endpoint — SSE streaming via Laser Beam Capital API
+  // Requires x-api-key header and session authentication
+  app.post("/api/chat/bro", requireApiKey, isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { message, history = [] } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ error: true, message: "message field is required and must be a string" });
+      }
+
+      if (message.length > 10000) {
+        return res.status(400).json({ error: true, message: "Message exceeds maximum length of 10,000 characters" });
+      }
+
+      if (!Array.isArray(history)) {
+        return res.status(400).json({ error: true, message: "history must be an array" });
+      }
+
+      // Validate history entries
+      for (const entry of history) {
+        if (!entry.role || !entry.content || typeof entry.content !== "string") {
+          return res.status(400).json({ error: true, message: "Each history entry must have role and content (string)" });
+        }
+        if (!["user", "assistant"].includes(entry.role)) {
+          return res.status(400).json({ error: true, message: "History role must be 'user' or 'assistant'" });
+        }
+      }
+
+      // Check daily Bro query limit
+      if (userId) {
+        const user = await authStorage.getUser(userId);
+        const broCheck = await checkBroQueryAllowed(userId, user);
+        if (!broCheck.allowed) {
+          return res.status(429).json({
+            error: true,
+            message: broCheck.message,
+            requiresUpgrade: broCheck.requiresUpgrade,
+          });
+        }
+      }
+
+      const response = await fetch(`${LASER_BEAM_API}/api/chat/bro`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
+        body: JSON.stringify({ message, history }),
+      });
+
+      if (!response.ok || !response.body) {
+        const status = response.status;
+        console.error(`[Chat Bro] Upstream error: ${status}`);
+        return res.status(502).json({ error: true, message: "Upstream chat service unavailable" });
+      }
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+
+      const fullResponse = await proxySSEStream(response, res);
+
+      // Record usage
+      if (userId) {
+        const model = "laserbeam/chat-bro";
+        const systemPromptLength = 380;
+        const historyLength = history.reduce((sum: number, m: { role: string; content: string }) => sum + m.content.length, 0);
+        const inputTokens = Math.ceil((systemPromptLength + historyLength + message.length) / 4);
+        const outputTokens = Math.ceil(fullResponse.length / 4);
+        await recordUsage(userId, 'chat', model, inputTokens, outputTokens);
+      }
+
+      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.end();
+    } catch (error) {
+      console.error("[Chat Bro] Error:", error);
+      if (res.headersSent) {
+        res.write(`data: ${JSON.stringify({ error: "Stream interrupted" })}\n\n`);
+        res.end();
+      } else {
+        res.status(500).json({ error: true, message: "Internal server error" });
+      }
+    }
+  });
+
   app.get("/api/conversations", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user.claims.sub;
