@@ -1,5 +1,14 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+const API_KEY = import.meta.env.VITE_API_KEY || "";
+
+function apiHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (API_KEY) headers["x-api-key"] = API_KEY;
+  if (extra) Object.assign(headers, extra);
+  return headers;
+}
+
 export class ApiError extends Error {
   status: number;
 
@@ -45,7 +54,7 @@ export async function apiRequest(
 ): Promise<Response> {
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: apiHeaders(data ? { "Content-Type": "application/json" } : undefined),
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -62,6 +71,7 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     const res = await fetch(queryKey.join("/") as string, {
       credentials: "include",
+      headers: apiHeaders(),
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

@@ -26,9 +26,12 @@ export async function streamAnalysis(
   callbacks: StreamAnalysisCallbacks,
   abortSignal?: AbortSignal,
 ): Promise<void> {
+  const apiKey = import.meta.env.VITE_API_KEY || "";
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (apiKey) headers["x-api-key"] = apiKey;
   const response = await fetch("/api/fundamental-analysis/analyze/stream", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     credentials: "include",
     body: JSON.stringify({
       ticker: options.ticker.toUpperCase(),
