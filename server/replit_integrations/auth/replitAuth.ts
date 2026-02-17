@@ -9,22 +9,11 @@ import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
 import { sendWelcomeEmail } from "../../email";
 
-const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN;
-const AUTH0_CLIENT_ID = process.env.AUTH0_CLIENT_ID;
-const AUTH0_CLIENT_SECRET = process.env.AUTH0_CLIENT_SECRET;
-
-if (!AUTH0_DOMAIN || !AUTH0_CLIENT_ID || !AUTH0_CLIENT_SECRET) {
-  console.error("FATAL: AUTH0_DOMAIN, AUTH0_CLIENT_ID, and AUTH0_CLIENT_SECRET must all be set. Exiting.");
-  process.exit(1);
-}
-
 const getOidcConfig = memoize(
   async () => {
-    const issuerUrl = new URL(`https://${AUTH0_DOMAIN}/`);
     return await client.discovery(
-      issuerUrl,
-      AUTH0_CLIENT_ID!,
-      { client_secret: AUTH0_CLIENT_SECRET! }
+      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
+      process.env.REPL_ID!
     );
   },
   { maxAge: 3600 * 1000 }
@@ -65,10 +54,7 @@ function updateUserSession(
   tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers
 ) {
   const claims = tokens.claims()!;
-  user.claims = {
-    sub: claims.sub,
-    email: (claims as any).email,
-  };
+  user.claims = { sub: claims.sub, email: (claims as any).email };
   user.refresh_token = tokens.refresh_token;
   user.expires_at = claims!.exp;
 }
@@ -78,9 +64,9 @@ async function upsertUser(claims: any): Promise<boolean> {
   await authStorage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
-    firstName: claims["given_name"] || claims["first_name"],
-    lastName: claims["family_name"] || claims["last_name"],
-    profileImageUrl: claims["picture"] || claims["profile_image_url"],
+    firstName: claims["first_name"],
+    lastName: claims["last_name"],
+    profileImageUrl: claims["profile_image_url"],
   });
   return !existingUser;
 }
@@ -108,7 +94,7 @@ export async function setupAuth(app: Express) {
         sendWelcomeEmail(
           claims.sub!,
           (claims as any).email,
-          (claims as any).given_name || (claims as any).first_name
+          (claims as any).first_name
         ).catch((e: any) => console.error("[Email] Welcome email error:", e));
       }
 
@@ -119,10 +105,12 @@ export async function setupAuth(app: Express) {
     }
   };
 
+  // Keep track of registered strategies
   const registeredStrategies = new Set<string>();
 
+  // Helper function to ensure strategy exists for a domain
   const ensureStrategy = (domain: string) => {
-    const strategyName = `auth0:${domain}`;
+    const strategyName = `replitauth:${domain}`;
     if (!registeredStrategies.has(strategyName)) {
       const strategy = new Strategy(
         {
@@ -143,13 +131,18 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/login", (req, res, next) => {
     ensureStrategy(req.hostname);
+    // Wrap res.redirect so the OIDC state stored in the session by
+    // Passport is flushed to the DB before the 302 is sent. Without
+    // this, a fast OIDC provider (user already logged into Replit)
+    // can redirect back before the session row is committed, causing
+    // the callback to lose the state and silently fail authentication.
     const origRedirect = res.redirect.bind(res);
     res.redirect = function (this: any, ...args: any[]) {
       req.session.save(() => {
         origRedirect.apply(this, args as any);
       });
     } as any;
-    passport.authenticate(`auth0:${req.hostname}`, {
+    passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
@@ -157,7 +150,7 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/callback", (req, res, next) => {
     ensureStrategy(req.hostname);
-    passport.authenticate(`auth0:${req.hostname}`, (err: any, user: any, info: any) => {
+    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any, info: any) => {
       if (err) {
         console.error("[Auth Callback] Error during authentication:", err);
         return res.redirect("/");
@@ -183,12 +176,14 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/logout", (req, res) => {
-    const returnTo = `${req.protocol}://${req.hostname}`;
     req.logout(() => {
       req.session.destroy(() => {
         res.clearCookie("connect.sid");
         res.redirect(
-          `https://${AUTH0_DOMAIN}/v2/logout?client_id=${AUTH0_CLIENT_ID}&returnTo=${encodeURIComponent(returnTo)}`
+          client.buildEndSessionUrl(config, {
+            client_id: process.env.REPL_ID!,
+            post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          }).href
         );
       });
     });
