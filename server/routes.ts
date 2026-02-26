@@ -1431,6 +1431,61 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
     }
   });
 
+  app.get("/api/analysis/company-metrics/:ticker", async (req: any, res: Response) => {
+    try {
+      const rawTicker = req.params.ticker as string;
+      if (!isValidTicker(rawTicker)) {
+        return res.status(400).json({ error: "Invalid ticker symbol" });
+      }
+      const ticker = normalizeTicker(rawTicker);
+
+      const metrics = await dedup(`company_metrics_${ticker}`, async () => {
+        const lbcUrl = `${LASER_BEAM_API}/api/stock/quick-summary/${encodeURIComponent(ticker)}`;
+        const lbcResponse = await fetchWithTimeout(lbcUrl, { headers: LASER_BEAM_HEADERS }, 15000);
+
+        if (!lbcResponse.ok) {
+          return null;
+        }
+
+        const lbcRaw = await lbcResponse.json() as any;
+        const lbcData = lbcRaw?.data || lbcRaw;
+        const km = lbcData.keyMetrics;
+
+        if (!km) {
+          return null;
+        }
+
+        return {
+          ticker,
+          // Ratios
+          currentYearPS: km.ratios?.currentYearPS ?? null,
+          forwardYearPS: km.ratios?.forwardYearPS ?? null,
+          currentYearPE: km.ratios?.currentYearPE ?? null,
+          forwardYearPE: km.ratios?.forwardYearPE ?? null,
+          // Growth
+          currentYearSalesGrowth: km.growth?.currentYearSalesGrowth ?? null,
+          nextYearSalesGrowth: km.growth?.nextYearSalesGrowth ?? null,
+          currentYearEarningsGrowth: km.growth?.currentYearEarningsGrowth ?? null,
+          nextYearEarningsGrowth: km.growth?.nextYearEarningsGrowth ?? null,
+          // Financial Metrics
+          currentYearDividendYield: km.financialMetrics?.dividendYield ?? null,
+          roe: km.financialMetrics?.roe ?? null,
+          debtToEquity: km.financialMetrics?.debtToEquity ?? null,
+          pbRatio: km.financialMetrics?.priceToBook ?? null,
+        };
+      });
+
+      if (!metrics) {
+        return res.status(502).json({ error: "Failed to fetch company metrics from data source" });
+      }
+
+      res.json(metrics);
+    } catch (error) {
+      console.error("Company metrics error:", error);
+      res.status(500).json({ error: "Failed to fetch company metrics" });
+    }
+  });
+
   app.get("/api/analysis/sec-filings/:ticker", async (req: any, res: Response) => {
     try {
       const rawTicker = req.params.ticker as string;

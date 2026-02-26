@@ -88,13 +88,23 @@ interface DeepAnalysisResult {
 
 type StreamState = "idle" | "loading" | "streaming" | "done" | "error";
 
-interface ForwardMetrics {
+interface CompanyMetrics {
   ticker: string;
-  forwardPE: number | null;
-  forwardEpsGrowth: number | null;
-  pegRatio: number | null;
-  currentEps: number | null;
-  estimatedEps: number | null;
+  // Ratios
+  currentYearPS: number | null;   // FY0 P/S
+  forwardYearPS: number | null;   // FY1 P/S
+  currentYearPE: number | null;   // FY0 P/E
+  forwardYearPE: number | null;   // FY1 P/E
+  // Growth
+  currentYearSalesGrowth: number | null;
+  nextYearSalesGrowth: number | null;
+  currentYearEarningsGrowth: number | null;
+  nextYearEarningsGrowth: number | null;
+  // Financial metrics
+  currentYearDividendYield: number | null;
+  roe: number | null;
+  debtToEquity: number | null;
+  pbRatio: number | null;
 }
 
 interface FilingAnnouncement {
@@ -174,67 +184,46 @@ function TradingViewChart({ ticker, exchange }: { ticker: string; exchange?: str
   );
 }
 
-function MetricCard({
-  label,
-  value,
-  isLoading,
-  colorClass
+function MetricsTable({
+  companyMetrics,
+  companyMetricsLoading,
 }: {
-  label: string;
-  value: string;
-  isLoading: boolean;
-  colorClass?: string;
+  companyMetrics?: CompanyMetrics;
+  companyMetricsLoading: boolean;
 }) {
-  const zeroValues = ["—", "N/A", "$0", "$0.00", "0.00", "0.00%", "$0.0", "0.0", "0.0%", "0.00x", "0.0x"];
-  if (!isLoading && (zeroValues.includes(value) || value === "")) return null;
+  const formatPercent = (value: number | null | undefined, signed = false) => {
+    if (value === null || value === undefined) return "—";
+    const prefix = signed && value >= 0 ? "+" : "";
+    return `${prefix}${value.toFixed(1)}%`;
+  };
 
-  return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-3 sm:p-4">
-      <p className="text-[11px] sm:text-xs text-zinc-500 uppercase tracking-wide mb-1">{label}</p>
+  const formatMultiple = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return "—";
+    return `${value.toFixed(1)}x`;
+  };
+
+  const growthColor = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return "text-white";
+    return value >= 0 ? "text-gain" : "text-loss";
+  };
+
+  const MetricValue = ({ value, isLoading, colorClass }: { value: string; isLoading: boolean; colorClass?: string }) => (
+    <td className="px-3 py-2 text-right font-mono text-sm">
       {isLoading ? (
-        <Skeleton className="h-6 w-20 bg-zinc-800" />
+        <Skeleton className="h-4 w-16 bg-zinc-800 ml-auto" />
       ) : (
-        <p className={`text-sm sm:text-lg font-bold font-mono truncate ${colorClass || "text-white"}`}>
-          {value}
-        </p>
+        <span className={colorClass || "text-white"}>{value}</span>
       )}
-    </div>
+    </td>
   );
-}
 
-function MetricsGrid({
-  profile,
-  financials,
-  forwardMetrics,
-  profileLoading,
-  financialsLoading,
-  metricsLoading
-}: {
-  profile?: StockProfile;
-  financials?: Financials;
-  forwardMetrics?: ForwardMetrics;
-  profileLoading: boolean;
-  financialsLoading: boolean;
-  metricsLoading: boolean;
-}) {
-  const formatMarketCap = (value: number) => {
-    if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-    if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-    if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-    return `$${value.toLocaleString()}`;
-  };
-
-  const formatLargeNumber = (value: number | undefined, prefix = "") => {
-    if (value === undefined || value === null || value === 0) return "N/A";
-    if (value >= 1e12) return `${prefix}${(value / 1e12).toFixed(2)}T`;
-    if (value >= 1e9) return `${prefix}${(value / 1e9).toFixed(2)}B`;
-    if (value >= 1e6) return `${prefix}${(value / 1e6).toFixed(2)}M`;
-    return `${prefix}${value.toLocaleString()}`;
-  };
-
-  const isASX = profile?.symbol?.endsWith(".AX") || false;
-  const dayChangeColor = (profile?.changesPercentage ?? 0) >= 0 ? "text-gain" : "text-loss";
-  const epsGrowthColor = (forwardMetrics?.forwardEpsGrowth ?? 0) >= 0 ? "text-gain" : "text-loss";
+  const SectionHeader = ({ title }: { title: string }) => (
+    <tr>
+      <td colSpan={2} className="px-3 pt-3 pb-1">
+        <span className="text-[11px] font-semibold text-amber-500 uppercase tracking-wider">{title}</span>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="space-y-3">
@@ -242,92 +231,115 @@ function MetricsGrid({
         <BarChart3 className="h-4 w-4 text-amber-500" />
         Key Metrics
       </h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
-        <MetricCard
-          label="Market Cap"
-          value={profile?.marketCap != null ? formatMarketCap(profile.marketCap) : "—"}
-          isLoading={profileLoading}
-        />
-        <MetricCard
-          label="Enterprise Value"
-          value={financials?.enterpriseValue != null ? formatMarketCap(financials.enterpriseValue) : "N/A"}
-          isLoading={financialsLoading}
-        />
-        <MetricCard
-          label="Price"
-          value={profile?.price != null ? `$${profile.price.toFixed(2)}` : "—"}
-          isLoading={profileLoading}
-        />
-        <MetricCard
-          label="Day Change"
-          value={profile?.changesPercentage != null
-            ? `${profile.changesPercentage >= 0 ? "+" : ""}${profile.changesPercentage.toFixed(2)}%`
-            : "—"}
-          isLoading={profileLoading}
-          colorClass={dayChangeColor}
-        />
-        <MetricCard
-          label="P/E (Forward)"
-          value={forwardMetrics?.forwardPE != null ? `${forwardMetrics.forwardPE.toFixed(1)}x` : "—"}
-          isLoading={metricsLoading}
-        />
-        <MetricCard
-          label="P/E (Trailing)"
-          value={financials?.peRatio != null ? financials.peRatio.toFixed(2) : "N/A"}
-          isLoading={financialsLoading}
-        />
-        <MetricCard
-          label="Fwd EPS Growth"
-          value={forwardMetrics?.forwardEpsGrowth != null
-            ? `${forwardMetrics.forwardEpsGrowth >= 0 ? "+" : ""}${forwardMetrics.forwardEpsGrowth.toFixed(1)}%`
-            : "—"}
-          isLoading={metricsLoading}
-          colorClass={epsGrowthColor}
-        />
-        <MetricCard
-          label="PEG Ratio"
-          value={forwardMetrics?.pegRatio != null ? forwardMetrics.pegRatio.toFixed(2) : "—"}
-          isLoading={metricsLoading}
-        />
-        <MetricCard
-          label={isASX ? "EV/EBIT (Forward)" : "EV/EBIT (Trailing)"}
-          value={financials?.evToEbit != null ? `${financials.evToEbit.toFixed(1)}x` : "N/A"}
-          isLoading={financialsLoading}
-        />
-        <MetricCard
-          label="Dividend Yield"
-          value={financials?.dividendYield != null ? `${(financials.dividendYield * 100).toFixed(2)}%` : "N/A"}
-          isLoading={financialsLoading}
-        />
-        <MetricCard
-          label="Revenue"
-          value={formatLargeNumber(financials?.revenue, "$")}
-          isLoading={financialsLoading}
-        />
-        <MetricCard
-          label="Net Income"
-          value={formatLargeNumber(financials?.netIncome, "$")}
-          isLoading={financialsLoading}
-        />
-        <MetricCard
-          label="ROE"
-          value={financials?.roe != null ? `${(financials.roe * 100).toFixed(2)}%` : "N/A"}
-          isLoading={financialsLoading}
-        />
-        {(financialsLoading || !financials || financials.debtToEquity * 100 >= -100) && (
-          <MetricCard
-            label="Debt/Equity"
-            value={financials?.debtToEquity != null ? `${(financials.debtToEquity * 100).toFixed(1)}%` : "N/A"}
-            isLoading={financialsLoading}
-          />
-        )}
-        {(financialsLoading || !financials || financials.pbRatio >= 0) && (
-          <MetricCard
-            label="P/B Ratio"
-            value={financials?.pbRatio != null ? financials.pbRatio.toFixed(2) : "N/A"}
-            isLoading={financialsLoading}
-          />
-        )}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+        <table className="w-full">
+          <tbody className="divide-y divide-zinc-800/50">
+            {/* Ratios */}
+            <SectionHeader title="Ratios" />
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">P/S (FY0)</td>
+              <MetricValue
+                value={formatMultiple(companyMetrics?.currentYearPS)}
+                isLoading={companyMetricsLoading}
+              />
+            </tr>
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">P/S (FY1)</td>
+              <MetricValue
+                value={formatMultiple(companyMetrics?.forwardYearPS)}
+                isLoading={companyMetricsLoading}
+              />
+            </tr>
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">P/E (FY0)</td>
+              <MetricValue
+                value={formatMultiple(companyMetrics?.currentYearPE)}
+                isLoading={companyMetricsLoading}
+              />
+            </tr>
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">P/E (FY1)</td>
+              <MetricValue
+                value={formatMultiple(companyMetrics?.forwardYearPE)}
+                isLoading={companyMetricsLoading}
+              />
+            </tr>
+
+            {/* Growth */}
+            <SectionHeader title="Growth" />
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">Sales Growth (FY0)</td>
+              <MetricValue
+                value={formatPercent(companyMetrics?.currentYearSalesGrowth, true)}
+                isLoading={companyMetricsLoading}
+                colorClass={growthColor(companyMetrics?.currentYearSalesGrowth)}
+              />
+            </tr>
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">Sales Growth (FY1)</td>
+              <MetricValue
+                value={formatPercent(companyMetrics?.nextYearSalesGrowth, true)}
+                isLoading={companyMetricsLoading}
+                colorClass={growthColor(companyMetrics?.nextYearSalesGrowth)}
+              />
+            </tr>
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">Earnings Growth (FY0)</td>
+              <MetricValue
+                value={formatPercent(companyMetrics?.currentYearEarningsGrowth, true)}
+                isLoading={companyMetricsLoading}
+                colorClass={growthColor(companyMetrics?.currentYearEarningsGrowth)}
+              />
+            </tr>
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">Earnings Growth (FY1)</td>
+              <MetricValue
+                value={formatPercent(companyMetrics?.nextYearEarningsGrowth, true)}
+                isLoading={companyMetricsLoading}
+                colorClass={growthColor(companyMetrics?.nextYearEarningsGrowth)}
+              />
+            </tr>
+
+            {/* Financial Metrics */}
+            <SectionHeader title="Financial Metrics" />
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">Dividend Yield (FY0)</td>
+              <MetricValue
+                value={companyMetrics?.currentYearDividendYield != null
+                  ? `${companyMetrics.currentYearDividendYield.toFixed(2)}%`
+                  : "—"}
+                isLoading={companyMetricsLoading}
+              />
+            </tr>
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">ROE</td>
+              <MetricValue
+                value={companyMetrics?.roe != null
+                  ? `${companyMetrics.roe.toFixed(1)}%`
+                  : "—"}
+                isLoading={companyMetricsLoading}
+              />
+            </tr>
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">Debt / Equity</td>
+              <MetricValue
+                value={companyMetrics?.debtToEquity != null
+                  ? `${companyMetrics.debtToEquity.toFixed(1)}%`
+                  : "—"}
+                isLoading={companyMetricsLoading}
+              />
+            </tr>
+            <tr className="hover:bg-zinc-800/30">
+              <td className="px-3 py-2 text-sm text-zinc-400">P/B Ratio</td>
+              <MetricValue
+                value={companyMetrics?.pbRatio != null
+                  ? `${companyMetrics.pbRatio.toFixed(2)}x`
+                  : "—"}
+                isLoading={companyMetricsLoading}
+              />
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -777,13 +789,13 @@ export default function AnalysisPage() {
     enabled: !!activeTicker,
   });
 
-  const { data: financials, isLoading: financialsLoading } = useQuery<Financials>({
+  const { data: financials } = useQuery<Financials>({
     queryKey: ["/api/analysis/financials", activeTicker],
     enabled: !!activeTicker,
   });
 
-  const { data: forwardMetrics, isLoading: metricsLoading } = useQuery<ForwardMetrics>({
-    queryKey: ["/api/analysis/forward", activeTicker],
+  const { data: companyMetrics, isLoading: companyMetricsLoading } = useQuery<CompanyMetrics>({
+    queryKey: ["/api/analysis/company-metrics", activeTicker],
     enabled: !!activeTicker,
   });
 
@@ -1083,9 +1095,14 @@ export default function AnalysisPage() {
                     <Badge variant="outline" className="border-zinc-700 text-zinc-400 text-xs hidden md:inline-flex">
                       {profile.industry}
                     </Badge>
-                    <Badge variant="outline" className="border-zinc-700 text-zinc-400 text-xs hidden sm:inline-flex">
-                      {formatMarketCap(profile.marketCap)}
+                    <Badge variant="outline" className="border-zinc-700 text-zinc-300 text-sm font-mono font-semibold hidden sm:inline-flex">
+                      Mkt Cap {formatMarketCap(profile.marketCap)}
                     </Badge>
+                    {financials?.enterpriseValue != null && (
+                      <Badge variant="outline" className="border-zinc-700 text-zinc-300 text-sm font-mono font-semibold hidden sm:inline-flex">
+                        EV {formatMarketCap(financials.enterpriseValue)}
+                      </Badge>
+                    )}
                   </div>
                   <div className="text-right shrink-0 flex items-center gap-2 md:gap-3">
                     <p className="text-lg md:text-2xl font-bold font-mono text-white">
@@ -1118,15 +1135,11 @@ export default function AnalysisPage() {
               </div>
             )}
 
-            {/* Key Metrics Grid - loads immediately */}
+            {/* Key Metrics Table - loads immediately */}
             {activeTicker && (
-              <MetricsGrid
-                profile={profile}
-                financials={financials}
-                forwardMetrics={forwardMetrics}
-                profileLoading={profileLoading}
-                financialsLoading={financialsLoading}
-                metricsLoading={metricsLoading}
+              <MetricsTable
+                companyMetrics={companyMetrics}
+                companyMetricsLoading={companyMetricsLoading}
               />
             )}
 
