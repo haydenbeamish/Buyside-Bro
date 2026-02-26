@@ -207,139 +207,72 @@ function MetricsTable({
     return value >= 0 ? "text-gain" : "text-loss";
   };
 
-  const MetricValue = ({ value, isLoading, colorClass }: { value: string; isLoading: boolean; colorClass?: string }) => (
-    <td className="px-3 py-2 text-right font-mono text-sm">
+  const MetricItem = ({ label, value, isLoading, colorClass }: { label: string; value: string; isLoading: boolean; colorClass?: string }) => (
+    <div className="flex items-center justify-between py-1 px-2 rounded hover:bg-zinc-800/30" data-testid={`metric-${label.toLowerCase().replace(/[\s\/()]/g, "-")}`}>
+      <span className="text-xs text-zinc-400 truncate mr-2">{label}</span>
       {isLoading ? (
-        <Skeleton className="h-4 w-16 bg-zinc-800 ml-auto" />
+        <Skeleton className="h-3.5 w-12 bg-zinc-800 flex-shrink-0" />
       ) : (
-        <span className={colorClass || "text-white"}>{value}</span>
+        <span className={`text-xs font-mono flex-shrink-0 ${colorClass || "text-white"}`}>{value}</span>
       )}
-    </td>
+    </div>
   );
 
-  const SectionHeader = ({ title }: { title: string }) => (
-    <tr>
-      <td colSpan={2} className="px-3 pt-3 pb-1">
-        <span className="text-[11px] font-semibold text-amber-500 uppercase tracking-wider">{title}</span>
-      </td>
-    </tr>
-  );
+  const sections = [
+    {
+      title: "Ratios",
+      items: [
+        { label: "P/S (FY0)", value: formatMultiple(companyMetrics?.currentYearPS) },
+        { label: "P/S (FY1)", value: formatMultiple(companyMetrics?.forwardYearPS) },
+        { label: "P/E (FY0)", value: formatMultiple(companyMetrics?.currentYearPE) },
+        { label: "P/E (FY1)", value: formatMultiple(companyMetrics?.forwardYearPE) },
+      ],
+    },
+    {
+      title: "Growth",
+      items: [
+        { label: "Sales (FY0)", value: formatPercent(companyMetrics?.currentYearSalesGrowth, true), colorClass: growthColor(companyMetrics?.currentYearSalesGrowth) },
+        { label: "Sales (FY1)", value: formatPercent(companyMetrics?.nextYearSalesGrowth, true), colorClass: growthColor(companyMetrics?.nextYearSalesGrowth) },
+        { label: "EPS (FY0)", value: formatPercent(companyMetrics?.currentYearEarningsGrowth, true), colorClass: growthColor(companyMetrics?.currentYearEarningsGrowth) },
+        { label: "EPS (FY1)", value: formatPercent(companyMetrics?.nextYearEarningsGrowth, true), colorClass: growthColor(companyMetrics?.nextYearEarningsGrowth) },
+      ],
+    },
+    {
+      title: "Financials",
+      items: [
+        { label: "Div Yield", value: companyMetrics?.currentYearDividendYield != null ? `${companyMetrics.currentYearDividendYield.toFixed(2)}%` : "—" },
+        { label: "ROE", value: companyMetrics?.roe != null ? `${companyMetrics.roe.toFixed(1)}%` : "—" },
+        { label: "D/E", value: companyMetrics?.debtToEquity != null ? `${companyMetrics.debtToEquity.toFixed(1)}%` : "—" },
+        { label: "P/B", value: companyMetrics?.pbRatio != null ? `${companyMetrics.pbRatio.toFixed(2)}x` : "—" },
+      ],
+    },
+  ];
 
   return (
-    <div className="space-y-3">
-      <h3 className="font-semibold text-white flex items-center gap-2">
+    <div className="space-y-2" data-testid="key-metrics-card">
+      <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
         <BarChart3 className="h-4 w-4 text-amber-500" />
         Key Metrics
       </h3>
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-        <table className="w-full">
-          <tbody className="divide-y divide-zinc-800/50">
-            {/* Ratios */}
-            <SectionHeader title="Ratios" />
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">P/S (FY0)</td>
-              <MetricValue
-                value={formatMultiple(companyMetrics?.currentYearPS)}
-                isLoading={companyMetricsLoading}
-              />
-            </tr>
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">P/S (FY1)</td>
-              <MetricValue
-                value={formatMultiple(companyMetrics?.forwardYearPS)}
-                isLoading={companyMetricsLoading}
-              />
-            </tr>
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">P/E (FY0)</td>
-              <MetricValue
-                value={formatMultiple(companyMetrics?.currentYearPE)}
-                isLoading={companyMetricsLoading}
-              />
-            </tr>
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">P/E (FY1)</td>
-              <MetricValue
-                value={formatMultiple(companyMetrics?.forwardYearPE)}
-                isLoading={companyMetricsLoading}
-              />
-            </tr>
-
-            {/* Growth */}
-            <SectionHeader title="Growth" />
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">Sales Growth (FY0)</td>
-              <MetricValue
-                value={formatPercent(companyMetrics?.currentYearSalesGrowth, true)}
-                isLoading={companyMetricsLoading}
-                colorClass={growthColor(companyMetrics?.currentYearSalesGrowth)}
-              />
-            </tr>
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">Sales Growth (FY1)</td>
-              <MetricValue
-                value={formatPercent(companyMetrics?.nextYearSalesGrowth, true)}
-                isLoading={companyMetricsLoading}
-                colorClass={growthColor(companyMetrics?.nextYearSalesGrowth)}
-              />
-            </tr>
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">Earnings Growth (FY0)</td>
-              <MetricValue
-                value={formatPercent(companyMetrics?.currentYearEarningsGrowth, true)}
-                isLoading={companyMetricsLoading}
-                colorClass={growthColor(companyMetrics?.currentYearEarningsGrowth)}
-              />
-            </tr>
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">Earnings Growth (FY1)</td>
-              <MetricValue
-                value={formatPercent(companyMetrics?.nextYearEarningsGrowth, true)}
-                isLoading={companyMetricsLoading}
-                colorClass={growthColor(companyMetrics?.nextYearEarningsGrowth)}
-              />
-            </tr>
-
-            {/* Financial Metrics */}
-            <SectionHeader title="Financial Metrics" />
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">Dividend Yield (FY0)</td>
-              <MetricValue
-                value={companyMetrics?.currentYearDividendYield != null
-                  ? `${companyMetrics.currentYearDividendYield.toFixed(2)}%`
-                  : "—"}
-                isLoading={companyMetricsLoading}
-              />
-            </tr>
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">ROE</td>
-              <MetricValue
-                value={companyMetrics?.roe != null
-                  ? `${companyMetrics.roe.toFixed(1)}%`
-                  : "—"}
-                isLoading={companyMetricsLoading}
-              />
-            </tr>
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">Debt / Equity</td>
-              <MetricValue
-                value={companyMetrics?.debtToEquity != null
-                  ? `${companyMetrics.debtToEquity.toFixed(1)}%`
-                  : "—"}
-                isLoading={companyMetricsLoading}
-              />
-            </tr>
-            <tr className="hover:bg-zinc-800/30">
-              <td className="px-3 py-2 text-sm text-zinc-400">P/B Ratio</td>
-              <MetricValue
-                value={companyMetrics?.pbRatio != null
-                  ? `${companyMetrics.pbRatio.toFixed(2)}x`
-                  : "—"}
-                isLoading={companyMetricsLoading}
-              />
-            </tr>
-          </tbody>
-        </table>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-3 gap-y-1">
+          {sections.map((section) => (
+            <div key={section.title}>
+              <div className="px-2 pt-1 pb-0.5">
+                <span className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider">{section.title}</span>
+              </div>
+              {section.items.map((item) => (
+                <MetricItem
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                  isLoading={companyMetricsLoading}
+                  colorClass={item.colorClass}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
