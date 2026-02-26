@@ -577,24 +577,70 @@ export async function registerRoutes(
           }
 
           const apiData = await response.json();
-          const markets = apiData.markets || [];
 
-          const byCategory = (category: string) =>
-            markets.filter((m: any) => m.category === category || m.categoryGroup === category).map(transformMarketItem);
+          // Log upstream response keys to help debug format issues
+          const topKeys = Object.keys(apiData);
+          console.log(`[Markets Full] Upstream API response keys: [${topKeys.join(", ")}]`);
 
-          const marketsFullData = {
-            globalMarkets: byCategory("Global Markets"),
-            futures: byCategory("Futures"),
-            commodities: byCategory("Commodities"),
-            usaThematics: byCategory("USA Thematics"),
-            usaSectors: byCategory("USA Sectors"),
-            usaEqualWeight: byCategory("USA Equal Weight Sectors"),
-            asxSectors: byCategory("ASX Sectors"),
-            forex: byCategory("Forex"),
-            crypto: byCategory("Crypto"),
-            bonds: byCategory("Bonds"),
-            lastUpdated: new Date().toLocaleTimeString(),
-          };
+          // The upstream API may return data in two formats:
+          // Format A (flat): { markets: [{ name, category, ... }, ...] }
+          // Format B (pre-categorized): { indices: [...], futures: [...], commodities: [...], ... }
+          // Handle both formats for resilience.
+
+          let marketsFullData;
+
+          if (Array.isArray(apiData.markets) && apiData.markets.length > 0) {
+            // Format A: flat array with per-item category field
+            const markets = apiData.markets;
+            console.log(`[Markets Full] Using flat markets array (${markets.length} items)`);
+
+            const byCategory = (category: string) =>
+              markets.filter((m: any) => m.category === category || m.categoryGroup === category).map(transformMarketItem);
+
+            marketsFullData = {
+              globalMarkets: byCategory("Global Markets"),
+              futures: byCategory("Futures"),
+              commodities: byCategory("Commodities"),
+              usaThematics: byCategory("USA Thematics"),
+              usaSectors: byCategory("USA Sectors"),
+              usaEqualWeight: byCategory("USA Equal Weight Sectors"),
+              asxSectors: byCategory("ASX Sectors"),
+              forex: byCategory("Forex"),
+              crypto: byCategory("Crypto"),
+              bonds: byCategory("Bonds"),
+              lastUpdated: new Date().toLocaleTimeString(),
+            };
+          } else if (apiData.indices || apiData.globalMarkets) {
+            // Format B: pre-categorized top-level keys
+            console.log(`[Markets Full] Using pre-categorized format (keys: ${topKeys.join(", ")})`);
+
+            const mapItems = (items: any[]) => (items || []).map(transformMarketItem);
+
+            marketsFullData = {
+              globalMarkets: mapItems(apiData.globalMarkets || apiData.indices),
+              futures: mapItems(apiData.futures),
+              commodities: mapItems(apiData.commodities),
+              usaThematics: mapItems(apiData.usaThematics),
+              usaSectors: mapItems(apiData.usaSectors || apiData.sectors),
+              usaEqualWeight: mapItems(apiData.usaEqualWeight),
+              asxSectors: mapItems(apiData.asxSectors),
+              forex: mapItems(apiData.forex),
+              crypto: mapItems(apiData.crypto),
+              bonds: mapItems(apiData.bonds),
+              lastUpdated: new Date().toLocaleTimeString(),
+            };
+          } else {
+            // Unknown format — log full response shape for debugging
+            console.error(`[Markets Full] Unexpected upstream response format. Keys: [${topKeys.join(", ")}]. First 500 chars: ${JSON.stringify(apiData).slice(0, 500)}`);
+            throw new Error("Upstream API returned unrecognised response format");
+          }
+
+          // Sanity check: log category counts
+          const counts = Object.entries(marketsFullData)
+            .filter(([k]) => k !== "lastUpdated")
+            .map(([k, v]) => `${k}:${(v as any[]).length}`)
+            .join(", ");
+          console.log(`[Markets Full] Category counts: ${counts}`);
 
           await storage.setCachedData("markets_full", marketsFullData, 5);
           return marketsFullData;
