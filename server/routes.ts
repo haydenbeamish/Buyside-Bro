@@ -60,6 +60,21 @@ const LASER_BEAM_HEADERS: HeadersInit = {
   "X-API-Key": process.env.LASERBEAMNODE_API_KEY || "",
 };
 
+const transformMarketItem = (item: any) => ({
+  name: item.name,
+  ticker: item.ticker,
+  price: item.lastPrice ?? item.price ?? 0,
+  change1D: item.chgDay ?? item.change1D ?? 0,
+  change1M: item.chgMonth ?? item.change1M ?? 0,
+  change1Q: item.chgQtr ?? item.change1Q ?? 0,
+  change1Y: item.chgYear ?? item.change1Y ?? 0,
+  vs10D: item.pxVs10d ?? item.vs10D ?? 0,
+  vs20D: item.pxVs20d ?? item.vs20D ?? 0,
+  vs200D: item.pxVs200d ?? item.vs200D ?? 0,
+  category: item.category || '',
+  categoryNotes: item.categoryNotes || '',
+});
+
 // Request deduplication for concurrent identical fetches (thundering herd protection)
 const pendingRequests = new Map<string, Promise<any>>();
 
@@ -458,7 +473,7 @@ export async function registerRoutes(
 
       const result = await dedup("markets_fetch", async () => {
         try {
-          const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets/full`, { headers: LASER_BEAM_HEADERS });
+          const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS });
           if (response.ok) {
             return await response.json();
           }
@@ -469,13 +484,13 @@ export async function registerRoutes(
         return null;
       });
 
-      if (result && (result.globalMarkets || result.futures)) {
+      if (result && (result.indices || result.markets || result.globalMarkets || result.futures)) {
         const marketsData = {
-          indices: result.globalMarkets || [],
+          indices: result.indices || result.globalMarkets || [],
           futures: result.futures || [],
           commodities: result.commodities || [],
-          sectors: result.usaSectors || [],
-          crypto: [],
+          sectors: result.sectors || result.usaSectors || [],
+          crypto: result.crypto || [],
         };
         await storage.setCachedData("markets", marketsData, 5);
         return res.json(marketsData);
@@ -519,16 +534,69 @@ export async function registerRoutes(
       const dedupKey = forceRefresh ? `markets_full_fetch_${Date.now()}` : "markets_full_fetch";
       try {
         const data = await dedup(dedupKey, async () => {
-          const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets/full`, { headers: LASER_BEAM_HEADERS }, 15000);
+          const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS }, 15000);
           if (!response.ok) {
             throw new Error(`API error: ${response.status} ${response.statusText}`);
           }
 
           const apiData = await response.json();
-          console.log(`[Markets Full] Upstream API response keys: [${Object.keys(apiData).join(", ")}]`);
+          const topKeys = Object.keys(apiData);
+          console.log(`[Markets Full] Upstream API response keys: [${topKeys.join(", ")}]`);
 
-          await storage.setCachedData("markets_full", apiData, 5);
-          return apiData;
+          // The upstream API may return data in two formats:
+          // Format A (flat): { markets: [{ name, category, ... }, ...] }
+          // Format B (pre-categorized): { indices: [...], futures: [...], commodities: [...], ... }
+          let marketsFullData;
+
+          if (Array.isArray(apiData.markets) && apiData.markets.length > 0) {
+            // Format A: flat array with per-item category field
+            const markets = apiData.markets;
+            console.log(`[Markets Full] Using flat markets array (${markets.length} items)`);
+
+            const byCategory = (category: string) =>
+              markets.filter((m: any) => m.category === category || m.categoryGroup === category).map(transformMarketItem);
+
+            marketsFullData = {
+              globalMarkets: byCategory("Global Markets"),
+              futures: byCategory("Futures"),
+              commodities: byCategory("Commodities"),
+              usaThematics: byCategory("USA Thematics"),
+              usaSectors: byCategory("USA Sectors"),
+              usaEqualWeight: byCategory("USA Equal Weight Sectors"),
+              asxSectors: byCategory("ASX Sectors"),
+              forex: byCategory("Forex"),
+              lastUpdated: new Date().toLocaleTimeString(),
+            };
+          } else if (apiData.indices || apiData.globalMarkets || apiData.futures) {
+            // Format B: pre-categorized top-level keys
+            console.log(`[Markets Full] Using pre-categorized format (keys: ${topKeys.join(", ")})`);
+
+            const mapItems = (items: any[]) => (items || []).map(transformMarketItem);
+
+            marketsFullData = {
+              globalMarkets: mapItems(apiData.globalMarkets || apiData.indices),
+              futures: mapItems(apiData.futures),
+              commodities: mapItems(apiData.commodities),
+              usaThematics: mapItems(apiData.usaThematics),
+              usaSectors: mapItems(apiData.usaSectors || apiData.sectors),
+              usaEqualWeight: mapItems(apiData.usaEqualWeight),
+              asxSectors: mapItems(apiData.asxSectors),
+              forex: mapItems(apiData.forex),
+              lastUpdated: new Date().toLocaleTimeString(),
+            };
+          } else {
+            console.error(`[Markets Full] Unexpected upstream response format. Keys: [${topKeys.join(", ")}]. First 500 chars: ${JSON.stringify(apiData).slice(0, 500)}`);
+            throw new Error("Upstream API returned unrecognised response format");
+          }
+
+          const counts = Object.entries(marketsFullData)
+            .filter(([k]) => k !== "lastUpdated")
+            .map(([k, v]) => `${k}:${(v as any[]).length}`)
+            .join(", ");
+          console.log(`[Markets Full] Category counts: ${counts}`);
+
+          await storage.setCachedData("markets_full", marketsFullData, 5);
+          return marketsFullData;
         });
         res.json(data);
       } catch (fetchErr) {
