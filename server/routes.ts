@@ -60,57 +60,6 @@ const LASER_BEAM_HEADERS: HeadersInit = {
   "X-API-Key": process.env.LASERBEAMNODE_API_KEY || "",
 };
 
-// Fallback market data constants
-const FALLBACK_INDICES = [
-  { symbol: "SPY", name: "S&P 500", price: 4567.89, change: 12.34, changePercent: 0.27 },
-  { symbol: "QQQ", name: "Nasdaq 100", price: 15234.56, change: -23.45, changePercent: -0.15 },
-  { symbol: "DIA", name: "Dow Jones", price: 35678.90, change: 45.67, changePercent: 0.13 },
-  { symbol: "IWM", name: "Russell 2000", price: 1987.65, change: -5.43, changePercent: -0.27 },
-  { symbol: "VIX", name: "Volatility Index", price: 15.67, change: -0.45, changePercent: -2.79 },
-  { symbol: "DXY", name: "US Dollar Index", price: 104.32, change: 0.23, changePercent: 0.22 },
-];
-const FALLBACK_FUTURES = [
-  { symbol: "ES", name: "S&P 500 Futures", price: 4570.25, change: 8.50, changePercent: 0.19 },
-  { symbol: "NQ", name: "Nasdaq Futures", price: 15280.00, change: -15.75, changePercent: -0.10 },
-  { symbol: "YM", name: "Dow Futures", price: 35720.00, change: 35.00, changePercent: 0.10 },
-  { symbol: "RTY", name: "Russell Futures", price: 1992.30, change: -2.80, changePercent: -0.14 },
-];
-const FALLBACK_COMMODITIES = [
-  { symbol: "GC", name: "Gold", price: 2045.30, change: 12.50, changePercent: 0.61 },
-  { symbol: "SI", name: "Silver", price: 24.87, change: 0.34, changePercent: 1.38 },
-  { symbol: "CL", name: "Crude Oil WTI", price: 78.45, change: -1.23, changePercent: -1.54 },
-  { symbol: "NG", name: "Natural Gas", price: 2.89, change: 0.05, changePercent: 1.76 },
-];
-const FALLBACK_SECTORS = [
-  { name: "Technology", change: 1.24 },
-  { name: "Healthcare", change: -0.45 },
-  { name: "Financials", change: 0.67 },
-  { name: "Consumer Disc", change: 0.89 },
-  { name: "Energy", change: -1.23 },
-  { name: "Industrials", change: 0.34 },
-  { name: "Materials", change: 0.56 },
-  { name: "Utilities", change: -0.12 },
-  { name: "Real Estate", change: -0.78 },
-  { name: "Comm Services", change: 0.91 },
-  { name: "Consumer Staples", change: 0.23 },
-];
-
-// Transform external API data to match frontend expected format
-const transformMarketItem = (item: any) => ({
-  name: item.name,
-  ticker: item.ticker,
-  price: item.lastPrice || 0,
-  change1D: item.chgDay || 0,
-  change1M: item.chgMonth || 0,
-  change1Q: item.chgQtr || 0,
-  change1Y: item.chgYear || 0,
-  vs10D: item.pxVs10d || 0,
-  vs20D: item.pxVs20d || 0,
-  vs200D: item.pxVs200d || 0,
-  category: item.category || '',
-  categoryNotes: item.categoryNotes || '',
-});
-
 // Request deduplication for concurrent identical fetches (thundering herd protection)
 const pendingRequests = new Map<string, Promise<any>>();
 
@@ -509,7 +458,7 @@ export async function registerRoutes(
 
       const result = await dedup("markets_fetch", async () => {
         try {
-          const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS });
+          const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets/full`, { headers: LASER_BEAM_HEADERS });
           if (response.ok) {
             return await response.json();
           }
@@ -520,38 +469,37 @@ export async function registerRoutes(
         return null;
       });
 
-      if (result && (result.indices || result.markets)) {
+      if (result && (result.globalMarkets || result.futures)) {
         const marketsData = {
-          indices: result.indices || [],
+          indices: result.globalMarkets || [],
           futures: result.futures || [],
           commodities: result.commodities || [],
-          sectors: result.sectors || [],
-          crypto: result.crypto || [],
+          sectors: result.usaSectors || [],
+          crypto: [],
         };
         await storage.setCachedData("markets", marketsData, 5);
         return res.json(marketsData);
       }
 
-      console.warn("API returned no valid data, serving fallback WITHOUT caching");
+      console.warn("API returned no valid data, returning empty arrays");
       res.json({
-        indices: FALLBACK_INDICES,
-        futures: FALLBACK_FUTURES,
-        commodities: FALLBACK_COMMODITIES,
-        sectors: FALLBACK_SECTORS,
+        indices: [],
+        futures: [],
+        commodities: [],
+        sectors: [],
         crypto: [],
         _stale: true,
-        _staleAsOf: "2025-01-01T00:00:00Z",
       });
     } catch (error) {
       console.error("Markets API error:", error);
-      res.json({
-        indices: FALLBACK_INDICES.slice(0, 4),
-        futures: FALLBACK_FUTURES.slice(0, 2),
-        commodities: FALLBACK_COMMODITIES.slice(0, 2),
-        sectors: FALLBACK_SECTORS.slice(0, 3),
+      res.status(503).json({
+        error: "Market data temporarily unavailable",
+        indices: [],
+        futures: [],
+        commodities: [],
+        sectors: [],
         crypto: [],
         _stale: true,
-        _staleAsOf: "2025-01-01T00:00:00Z",
       });
     }
   });
@@ -571,79 +519,16 @@ export async function registerRoutes(
       const dedupKey = forceRefresh ? `markets_full_fetch_${Date.now()}` : "markets_full_fetch";
       try {
         const data = await dedup(dedupKey, async () => {
-          const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets`, { headers: LASER_BEAM_HEADERS }, 15000);
+          const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/markets/full`, { headers: LASER_BEAM_HEADERS }, 15000);
           if (!response.ok) {
             throw new Error(`API error: ${response.status} ${response.statusText}`);
           }
 
           const apiData = await response.json();
+          console.log(`[Markets Full] Upstream API response keys: [${Object.keys(apiData).join(", ")}]`);
 
-          // Log upstream response keys to help debug format issues
-          const topKeys = Object.keys(apiData);
-          console.log(`[Markets Full] Upstream API response keys: [${topKeys.join(", ")}]`);
-
-          // The upstream API may return data in two formats:
-          // Format A (flat): { markets: [{ name, category, ... }, ...] }
-          // Format B (pre-categorized): { indices: [...], futures: [...], commodities: [...], ... }
-          // Handle both formats for resilience.
-
-          let marketsFullData;
-
-          if (Array.isArray(apiData.markets) && apiData.markets.length > 0) {
-            // Format A: flat array with per-item category field
-            const markets = apiData.markets;
-            console.log(`[Markets Full] Using flat markets array (${markets.length} items)`);
-
-            const byCategory = (category: string) =>
-              markets.filter((m: any) => m.category === category || m.categoryGroup === category).map(transformMarketItem);
-
-            marketsFullData = {
-              globalMarkets: byCategory("Global Markets"),
-              futures: byCategory("Futures"),
-              commodities: byCategory("Commodities"),
-              usaThematics: byCategory("USA Thematics"),
-              usaSectors: byCategory("USA Sectors"),
-              usaEqualWeight: byCategory("USA Equal Weight Sectors"),
-              asxSectors: byCategory("ASX Sectors"),
-              forex: byCategory("Forex"),
-              crypto: byCategory("Crypto"),
-              bonds: byCategory("Bonds"),
-              lastUpdated: new Date().toLocaleTimeString(),
-            };
-          } else if (apiData.indices || apiData.globalMarkets) {
-            // Format B: pre-categorized top-level keys
-            console.log(`[Markets Full] Using pre-categorized format (keys: ${topKeys.join(", ")})`);
-
-            const mapItems = (items: any[]) => (items || []).map(transformMarketItem);
-
-            marketsFullData = {
-              globalMarkets: mapItems(apiData.globalMarkets || apiData.indices),
-              futures: mapItems(apiData.futures),
-              commodities: mapItems(apiData.commodities),
-              usaThematics: mapItems(apiData.usaThematics),
-              usaSectors: mapItems(apiData.usaSectors || apiData.sectors),
-              usaEqualWeight: mapItems(apiData.usaEqualWeight),
-              asxSectors: mapItems(apiData.asxSectors),
-              forex: mapItems(apiData.forex),
-              crypto: mapItems(apiData.crypto),
-              bonds: mapItems(apiData.bonds),
-              lastUpdated: new Date().toLocaleTimeString(),
-            };
-          } else {
-            // Unknown format — log full response shape for debugging
-            console.error(`[Markets Full] Unexpected upstream response format. Keys: [${topKeys.join(", ")}]. First 500 chars: ${JSON.stringify(apiData).slice(0, 500)}`);
-            throw new Error("Upstream API returned unrecognised response format");
-          }
-
-          // Sanity check: log category counts
-          const counts = Object.entries(marketsFullData)
-            .filter(([k]) => k !== "lastUpdated")
-            .map(([k, v]) => `${k}:${(v as any[]).length}`)
-            .join(", ");
-          console.log(`[Markets Full] Category counts: ${counts}`);
-
-          await storage.setCachedData("markets_full", marketsFullData, 5);
-          return marketsFullData;
+          await storage.setCachedData("markets_full", apiData, 5);
+          return apiData;
         });
         res.json(data);
       } catch (fetchErr) {
