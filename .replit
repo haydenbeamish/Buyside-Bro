@@ -46,3 +46,4 @@ integrations = ["javascript_openrouter_ai_integrations:2.0.0", "stripe:2.0.0", "
 
 [userenv.shared]
 ADMIN_EMAILS = "hbeamish1@gmail.com,w25kdym9fb@privaterelay.appleid.com"
+VITE_API_KEY = "qRokZT2UcsU7zLPfTa9cle9q2eoZ3YPo"
