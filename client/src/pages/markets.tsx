@@ -365,11 +365,13 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
 
 export default function MarketsPage() {
   useDocumentTitle("Live Markets", "Track 100+ live tickers across global indices, futures, commodities, forex, and sectors with integrated TradingView charts. Real-time market data with moving average analysis on Buy Side Bro.");
-  const { data: markets, isLoading } = useQuery<MarketsData>({
+  const { data: markets, isLoading, error, refetch } = useQuery<MarketsData>({
     queryKey: ["/api/markets/full"],
     refetchInterval: 30000,
     placeholderData: keepPreviousData,
   });
+
+  const hasNoData = !isLoading && !markets;
 
   const prevDataRef = useRef<Record<string, MarketItem>>({});
   const hasLoadedOnce = useRef(false);
@@ -518,6 +520,23 @@ export default function MarketsPage() {
             {markets?.lastUpdated || '2 min ago'}
           </span>
         </div>
+
+        {hasNoData && (
+          <div className="mb-6 border border-red-500/30 bg-red-500/10 rounded-lg p-4 sm:p-6 text-center">
+            <p className="text-red-400 text-sm sm:text-base font-medium mb-2">
+              Market data is currently unavailable
+            </p>
+            <p className="text-zinc-500 text-xs sm:text-sm mb-4">
+              {error?.message || "The upstream data provider is not responding. Data will refresh automatically."}
+            </p>
+            <button
+              onClick={() => refetch()}
+              className="px-4 py-2 text-xs sm:text-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-md border border-zinc-700 transition-colors ticker-font"
+            >
+              Retry Now
+            </button>
+          </div>
+        )}
 
         <Tabs defaultValue="global" className="w-full">
           {/* Mobile: horizontally scrollable tabs on one line */}
