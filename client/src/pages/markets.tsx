@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { ErrorState } from "@/components/error-state";
 
 
 type FlashCells = Record<string, "up" | "down">;
@@ -365,7 +366,7 @@ function MarketsTable({ items, isLoading, flashCells }: { items: MarketItem[]; i
 
 export default function MarketsPage() {
   useDocumentTitle("Live Markets", "Track 100+ live tickers across global indices, futures, commodities, forex, and sectors with integrated TradingView charts. Real-time market data with moving average analysis on Buy Side Bro.");
-  const { data: markets, isLoading } = useQuery<MarketsData>({
+  const { data: markets, isLoading, isError, refetch } = useQuery<MarketsData>({
     queryKey: ["/api/markets/full"],
     refetchInterval: 30000,
     placeholderData: keepPreviousData,
@@ -581,6 +582,15 @@ export default function MarketsPage() {
               </TabsTrigger>
             </TabsList>
           </div>
+
+          {isError && !markets && (
+            <ErrorState
+              title="Markets data unavailable"
+              description="We couldn't load market data. This may be a temporary issue."
+              onRetry={() => refetch()}
+              icon="wifi"
+            />
+          )}
 
           <TabsContent value="global">
             <MarketBreadthStrip items={markets?.globalMarkets || []} />

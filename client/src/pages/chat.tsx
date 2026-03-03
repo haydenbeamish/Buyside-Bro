@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import {
   Send,
   User,
@@ -13,6 +16,11 @@ import {
   DollarSign,
   Sparkles,
   RefreshCw,
+  MessageSquare,
+  Plus,
+  Trash2,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
 import { useLoginGate } from "@/hooks/use-login-gate";
 import { LoginGateModal } from "@/components/login-gate-modal";
@@ -63,28 +71,45 @@ function FormattedMessage({ content }: { content: string }) {
   );
 }
 
+interface Conversation {
+  id: number;
+  title: string;
+  userId: string;
+  createdAt: string;
+}
+
 interface ChatMessage {
   id: number;
   role: "user" | "assistant";
   content: string;
+  conversationId?: number;
+  createdAt?: string;
+}
+
+// Inject loading-bar keyframes once into document head
+if (typeof document !== "undefined" && !document.getElementById("chat-loading-bar-style")) {
+  const style = document.createElement("style");
+  style.id = "chat-loading-bar-style";
+  style.textContent = `@keyframes loading-bar { 0% { width: 0%; opacity: 0.5; } 50% { width: 70%; opacity: 1; } 100% { width: 100%; opacity: 0.5; } }`;
+  document.head.appendChild(style);
 }
 
 function ThinkingLoader() {
   const [messageIndex, setMessageIndex] = useState(0);
-  const loadingMessages = [
+  const loadingMessages = useMemo(() => [
     "Researching financial data...",
     "Analyzing market trends...",
     "Crunching the numbers...",
     "Formulating insights...",
     "Preparing your answer...",
-  ];
+  ], []);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadingMessages]);
 
   return (
     <div className="flex gap-3">
@@ -107,7 +132,7 @@ function ThinkingLoader() {
               </span>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
               { icon: TrendingUp, label: "Trends" },
@@ -115,10 +140,10 @@ function ThinkingLoader() {
               { icon: DollarSign, label: "Value" },
               { icon: Sparkles, label: "Insights" },
             ].map((item, i) => (
-              <div 
+              <div
                 key={item.label}
                 className="bg-zinc-800/50 rounded-lg p-2 flex flex-col items-center gap-1 border border-zinc-700/50"
-                style={{ 
+                style={{
                   animation: 'pulse 2s ease-in-out infinite',
                   animationDelay: `${i * 200}ms`
                 }}
@@ -128,9 +153,9 @@ function ThinkingLoader() {
               </div>
             ))}
           </div>
-          
+
           <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-full"
               style={{
                 width: '60%',
@@ -140,30 +165,125 @@ function ThinkingLoader() {
           </div>
         </div>
       </div>
-      
-      <style>{`
-        @keyframes loading-bar {
-          0% { width: 0%; opacity: 0.5; }
-          50% { width: 70%; opacity: 1; }
-          100% { width: 100%; opacity: 0.5; }
-        }
-      `}</style>
     </div>
+  );
+}
+
+function ConversationSidebar({
+  conversations,
+  isLoading,
+  activeId,
+  onSelect,
+  onNew,
+  onDelete,
+  isOpen,
+  onToggle,
+}: {
+  conversations: Conversation[] | undefined;
+  isLoading: boolean;
+  activeId: number | null;
+  onSelect: (id: number) => void;
+  onNew: () => void;
+  onDelete: (id: number) => void;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <>
+      {/* Mobile toggle */}
+      <button
+        onClick={onToggle}
+        className="sm:hidden fixed top-[60px] left-2 z-30 bg-zinc-900 border border-zinc-700 rounded-lg p-1.5"
+      >
+        {isOpen ? <PanelLeftClose className="w-4 h-4 text-zinc-400" /> : <PanelLeft className="w-4 h-4 text-zinc-400" />}
+      </button>
+
+      <div className={`${isOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0"} transition-transform duration-200 fixed sm:relative z-20 sm:z-auto w-[240px] sm:w-[220px] h-full border-r border-zinc-800 bg-zinc-950 sm:bg-transparent flex flex-col`}>
+        <div className="p-2 border-b border-zinc-800">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onNew}
+            className="w-full border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs"
+          >
+            <Plus className="w-3 h-3 mr-1.5" />
+            New Chat
+          </Button>
+        </div>
+
+        <ScrollArea className="flex-1">
+          <div className="p-1.5 space-y-0.5">
+            {isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-9 w-full bg-zinc-800 rounded" />
+              ))
+            ) : conversations && conversations.length > 0 ? (
+              conversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  className={`group flex items-center gap-1.5 rounded px-2 py-1.5 cursor-pointer transition-colors ${
+                    activeId === conv.id
+                      ? "bg-amber-900/20 border border-amber-500/30"
+                      : "hover:bg-zinc-800/50 border border-transparent"
+                  }`}
+                  onClick={() => onSelect(conv.id)}
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
+                  <span className="text-xs text-zinc-300 truncate flex-1">{conv.title}</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:text-red-400 text-zinc-600"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-zinc-600 text-center py-4">No conversations yet</p>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div className="sm:hidden fixed inset-0 z-10 bg-black/50" onClick={onToggle} />
+      )}
+    </>
   );
 }
 
 export default function ChatPage() {
   useDocumentTitle("Ask Bro", "Ask Bro is your bro on the buyside — a CFA-certified research analyst. Get data-backed answers to complex market questions with real-time ticker detection and live market data on Buy Side Bro.");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const creatingConversationRef = useRef<Promise<any> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const messageIdRef = useRef(0);
   const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
   const { isAtLimit, refetch: refetchBroStatus } = useBroStatus();
   const [showBroLimit, setShowBroLimit] = useState(false);
+
+  // Fetch conversation list
+  const { data: conversations, isLoading: conversationsLoading } = useQuery<Conversation[]>({
+    queryKey: ["/api/conversations"],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch active conversation messages
+  const { data: conversationData } = useQuery<{ messages: ChatMessage[] }>({
+    queryKey: [`/api/conversations/${activeConversationId}`],
+    enabled: isAuthenticated && activeConversationId !== null,
+  });
+
+  // Use server messages when available, otherwise local state
+  const displayMessages = activeConversationId && conversationData?.messages
+    ? [...conversationData.messages, ...localMessages]
+    : localMessages;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -171,7 +291,45 @@ export default function ChatPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingMessage]);
+  }, [displayMessages, streamingMessage]);
+
+  const createConversation = useMutation({
+    mutationFn: async (title: string) => {
+      const res = await apiRequest("POST", "/api/conversations", { title });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+    },
+  });
+
+  const deleteConversation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/conversations/${id}`);
+    },
+    onSuccess: (_, deletedId) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      if (activeConversationId === deletedId) {
+        setActiveConversationId(null);
+        setLocalMessages([]);
+      }
+    },
+  });
+
+  const handleSelectConversation = (id: number) => {
+    setActiveConversationId(id);
+    setLocalMessages([]);
+    setStreamingMessage("");
+    setSidebarOpen(false);
+  };
+
+  const handleNewChat = () => {
+    setActiveConversationId(null);
+    setLocalMessages([]);
+    setStreamingMessage("");
+    setInputValue("");
+    setSidebarOpen(false);
+  };
 
   const handleSendMessage = async () => {
     if (!gate()) return;
@@ -182,81 +340,160 @@ export default function ChatPage() {
     if (!inputValue.trim() || isStreaming) return;
 
     const userMessage = inputValue.trim();
+    const optimisticId = Date.now();
     setInputValue("");
-    
-    // Add user message to local state
-    const userMsgId = ++messageIdRef.current;
-    setMessages(prev => [...prev, { id: userMsgId, role: "user", content: userMessage }]);
-    
     setIsStreaming(true);
     setStreamingMessage("");
 
-    try {
-      // Use the simple chat endpoint without saving to database
-      const response = await fetch("/api/chat/simple", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ message: userMessage, history: messages }),
-      });
+    // Optimistically add user message
+    setLocalMessages(prev => [...prev, { id: optimisticId, role: "user", content: userMessage }]);
 
-      if (response.status === 429) {
-        setShowBroLimit(true);
-        setIsStreaming(false);
-        return;
+    try {
+      let convId = activeConversationId;
+
+      // Auto-create conversation if none active — deduplicate with ref
+      if (!convId && isAuthenticated) {
+        if (!creatingConversationRef.current) {
+          const title = userMessage.length > 50
+            ? userMessage.substring(0, 50) + "..."
+            : userMessage;
+          creatingConversationRef.current = createConversation.mutateAsync(title);
+        }
+        try {
+          const newConv = await creatingConversationRef.current;
+          convId = newConv.id;
+          setActiveConversationId(convId);
+        } finally {
+          creatingConversationRef.current = null;
+        }
       }
 
-      if (!response.ok) throw new Error("Failed to send message");
+      if (convId && isAuthenticated) {
+        // Use persisted conversation endpoint
+        const response = await fetch(`/api/conversations/${convId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ content: userMessage }),
+        });
 
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response body");
+        if (response.status === 429) {
+          setShowBroLimit(true);
+          setLocalMessages(prev => prev.filter(m => m.id !== optimisticId));
+          setIsStreaming(false);
+          return;
+        }
 
-      const decoder = new TextDecoder();
-      let fullResponse = "";
+        if (!response.ok) throw new Error("Failed to send message");
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("No response body");
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
+        const decoder = new TextDecoder();
+        let fullResponse = "";
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.error) {
-                throw new Error(data.error);
-              }
-              if (data.content) {
-                fullResponse += data.content;
-                setStreamingMessage(fullResponse);
-              }
-              if (data.done) {
-                // Add assistant message to local state
-                const assistantMsgId = ++messageIdRef.current;
-                setMessages(prev => [...prev, { id: assistantMsgId, role: "assistant", content: fullResponse }]);
-                setIsStreaming(false);
-                setStreamingMessage("");
-                refetchBroStatus();
-                return;
-              }
-            } catch (parseErr) {
-              if (parseErr instanceof Error && parseErr.message !== "Unexpected") {
-                throw parseErr;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.error) throw new Error(data.error);
+                if (data.content) {
+                  fullResponse += data.content;
+                  setStreamingMessage(fullResponse);
+                }
+                if (data.done) {
+                  setLocalMessages([]);
+                  setIsStreaming(false);
+                  setStreamingMessage("");
+                  // Refetch conversation to get persisted messages
+                  queryClient.invalidateQueries({ queryKey: [`/api/conversations/${convId}`] });
+                  refetchBroStatus();
+                  return;
+                }
+              } catch (parseErr) {
+                if (parseErr instanceof Error && parseErr.message !== "Unexpected") throw parseErr;
               }
             }
           }
         }
+
+        // Stream ended without data.done
+        setLocalMessages([]);
+        setIsStreaming(false);
+        setStreamingMessage("");
+        queryClient.invalidateQueries({ queryKey: [`/api/conversations/${convId}`] });
+      } else {
+        // Fallback: use simple endpoint for non-authenticated users
+        const historySnapshot = localMessages.filter(m => m.id !== optimisticId);
+
+        const response = await fetch("/api/chat/simple", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ message: userMessage, history: historySnapshot }),
+        });
+
+        if (response.status === 429) {
+          setShowBroLimit(true);
+          setLocalMessages(prev => prev.filter(m => m.id !== optimisticId));
+          setIsStreaming(false);
+          return;
+        }
+
+        if (!response.ok) throw new Error("Failed to send message");
+
+        const reader = response.body?.getReader();
+        if (!reader) throw new Error("No response body");
+
+        const decoder = new TextDecoder();
+        let fullResponse = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.error) throw new Error(data.error);
+                if (data.content) {
+                  fullResponse += data.content;
+                  setStreamingMessage(fullResponse);
+                }
+                if (data.done) {
+                  setLocalMessages(prev => [...prev, { id: Date.now() + 1, role: "assistant", content: fullResponse }]);
+                  setIsStreaming(false);
+                  setStreamingMessage("");
+                  refetchBroStatus();
+                  return;
+                }
+              } catch (parseErr) {
+                if (parseErr instanceof Error && parseErr.message !== "Unexpected") throw parseErr;
+              }
+            }
+          }
+        }
+
+        if (fullResponse) {
+          setLocalMessages(prev => [...prev, { id: Date.now() + 1, role: "assistant", content: fullResponse }]);
+        }
+        setIsStreaming(false);
+        setStreamingMessage("");
       }
-      // Stream ended without data.done — reset state
-      if (fullResponse) {
-        const assistantMsgId = ++messageIdRef.current;
-        setMessages(prev => [...prev, { id: assistantMsgId, role: "assistant", content: fullResponse }]);
-      }
-      setIsStreaming(false);
-      setStreamingMessage("");
     } catch (error) {
+      // Roll back optimistic user message on error
+      setLocalMessages(prev => prev.filter(m => m.id !== optimisticId));
       toast({
         title: "Error",
         description: "Failed to get response. Please try again.",
@@ -274,11 +511,6 @@ export default function ChatPage() {
     }
   };
 
-  const handleClearChat = () => {
-    setMessages([]);
-    setStreamingMessage("");
-  };
-
   const suggestedQuestions = [
     "Compare Apple and Microsoft's revenue growth over the last 3 years",
     "What is Tesla's current P/E ratio and how does it compare to the auto industry?",
@@ -292,8 +524,22 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-[calc(100dvh-56px)] sm:h-[calc(100vh-64px)] max-h-[calc(100dvh-56px)] sm:max-h-[calc(100vh-64px)] bg-black overflow-hidden">
+      {/* Conversation sidebar */}
+      {isAuthenticated && (
+        <ConversationSidebar
+          conversations={conversations}
+          isLoading={conversationsLoading}
+          activeId={activeConversationId}
+          onSelect={handleSelectConversation}
+          onNew={handleNewChat}
+          onDelete={(id) => deleteConversation.mutate(id)}
+          isOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
+      )}
+
       <div className="flex-1 flex flex-col bg-black overflow-hidden">
-        {messages.length === 0 && !isStreaming ? (
+        {displayMessages.length === 0 && !isStreaming ? (
           <div className="flex-1 overflow-y-auto flex items-center justify-center">
             <div className="max-w-3xl w-full px-3 sm:px-4 py-4 sm:py-6">
               <div className="mb-4 sm:mb-6 text-center">
@@ -357,7 +603,7 @@ export default function ChatPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleClearChat}
+                onClick={handleNewChat}
                 className="text-zinc-400 hover:text-white"
                 data-testid="button-clear-chat"
               >
@@ -365,12 +611,12 @@ export default function ChatPage() {
                 New Chat
               </Button>
             </div>
-            
+
             <ScrollArea className="flex-1 p-4">
               <div className="max-w-3xl mx-auto space-y-4">
-                {messages.map((msg) => (
+                {displayMessages.map((msg, idx) => (
                   <div
-                    key={msg.id}
+                    key={msg.id || idx}
                     className={`flex gap-3 ${
                       msg.role === "user" ? "flex-row-reverse" : ""
                     }`}

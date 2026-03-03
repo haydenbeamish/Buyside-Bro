@@ -12,6 +12,7 @@ import rateLimit from "express-rate-limit";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 import { shutdownApns } from "./push/apnsService";
+import { AppError } from "./lib/errors";
 
 /**
  * Validates required and optional environment variables at startup.
@@ -254,16 +255,22 @@ app.use((req, res, next) => {
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    console.error("Internal Server Error:", err);
-
     if (res.headersSent) {
       return next(err);
     }
 
-    return res.status(status).json({ message });
+    if (err instanceof AppError) {
+      return res.status(err.statusCode).json({
+        error: err.message,
+        code: err.code,
+        status: err.statusCode,
+      });
+    }
+
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    console.error("Internal Server Error:", err);
+    return res.status(status).json({ error: message, status });
   });
 
   // importantly only setup vite in development and after

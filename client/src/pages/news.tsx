@@ -15,6 +15,7 @@ import {
 import { useLoginGate } from "@/hooks/use-login-gate";
 import { LoginGateModal } from "@/components/login-gate-modal";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import { ErrorState } from "@/components/error-state";
 
 interface NewsArticle {
   title: string;
@@ -37,7 +38,7 @@ export default function NewsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
 
-  const { data: news, isLoading } = useQuery<NewsData>({
+  const { data: news, isLoading, isError, refetch } = useQuery<NewsData>({
     queryKey: ["/api/news"],
   });
 
@@ -156,7 +157,13 @@ export default function NewsPage() {
           </div>
         </div>
 
-        {searchQuery.length > 2 ? (
+        {isError && !news ? (
+          <ErrorState
+            title="News unavailable"
+            description="We couldn't load the latest news. Please try again."
+            onRetry={() => refetch()}
+          />
+        ) : searchQuery.length > 2 ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-white">
