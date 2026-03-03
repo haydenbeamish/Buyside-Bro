@@ -174,6 +174,12 @@ export default function PortfolioPage() {
     enabled: isAuthenticated && !!holdings && holdings.length > 0,
   });
 
+  const { data: quickInsights, isLoading: insightsLoading } = useQuery<{ insights: string | null; generatedAt?: string }>({
+    queryKey: ["/api/portfolio/quick-insights"],
+    enabled: isAuthenticated && !!holdings && holdings.length > 0 && !isExample,
+    staleTime: 15 * 60 * 1000,
+  });
+
   const reviewMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/portfolio/review");
@@ -410,6 +416,30 @@ export default function PortfolioPage() {
             )}
           </div>
         </div>
+
+        {/* Quick Insights Card */}
+        {!isExample && isAuthenticated && holdings && holdings.length > 0 && (
+          <div className="mb-6">
+            {insightsLoading ? (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Skeleton className="h-5 w-5 bg-zinc-800 rounded" />
+                  <Skeleton className="h-4 w-32 bg-zinc-800" />
+                </div>
+                <Skeleton className="h-4 w-full bg-zinc-800 mb-2" />
+                <Skeleton className="h-4 w-3/4 bg-zinc-800" />
+              </div>
+            ) : quickInsights?.insights ? (
+              <div className="bg-zinc-900 border border-amber-500/20 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-amber-400" />
+                  <h3 className="text-sm font-semibold text-amber-400">Today's Insights</h3>
+                </div>
+                <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{quickInsights.insights}</p>
+              </div>
+            ) : null}
+          </div>
+        )}
 
         <Tabs defaultValue="holdings" className="w-full">
           <TabsList className="bg-zinc-900 border border-zinc-800 rounded-lg p-1 mb-4 sm:mb-6 inline-flex min-w-max gap-1">

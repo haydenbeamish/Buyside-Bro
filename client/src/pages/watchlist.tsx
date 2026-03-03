@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { StockSearch } from "@/components/stock-search";
 import { PercentDisplay } from "@/components/percent-display";
+import { ErrorState } from "@/components/error-state";
 
 interface EnrichedWatchlistItem extends WatchlistItem {
   price: number | null;
@@ -185,19 +186,21 @@ export default function WatchlistPage() {
     }
   };
 
-  const { data: personalItems, isLoading: personalLoading } = useQuery<EnrichedWatchlistItem[]>({
+  const { data: personalItems, isLoading: personalLoading, isError: personalError, refetch: refetchPersonal } = useQuery<EnrichedWatchlistItem[]>({
     queryKey: ["/api/watchlist/enriched"],
     refetchInterval: 60000,
     enabled: isAuthenticated,
   });
 
-  const { data: defaultItems, isLoading: defaultLoading } = useQuery<EnrichedWatchlistItem[]>({
+  const { data: defaultItems, isLoading: defaultLoading, isError: defaultError, refetch: refetchDefault } = useQuery<EnrichedWatchlistItem[]>({
     queryKey: ["/api/watchlist/default"],
     enabled: !isAuthenticated,
   });
 
   const items = isAuthenticated ? personalItems : defaultItems;
   const isLoading = isAuthenticated ? personalLoading : defaultLoading;
+  const isError = isAuthenticated ? personalError : defaultError;
+  const refetchItems = isAuthenticated ? refetchPersonal : refetchDefault;
 
   useEffect(() => {
     if (isAuthenticated && !hasSeeded.current && personalItems !== undefined && personalItems.length === 0) {
@@ -327,7 +330,13 @@ export default function WatchlistPage() {
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg">
           <div className="overflow-x-auto relative scroll-fade-right">
-            {isLoading ? (
+            {isError && !items ? (
+              <ErrorState
+                title="Watchlist unavailable"
+                description="We couldn't load your watchlist data."
+                onRetry={() => refetchItems()}
+              />
+            ) : isLoading ? (
               <div className="p-4 space-y-2">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <Skeleton key={i} className="h-10 w-full bg-zinc-800" />

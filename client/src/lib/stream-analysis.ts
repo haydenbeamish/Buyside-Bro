@@ -10,6 +10,7 @@ export interface StreamAnalysisCallbacks {
   onRecommendation?: (recommendation: any) => void;
   onDone?: (fullContent: string, recommendation?: any) => void;
   onError?: (error: string) => void;
+  onPartialResult?: (content: string) => void;
 }
 
 export class StreamError extends Error {
@@ -21,120 +22,179 @@ export class StreamError extends Error {
   }
 }
 
+const STALL_TIMEOUT_MS = 30_000;
+
 export async function streamAnalysis(
   options: StreamAnalysisOptions,
   callbacks: StreamAnalysisCallbacks,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const apiKey = import.meta.env.VITE_API_KEY || "";
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (apiKey) headers["x-api-key"] = apiKey;
-  const response = await fetch("/api/fundamental-analysis/analyze/stream", {
-    method: "POST",
-    headers,
-    credentials: "include",
-    body: JSON.stringify({
-      ticker: options.ticker.toUpperCase(),
-      mode: options.mode,
-    }),
-    signal: abortSignal,
-  });
+  const doStream = async (isRetry: boolean): Promise<void> => {
+    const apiKey = import.meta.env.VITE_API_KEY || "";
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (apiKey) headers["x-api-key"] = apiKey;
 
-  if (!response.ok) {
-    if (response.status === 429) {
-      throw new StreamError(429, "Daily limit reached");
+    if (isRetry) {
+      callbacks.onProgress?.(0, "Retrying connection...");
     }
-    let message = "Stream request failed";
+
+    const response = await fetch("/api/fundamental-analysis/analyze/stream", {
+      method: "POST",
+      headers,
+      credentials: "include",
+      body: JSON.stringify({
+        ticker: options.ticker.toUpperCase(),
+        mode: options.mode,
+      }),
+      signal: abortSignal,
+    });
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new StreamError(429, "Daily limit reached");
+      }
+      let message = "Stream request failed";
+      try {
+        const body = await response.json();
+        message = body.message || body.error || message;
+      } catch {
+        // ignore parse errors
+      }
+      throw new StreamError(response.status, message);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) throw new StreamError(0, "No response body");
+
+    const decoder = new TextDecoder();
+    let fullContent = "";
+    let recommendation: any = null;
+    let buffer = "";
+    let stallTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const resetStallTimer = () => {
+      if (stallTimer) clearTimeout(stallTimer);
+      stallTimer = setTimeout(() => {
+        // Stream has stalled — deliver partial results if we have any
+        if (fullContent.length > 0) {
+          callbacks.onPartialResult?.(fullContent);
+          callbacks.onDone?.(fullContent, recommendation);
+        } else {
+          callbacks.onError?.("Stream stalled — no data received for 30 seconds");
+        }
+        reader.cancel().catch(() => {});
+      }, STALL_TIMEOUT_MS);
+    };
+
     try {
-      const body = await response.json();
-      message = body.message || body.error || message;
-    } catch {
-      // ignore parse errors
-    }
-    throw new StreamError(response.status, message);
-  }
+      resetStallTimer();
 
-  const reader = response.body?.getReader();
-  if (!reader) throw new StreamError(0, "No response body");
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-  const decoder = new TextDecoder();
-  let fullContent = "";
-  let recommendation: any = null;
-  let buffer = "";
+        resetStallTimer();
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        // Keep the last incomplete line in the buffer
+        buffer = lines.pop() || "";
 
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+        for (const line of lines) {
+          if (!line.trim()) continue;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      // Keep the last incomplete line in the buffer
-      buffer = lines.pop() || "";
+          if (line.startsWith("data: ")) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr === "[DONE]") {
+              if (stallTimer) clearTimeout(stallTimer);
+              callbacks.onDone?.(fullContent, recommendation);
+              return;
+            }
 
-      for (const line of lines) {
-        if (!line.trim()) continue;
+            try {
+              const data = JSON.parse(dataStr);
+              const eventType = data.type || data.event;
 
-        if (line.startsWith("data: ")) {
-          const dataStr = line.slice(6).trim();
-          if (dataStr === "[DONE]") {
-            callbacks.onDone?.(fullContent, recommendation);
-            return;
-          }
-
-          try {
-            const data = JSON.parse(dataStr);
-            const eventType = data.type || data.event;
-
-            switch (eventType) {
-              case "mode":
-                callbacks.onMode?.(data.mode);
-                break;
-              case "progress":
-                callbacks.onProgress?.(data.progress ?? 0, data.message || data.step || "");
-                break;
-              case "content": {
-                const chunk = data.content || data.text;
-                if (chunk) {
-                  fullContent += chunk;
-                  callbacks.onContent?.(chunk, fullContent);
+              switch (eventType) {
+                case "mode":
+                  callbacks.onMode?.(data.mode);
+                  break;
+                case "progress":
+                  callbacks.onProgress?.(data.progress ?? 0, data.message || data.step || "");
+                  break;
+                case "content": {
+                  const chunk = data.content || data.text;
+                  if (chunk) {
+                    fullContent += chunk;
+                    callbacks.onContent?.(chunk, fullContent);
+                  }
+                  break;
                 }
-                break;
-              }
-              case "recommendation":
-                recommendation = data.recommendation || data.data || data;
-                callbacks.onRecommendation?.(recommendation);
-                break;
-              case "done":
-                callbacks.onDone?.(fullContent, recommendation);
-                return;
-              case "error":
-                callbacks.onError?.(data.message || data.error || "Stream error");
-                return;
-              default: {
-                // If no type field, check for content directly
-                const fallbackChunk = data.content || data.text;
-                if (fallbackChunk) {
-                  fullContent += fallbackChunk;
-                  callbacks.onContent?.(fallbackChunk, fullContent);
-                }
-                if (data.done) {
+                case "recommendation":
+                  recommendation = data.recommendation || data.data || data;
+                  callbacks.onRecommendation?.(recommendation);
+                  break;
+                case "done":
+                  if (stallTimer) clearTimeout(stallTimer);
                   callbacks.onDone?.(fullContent, recommendation);
                   return;
+                case "error":
+                  if (stallTimer) clearTimeout(stallTimer);
+                  callbacks.onError?.(data.message || data.error || "Stream error");
+                  return;
+                default: {
+                  // If no type field, check for content directly
+                  const fallbackChunk = data.content || data.text;
+                  if (fallbackChunk) {
+                    fullContent += fallbackChunk;
+                    callbacks.onContent?.(fallbackChunk, fullContent);
+                  }
+                  if (data.done) {
+                    if (stallTimer) clearTimeout(stallTimer);
+                    callbacks.onDone?.(fullContent, recommendation);
+                    return;
+                  }
+                  break;
                 }
-                break;
               }
+            } catch {
+              // Ignore JSON parse errors for malformed lines
             }
-          } catch {
-            // Ignore JSON parse errors for malformed lines
           }
         }
       }
+
+      if (stallTimer) clearTimeout(stallTimer);
+      // If stream ends without explicit done event, fire done callback
+      callbacks.onDone?.(fullContent, recommendation);
+    } catch (error) {
+      if (stallTimer) clearTimeout(stallTimer);
+      // Deliver partial results if we have content
+      if (fullContent.length > 0) {
+        callbacks.onPartialResult?.(fullContent);
+        callbacks.onDone?.(fullContent, recommendation);
+      } else {
+        throw error;
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  };
+
+  try {
+    await doStream(false);
+  } catch (error) {
+    // Auto-retry once on network errors (not 4xx client errors)
+    if (
+      error instanceof StreamError &&
+      (error.status >= 400 && error.status < 500)
+    ) {
+      throw error; // Don't retry client errors (429, 400, etc.)
     }
 
-    // If stream ends without explicit done event, fire done callback
-    callbacks.onDone?.(fullContent, recommendation);
-  } finally {
-    reader.releaseLock();
+    try {
+      await doStream(true);
+    } catch (retryError) {
+      throw retryError;
+    }
   }
 }

@@ -182,6 +182,8 @@ export function registerChatRoutes(app: Express): void {
       const userId = req.user.claims.sub;
       const { title } = req.body;
       const conversation = await chatStorage.createConversation(userId, title || "New Chat");
+      // Prune old conversations to keep max 10 per user
+      await chatStorage.pruneOldConversations(userId, 10);
       res.status(201).json(conversation);
     } catch (error) {
       console.error("Error creating conversation:", error);
