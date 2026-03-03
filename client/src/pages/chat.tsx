@@ -86,22 +86,30 @@ interface ChatMessage {
   createdAt?: string;
 }
 
+// Inject loading-bar keyframes once into document head
+if (typeof document !== "undefined" && !document.getElementById("chat-loading-bar-style")) {
+  const style = document.createElement("style");
+  style.id = "chat-loading-bar-style";
+  style.textContent = `@keyframes loading-bar { 0% { width: 0%; opacity: 0.5; } 50% { width: 70%; opacity: 1; } 100% { width: 100%; opacity: 0.5; } }`;
+  document.head.appendChild(style);
+}
+
 function ThinkingLoader() {
   const [messageIndex, setMessageIndex] = useState(0);
-  const loadingMessages = [
+  const loadingMessages = useMemo(() => [
     "Researching financial data...",
     "Analyzing market trends...",
     "Crunching the numbers...",
     "Formulating insights...",
     "Preparing your answer...",
-  ];
+  ], []);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setMessageIndex((prev) => (prev + 1) % loadingMessages.length);
     }, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [loadingMessages]);
 
   return (
     <div className="flex gap-3">
@@ -157,14 +165,6 @@ function ThinkingLoader() {
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes loading-bar {
-          0% { width: 0%; opacity: 0.5; }
-          50% { width: 70%; opacity: 1; }
-          100% { width: 100%; opacity: 0.5; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -261,6 +261,7 @@ export default function ChatPage() {
   const [streamingMessage, setStreamingMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const creatingConversationRef = useRef<Promise<any> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { gate, showLoginModal, closeLoginModal, isAuthenticated } = useLoginGate();
@@ -339,28 +340,36 @@ export default function ChatPage() {
     if (!inputValue.trim() || isStreaming) return;
 
     const userMessage = inputValue.trim();
+    const optimisticId = Date.now();
     setInputValue("");
     setIsStreaming(true);
     setStreamingMessage("");
 
+    // Optimistically add user message
+    setLocalMessages(prev => [...prev, { id: optimisticId, role: "user", content: userMessage }]);
+
     try {
       let convId = activeConversationId;
 
-      // Auto-create conversation if none active
+      // Auto-create conversation if none active — deduplicate with ref
       if (!convId && isAuthenticated) {
-        const title = userMessage.length > 50
-          ? userMessage.substring(0, 50) + "..."
-          : userMessage;
-        const newConv = await createConversation.mutateAsync(title);
-        convId = newConv.id;
-        setActiveConversationId(convId);
+        if (!creatingConversationRef.current) {
+          const title = userMessage.length > 50
+            ? userMessage.substring(0, 50) + "..."
+            : userMessage;
+          creatingConversationRef.current = createConversation.mutateAsync(title);
+        }
+        try {
+          const newConv = await creatingConversationRef.current;
+          convId = newConv.id;
+          setActiveConversationId(convId);
+        } finally {
+          creatingConversationRef.current = null;
+        }
       }
 
       if (convId && isAuthenticated) {
         // Use persisted conversation endpoint
-        // Optimistically add user message to local display
-        setLocalMessages(prev => [...prev, { id: Date.now(), role: "user", content: userMessage }]);
-
         const response = await fetch(`/api/conversations/${convId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -370,6 +379,7 @@ export default function ChatPage() {
 
         if (response.status === 429) {
           setShowBroLimit(true);
+          setLocalMessages(prev => prev.filter(m => m.id !== optimisticId));
           setIsStreaming(false);
           return;
         }
@@ -421,17 +431,18 @@ export default function ChatPage() {
         queryClient.invalidateQueries({ queryKey: [`/api/conversations/${convId}`] });
       } else {
         // Fallback: use simple endpoint for non-authenticated users
-        setLocalMessages(prev => [...prev, { id: Date.now(), role: "user", content: userMessage }]);
+        const historySnapshot = localMessages.filter(m => m.id !== optimisticId);
 
         const response = await fetch("/api/chat/simple", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ message: userMessage, history: localMessages }),
+          body: JSON.stringify({ message: userMessage, history: historySnapshot }),
         });
 
         if (response.status === 429) {
           setShowBroLimit(true);
+          setLocalMessages(prev => prev.filter(m => m.id !== optimisticId));
           setIsStreaming(false);
           return;
         }
@@ -481,6 +492,8 @@ export default function ChatPage() {
         setStreamingMessage("");
       }
     } catch (error) {
+      // Roll back optimistic user message on error
+      setLocalMessages(prev => prev.filter(m => m.id !== optimisticId));
       toast({
         title: "Error",
         description: "Failed to get response. Please try again.",

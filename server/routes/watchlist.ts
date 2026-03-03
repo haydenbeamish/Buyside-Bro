@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { isAuthenticated } from "../replit_integrations/auth";
 import { insertWatchlistSchema } from "@shared/schema";
-import { fetchWithTimeout } from "./shared";
+import { fetchWithTimeout, parseIntParam } from "./shared";
 
 const DEFAULT_WATCHLIST_STOCKS = [
   { ticker: "AAPL", name: "Apple Inc." },
@@ -140,7 +140,8 @@ export function registerWatchlistRoutes(app: Express) {
   app.delete("/api/watchlist/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id as string);
+      const id = parseIntParam(req.params.id as string);
+      if (id === null) return res.status(400).json({ error: "Invalid id" });
       await storage.removeFromWatchlist(userId, id);
       res.status(204).send();
     } catch (error) {
@@ -152,7 +153,8 @@ export function registerWatchlistRoutes(app: Express) {
   app.patch("/api/watchlist/:id/notes", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id as string);
+      const id = parseIntParam(req.params.id as string);
+      if (id === null) return res.status(400).json({ error: "Invalid id" });
       const { notes } = req.body;
       if (typeof notes !== "string") {
         return res.status(400).json({ error: "Notes must be a string" });

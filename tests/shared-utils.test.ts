@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 // Test the shared utility functions from server/routes/shared.ts
 // Import the pure functions directly
 
-import { isValidTicker, normalizeTicker } from "../server/routes/shared";
+import { isValidTicker, normalizeTicker, parseIntParam } from "../server/routes/shared";
 
 describe("isValidTicker", () => {
   it("accepts simple US tickers", () => {
@@ -74,5 +74,24 @@ describe("normalizeTicker", () => {
   it("handles tickers without ASX suffix", () => {
     expect(normalizeTicker("AAPL")).toBe("AAPL");
     expect(normalizeTicker("TSLA")).toBe("TSLA");
+  });
+});
+
+describe("parseIntParam", () => {
+  it("parses valid integers", () => {
+    expect(parseIntParam("123")).toBe(123);
+    expect(parseIntParam("0")).toBe(0);
+    expect(parseIntParam("42")).toBe(42);
+  });
+
+  it("returns null for non-numeric strings", () => {
+    expect(parseIntParam("abc")).toBeNull();
+    expect(parseIntParam("")).toBeNull();
+    expect(parseIntParam("12.5")).toBe(12); // parseInt truncates
+  });
+
+  it("returns null for NaN-producing inputs", () => {
+    expect(parseIntParam("hello")).toBeNull();
+    expect(parseIntParam("undefined")).toBeNull();
   });
 });

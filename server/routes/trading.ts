@@ -2,7 +2,7 @@ import type { Express, Response } from "express";
 import { storage } from "../storage";
 import { isAuthenticated, authStorage } from "../replit_integrations/auth";
 import { insertTradeSchema } from "@shared/schema";
-import { fetchWithTimeout } from "./shared";
+import { fetchWithTimeout, parseIntParam } from "./shared";
 import { isProTier } from "../creditService";
 
 export function registerTradingRoutes(app: Express) {
@@ -291,7 +291,8 @@ export function registerTradingRoutes(app: Express) {
   app.get("/api/trades/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id as string);
+      const id = parseIntParam(req.params.id as string);
+      if (id === null) return res.status(400).json({ error: "Invalid id" });
       const trade = await storage.getTrade(userId, id);
       if (!trade) return res.status(404).json({ error: "Trade not found" });
       res.json(trade);
@@ -392,7 +393,8 @@ export function registerTradingRoutes(app: Express) {
   app.put("/api/trades/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id as string);
+      const id = parseIntParam(req.params.id as string);
+      if (id === null) return res.status(400).json({ error: "Invalid id" });
       const updated = await storage.updateTrade(userId, id, req.body);
       if (!updated) return res.status(404).json({ error: "Trade not found" });
       res.json(updated);
@@ -405,7 +407,8 @@ export function registerTradingRoutes(app: Express) {
   app.delete("/api/trades/:id", isAuthenticated, async (req: any, res: Response) => {
     try {
       const userId = req.user.claims.sub;
-      const id = parseInt(req.params.id as string);
+      const id = parseIntParam(req.params.id as string);
+      if (id === null) return res.status(400).json({ error: "Invalid id" });
       await storage.deleteTrade(userId, id);
       res.status(204).send();
     } catch (error) {

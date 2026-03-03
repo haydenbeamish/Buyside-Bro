@@ -71,16 +71,39 @@ export async function streamAnalysis(
     let recommendation: any = null;
     let buffer = "";
     let stallTimer: ReturnType<typeof setTimeout> | null = null;
+    let finished = false;
+
+    const clearStall = () => {
+      if (stallTimer) {
+        clearTimeout(stallTimer);
+        stallTimer = null;
+      }
+    };
+
+    const fireDone = () => {
+      if (finished) return;
+      finished = true;
+      clearStall();
+      callbacks.onDone?.(fullContent, recommendation);
+    };
+
+    const fireError = (msg: string) => {
+      if (finished) return;
+      finished = true;
+      clearStall();
+      callbacks.onError?.(msg);
+    };
 
     const resetStallTimer = () => {
-      if (stallTimer) clearTimeout(stallTimer);
+      clearStall();
       stallTimer = setTimeout(() => {
+        if (finished) return;
         // Stream has stalled — deliver partial results if we have any
         if (fullContent.length > 0) {
           callbacks.onPartialResult?.(fullContent);
-          callbacks.onDone?.(fullContent, recommendation);
+          fireDone();
         } else {
-          callbacks.onError?.("Stream stalled — no data received for 30 seconds");
+          fireError("Stream stalled — no data received for 30 seconds");
         }
         reader.cancel().catch(() => {});
       }, STALL_TIMEOUT_MS);
@@ -92,6 +115,7 @@ export async function streamAnalysis(
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (finished) return; // stall timer already resolved
 
         resetStallTimer();
         buffer += decoder.decode(value, { stream: true });
@@ -100,13 +124,13 @@ export async function streamAnalysis(
         buffer = lines.pop() || "";
 
         for (const line of lines) {
+          if (finished) return;
           if (!line.trim()) continue;
 
           if (line.startsWith("data: ")) {
             const dataStr = line.slice(6).trim();
             if (dataStr === "[DONE]") {
-              if (stallTimer) clearTimeout(stallTimer);
-              callbacks.onDone?.(fullContent, recommendation);
+              fireDone();
               return;
             }
 
@@ -134,12 +158,10 @@ export async function streamAnalysis(
                   callbacks.onRecommendation?.(recommendation);
                   break;
                 case "done":
-                  if (stallTimer) clearTimeout(stallTimer);
-                  callbacks.onDone?.(fullContent, recommendation);
+                  fireDone();
                   return;
                 case "error":
-                  if (stallTimer) clearTimeout(stallTimer);
-                  callbacks.onError?.(data.message || data.error || "Stream error");
+                  fireError(data.message || data.error || "Stream error");
                   return;
                 default: {
                   // If no type field, check for content directly
@@ -149,8 +171,7 @@ export async function streamAnalysis(
                     callbacks.onContent?.(fallbackChunk, fullContent);
                   }
                   if (data.done) {
-                    if (stallTimer) clearTimeout(stallTimer);
-                    callbacks.onDone?.(fullContent, recommendation);
+                    fireDone();
                     return;
                   }
                   break;
@@ -163,16 +184,15 @@ export async function streamAnalysis(
         }
       }
 
-      if (stallTimer) clearTimeout(stallTimer);
-      // If stream ends without explicit done event, fire done callback
-      callbacks.onDone?.(fullContent, recommendation);
+      // Stream ended without explicit done event
+      fireDone();
     } catch (error) {
-      if (stallTimer) clearTimeout(stallTimer);
+      clearStall();
       // Deliver partial results if we have content
-      if (fullContent.length > 0) {
+      if (fullContent.length > 0 && !finished) {
         callbacks.onPartialResult?.(fullContent);
-        callbacks.onDone?.(fullContent, recommendation);
-      } else {
+        fireDone();
+      } else if (!finished) {
         throw error;
       }
     } finally {

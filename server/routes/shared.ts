@@ -1,6 +1,13 @@
 import type { Response, NextFunction } from "express";
 import OpenAI from "openai";
 
+// ── Parse helpers ────────────────────────────────────────────────────
+
+export function parseIntParam(value: string): number | null {
+  const n = parseInt(value, 10);
+  return Number.isNaN(n) ? null : n;
+}
+
 // ── Admin guard ──────────────────────────────────────────────────────
 
 export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || "hbeamish1@gmail.com")

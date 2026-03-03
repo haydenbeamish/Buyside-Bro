@@ -171,7 +171,7 @@ export default function PortfolioPage() {
 
   const { data: analysis } = useQuery<{ analysis: string }>({
     queryKey: ["/api/portfolio/analysis"],
-    enabled: isAuthenticated && !!holdings && holdings.length > 0,
+    enabled: isAuthenticated && !!holdings && holdings.length > 0 && !isExample,
   });
 
   const { data: quickInsights, isLoading: insightsLoading } = useQuery<{ insights: string | null; generatedAt?: string }>({

@@ -67,7 +67,12 @@ export function registerMiscRoutes(app: Express) {
       for (let i = 0; i < responses.length; i++) {
         const resp = responses[i];
         if (resp.status === 'fulfilled' && resp.value.ok) {
-          const data = await resp.value.json() as any;
+          let data: any;
+          try {
+            data = await resp.value.json();
+          } catch {
+            continue; // skip responses with invalid JSON
+          }
           const isFmp = i >= fmpStartIndex;
 
           if (isFmp && Array.isArray(data)) {
