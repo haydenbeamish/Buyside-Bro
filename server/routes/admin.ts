@@ -149,11 +149,13 @@ export function registerAdminRoutes(app: Express) {
       let query = db.select({
         id: activityLogs.id,
         userId: activityLogs.userId,
+        email: users.email,
         action: activityLogs.action,
         path: activityLogs.path,
         method: activityLogs.method,
         createdAt: activityLogs.createdAt,
       }).from(activityLogs)
+        .leftJoin(users, eq(activityLogs.userId, users.id))
         .orderBy(desc(activityLogs.createdAt))
         .limit(limit)
         .offset(offset);

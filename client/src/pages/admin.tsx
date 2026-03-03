@@ -67,6 +67,7 @@ interface UserStat {
 interface ActivityLog {
   id: number;
   userId: string | null;
+  email: string | null;
   action: string;
   path: string;
   method: string;
@@ -542,6 +543,7 @@ export default function AdminPage() {
                     <tr className="border-b border-zinc-800 text-zinc-500 text-xs uppercase tracking-wider">
                       <th className="px-4 py-3 text-left">Time</th>
                       <th className="px-3 py-3 text-left">User</th>
+                      <th className="px-3 py-3 text-left">Email</th>
                       <th className="px-3 py-3 text-left">Action</th>
                       <th className="px-3 py-3 text-left">Method</th>
                       <th className="px-3 py-3 text-left">Path</th>
@@ -555,6 +557,9 @@ export default function AdminPage() {
                         </td>
                         <td className="px-3 py-2.5 text-xs">
                           <span className="text-zinc-300 ticker-font">{log.userId ? log.userId.substring(0, 8) + "..." : "anon"}</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-xs">
+                          <span className="text-zinc-300">{log.email || "—"}</span>
                         </td>
                         <td className="px-3 py-2.5">
                           <Badge variant="outline" className="text-amber-400 border-zinc-800 text-xs">{log.action}</Badge>
