@@ -6,6 +6,8 @@ import { isAuthenticated } from "./replitAuth";
 export function registerAuthRoutes(app: Express): void {
   // Get current authenticated user
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.set("Pragma", "no-cache");
     try {
       const userId = req.user.claims.sub;
       const user = await authStorage.getUser(userId);
