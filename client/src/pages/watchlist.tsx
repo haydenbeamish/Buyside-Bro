@@ -283,6 +283,13 @@ export default function WatchlistPage() {
     });
   }, [gate, toast]);
 
+  // Clean up pending delete timer on unmount
+  useEffect(() => {
+    return () => {
+      if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="page-container">

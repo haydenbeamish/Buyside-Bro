@@ -94,4 +94,15 @@ describe("parseIntParam", () => {
     expect(parseIntParam("hello")).toBeNull();
     expect(parseIntParam("undefined")).toBeNull();
   });
+
+  it("handles negative integers", () => {
+    expect(parseIntParam("-5")).toBe(-5);
+    expect(parseIntParam("-0")).not.toBeNull();
+  });
+
+  it("distinguishes 0 from NaN (falsy but valid)", () => {
+    const result = parseIntParam("0");
+    expect(result).not.toBeNull();
+    expect(result).toBe(0);
+  });
 });

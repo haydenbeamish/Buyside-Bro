@@ -301,7 +301,7 @@ export function registerAnalysisRoutes(app: Express) {
 
         const lbcRaw = await lbcResponse.json() as any;
         const lbcData = lbcRaw?.data || lbcRaw;
-        const km = lbcData.keyMetrics;
+        const km = lbcData?.keyMetrics;
 
         if (!km) {
           return null;

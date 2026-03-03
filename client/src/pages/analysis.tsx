@@ -218,7 +218,7 @@ function MetricsTable({
     </div>
   );
 
-  const sections = [
+  const sections: { title: string; items: { label: string; value: string; colorClass?: string }[] }[] = [
     {
       title: "Ratios",
       items: [
@@ -496,26 +496,26 @@ function DeepAnalysisLoader({ ticker, progress: apiProgress, message, isComplete
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 sm:gap-2">
           {loadingStages.map((stage, i) => {
             const isActive = i === currentStage;
-            const isComplete = displayProgress >= stage.threshold;
+            const stageComplete = displayProgress >= stage.threshold;
             return (
               <div
                 key={stage.label}
                 className={`text-center p-2 sm:p-3 rounded-lg transition-all ${
                   isActive ? "bg-amber-500/20 border border-amber-500/50" :
-                  isComplete ? "bg-zinc-800" : "bg-zinc-900/50"
+                  stageComplete ? "bg-zinc-800" : "bg-zinc-900/50"
                 }`}
               >
                 <stage.icon className={`h-5 w-5 mx-auto mb-2 ${
                   isActive ? "text-amber-400 animate-pulse" :
-                  isComplete ? "text-amber-500" : "text-zinc-600"
+                  stageComplete ? "text-amber-500" : "text-zinc-600"
                 }`} />
                 <p className={`text-xs ${
                   isActive ? "text-amber-400" :
-                  isComplete ? "text-zinc-400" : "text-zinc-600"
+                  stageComplete ? "text-zinc-400" : "text-zinc-600"
                 }`}>
                   {stage.label}
                 </p>
-                {isComplete && <CheckCircle2 className="h-3 w-3 text-amber-500 mx-auto mt-1" />}
+                {stageComplete && <CheckCircle2 className="h-3 w-3 text-amber-500 mx-auto mt-1" />}
               </div>
             );
           })}

@@ -1,5 +1,5 @@
 import type { Express, Response } from "express";
-import { isAdmin } from "./shared";
+import { isAdmin, parseIntParam } from "./shared";
 import {
   getNewsFeed,
   addNewsFeedItem,
@@ -18,7 +18,7 @@ export function registerNewsfeedRoutes(
 ) {
   app.get("/api/newsfeed", async (req: any, res: Response) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 10;
+      const limit = parseIntParam(req.query.limit as string) ?? 10;
       const items = await getNewsFeed(limit);
       res.json({ items });
     } catch (error) {

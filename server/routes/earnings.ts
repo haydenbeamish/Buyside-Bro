@@ -52,7 +52,7 @@ export function registerEarningsRoutes(app: Express) {
           epsActual: e.epsActual,
           revenueEstimate: e.revenueEstimated,
           revenueActual: e.revenueActual,
-          surprise: e.epsEstimated ? ((e.epsActual - e.epsEstimated) / Math.abs(e.epsEstimated)) * 100 : null,
+          surprise: e.epsEstimated && Math.abs(e.epsEstimated) > 0 ? ((e.epsActual - e.epsEstimated) / Math.abs(e.epsEstimated)) * 100 : null,
         }));
 
       const earningsData = { upcoming, recent };

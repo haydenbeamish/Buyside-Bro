@@ -86,6 +86,9 @@ export function registerTradingRoutes(app: Express) {
       const tradesWithPnL = allTrades.map(t => {
         const entryPrice = parseFloat(t.price);
         const shares = parseFloat(t.shares);
+        if (isNaN(entryPrice) || isNaN(shares)) {
+          return { ...t, pnl: 0, returnPct: 0, currentPrice: 0 };
+        }
         const currentPrice = priceMap.get(t.ticker.toUpperCase()) || entryPrice;
         let pnl: number;
         if (t.action === "buy") {
@@ -267,6 +270,9 @@ export function registerTradingRoutes(app: Express) {
       const enrichedTrades = allTrades.map(t => {
         const entryPrice = parseFloat(t.price);
         const shares = parseFloat(t.shares);
+        if (isNaN(entryPrice) || isNaN(shares)) {
+          return { ...t, pnl: null, returnPct: null, currentPrice: null };
+        }
         const currentPrice = priceMap.get(t.ticker.toUpperCase()) || null;
         let pnl: number | null = null;
         let returnPct: number | null = null;
@@ -335,6 +341,9 @@ export function registerTradingRoutes(app: Express) {
       // Compute totalValue
       const shares = parseFloat(validation.data.shares);
       const price = parseFloat(validation.data.price);
+      if (isNaN(shares) || isNaN(price)) {
+        return res.status(400).json({ error: "Invalid shares or price value" });
+      }
       const totalValue = (shares * price).toFixed(4);
 
       const trade = await storage.createTrade(userId, {
@@ -353,12 +362,14 @@ export function registerTradingRoutes(app: Express) {
           if (existing) {
             const existingShares = parseFloat(existing.shares);
             const existingCost = parseFloat(existing.avgCost);
-            const newTotalShares = existingShares + shares;
-            const newAvgCost = ((existingShares * existingCost) + (shares * price)) / newTotalShares;
-            await storage.updatePortfolioHolding(userId, existing.id, {
-              shares: newTotalShares.toString(),
-              avgCost: newAvgCost.toFixed(4),
-            });
+            if (!isNaN(existingShares) && !isNaN(existingCost)) {
+              const newTotalShares = existingShares + shares;
+              const newAvgCost = ((existingShares * existingCost) + (shares * price)) / newTotalShares;
+              await storage.updatePortfolioHolding(userId, existing.id, {
+                shares: newTotalShares.toString(),
+                avgCost: newAvgCost.toFixed(4),
+              });
+            }
           } else {
             await storage.createPortfolioHolding(userId, {
               ticker,
@@ -371,13 +382,16 @@ export function registerTradingRoutes(app: Express) {
           }
         } else if (validation.data.action === "sell") {
           if (existing) {
-            const remainingShares = parseFloat(existing.shares) - shares;
-            if (remainingShares <= 0) {
-              await storage.deletePortfolioHolding(userId, existing.id);
-            } else {
-              await storage.updatePortfolioHolding(userId, existing.id, {
-                shares: remainingShares.toString(),
-              });
+            const existingSharesVal = parseFloat(existing.shares);
+            if (!isNaN(existingSharesVal)) {
+              const remainingShares = existingSharesVal - shares;
+              if (remainingShares <= 0) {
+                await storage.deletePortfolioHolding(userId, existing.id);
+              } else {
+                await storage.updatePortfolioHolding(userId, existing.id, {
+                  shares: remainingShares.toString(),
+                });
+              }
             }
           }
         }

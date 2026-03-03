@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "../storage";
 import { isAuthenticated } from "../replit_integrations/auth";
-import { isAdmin, ADMIN_EMAILS } from "./shared";
+import { isAdmin, ADMIN_EMAILS, parseIntParam } from "./shared";
 import { users, usageLogs, activityLogs } from "@shared/schema";
 import { db } from "../db";
 import { desc, sql, eq, gte, count, countDistinct, and, isNotNull } from "drizzle-orm";
@@ -142,8 +142,8 @@ export function registerAdminRoutes(app: Express) {
 
   app.get("/api/admin/activity", isAdmin, async (req: Request, res: Response) => {
     try {
-      const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
-      const offset = parseInt(req.query.offset as string) || 0;
+      const limit = Math.min(parseIntParam(req.query.limit as string) ?? 100, 500);
+      const offset = parseIntParam(req.query.offset as string) ?? 0;
       const userId = req.query.userId as string | undefined;
 
       let query = db.select({
