@@ -176,8 +176,7 @@ export async function setupAuth(app: Express) {
           if (saveErr) {
             console.error("[Auth Callback] Error saving session:", saveErr);
           }
-          res.setHeader("Content-Type", "text/html");
-          res.end(`<html><head><meta http-equiv="refresh" content="0;url=/whats-up"></head><body></body></html>`);
+          res.redirect("/whats-up");
         });
       });
     })(req, res, next);

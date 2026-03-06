@@ -1,4 +1,4 @@
-const CACHE_VERSION = '2';
+const CACHE_VERSION = '3';
 const CACHE_NAME = `buysidebro-v${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
@@ -9,6 +9,10 @@ const PRECACHE_URLS = [
 
 // Authenticated API routes that must never be cached
 const AUTHENTICATED_API_PATTERNS = [
+  '/api/login',
+  '/api/callback',
+  '/api/logout',
+  '/api/auth',
   '/api/portfolio',
   '/api/credits',
   '/api/conversations',
