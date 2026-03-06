@@ -471,6 +471,12 @@ export function registerAnalysisRoutes(app: Express) {
       }
 
       const fallbackData = await fallbackResponse.json() as any;
+
+      // Record usage for query limit tracking (actual AI cost handled by laserbeamnode)
+      if (userId) {
+        await recordUsage(userId, 'stock_analysis', 'proxied', 0, 0);
+      }
+
       res.json({
         summary: fallbackData.summary || `${ticker} is an interesting opportunity. Do your own research before investing.`,
         sentiment: fallbackData.sentiment || "neutral",

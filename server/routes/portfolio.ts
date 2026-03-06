@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { isAuthenticated, authStorage } from "../replit_integrations/auth";
 import { insertPortfolioHoldingSchema } from "@shared/schema";
 import { fetchWithTimeout, parseIntParam, LASER_BEAM_API, LASER_BEAM_HEADERS } from "./shared";
-import { checkBroQueryAllowed } from "../creditService";
+import { recordUsage, checkBroQueryAllowed } from "../creditService";
 
 export function registerPortfolioRoutes(app: Express) {
   app.get("/api/portfolio", isAuthenticated, async (req: any, res: Response) => {
@@ -262,6 +262,11 @@ export function registerPortfolioRoutes(app: Express) {
 
       const data = await response.json() as any;
 
+      // Record usage for query limit tracking (actual AI cost handled by laserbeamnode)
+      if (userId) {
+        await recordUsage(userId, 'portfolio_analysis', 'proxied', 0, 0);
+      }
+
       res.json({
         analysis: data.analysis || data.content || "Your portfolio looks interesting! Consider reviewing your sector allocation for better diversification."
       });
@@ -504,6 +509,11 @@ Be specific with price targets, stop losses, position sizes (in bps), and timefr
 
       const data = await response.json() as any;
       const review = data.review || data.content || "Unable to generate review at this time. Please try again.";
+
+      // Record usage for query limit tracking (actual AI cost handled by laserbeamnode)
+      if (userId) {
+        await recordUsage(userId, 'portfolio_review', 'proxied', 0, 0);
+      }
 
       res.json({ review });
     } catch (error) {
