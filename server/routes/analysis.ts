@@ -7,7 +7,6 @@ import {
   normalizeTicker,
   dedup,
   fetchWithTimeout,
-  openrouter,
   LASER_BEAM_API,
   LASER_BEAM_HEADERS,
 } from "./shared";
@@ -441,7 +440,7 @@ export function registerAnalysisRoutes(app: Express) {
         console.error("Laser Beam analysis error:", e);
       }
 
-      // Check daily Bro query limit + credits (only for OpenRouter fallback)
+      // Check daily Bro query limit + credits
       if (userId) {
         const user = await authStorage.getUser(userId);
         const broCheck = await checkBroQueryAllowed(userId, user);
@@ -456,45 +455,27 @@ export function registerAnalysisRoutes(app: Express) {
         }
       }
 
-      // Fallback to OpenRouter AI
-      const completion = await openrouter.chat.completions.create({
-        model: "moonshotai/kimi-k2.5",
-        messages: [
-          {
-            role: "system",
-            content: "You are a friendly stock analyst. Provide a brief analysis with key points. Be casual but informative. Include 3-4 bullet points for key takeaways. Format your response as JSON with 'summary', 'sentiment' (bullish/bearish/neutral), and 'keyPoints' (array of strings)."
-          },
-          {
-            role: "user",
-            content: `Give a brief investment analysis for ${ticker}. Consider recent performance, market position, and outlook.`
-          }
-        ],
-        max_tokens: 500,
-        response_format: { type: "json_object" },
+      // Fallback: proxy to laserbeamnode portfolio-analysis endpoint for stock AI analysis
+      const fallbackResponse = await fetchWithTimeout(`${LASER_BEAM_API}/api/portfolio-analysis/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
+        body: JSON.stringify({
+          type: "stock-analysis",
+          ticker,
+          max_tokens: 500,
+        }),
+      }, 30000);
+
+      if (!fallbackResponse.ok) {
+        throw new Error(`Upstream returned ${fallbackResponse.status}`);
+      }
+
+      const fallbackData = await fallbackResponse.json() as any;
+      res.json({
+        summary: fallbackData.summary || `${ticker} is an interesting opportunity. Do your own research before investing.`,
+        sentiment: fallbackData.sentiment || "neutral",
+        keyPoints: fallbackData.keyPoints || ["Consider your investment goals", "Review recent earnings", "Monitor market conditions"],
       });
-
-      const content = completion.choices[0]?.message?.content || '{}';
-
-      // Record usage for authenticated users
-      if (userId) {
-        const promptText = `Give a brief investment analysis for ${ticker}. Consider recent performance, market position, and outlook.`;
-        await recordUsage(userId, 'stock_analysis', 'moonshotai/kimi-k2.5', promptText.length / 4, content.length / 4);
-      }
-
-      try {
-        const parsed = JSON.parse(content);
-        res.json({
-          summary: parsed.summary || `${ticker} is an interesting opportunity. Do your own research before investing.`,
-          sentiment: parsed.sentiment || "neutral",
-          keyPoints: parsed.keyPoints || ["Consider your investment goals", "Review recent earnings", "Monitor market conditions"],
-        });
-      } catch {
-        res.json({
-          summary: `${ticker} shows potential. As always, consider your investment horizon and risk tolerance.`,
-          sentiment: "neutral",
-          keyPoints: ["Review recent financial performance", "Consider sector trends", "Monitor competitive landscape"],
-        });
-      }
     } catch (error) {
       console.error("AI analysis error:", error);
       res.json({

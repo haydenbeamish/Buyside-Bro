@@ -25,7 +25,6 @@ function validateEnvVars(): void {
 
   const optional: { name: string; reason: string }[] = [
     { name: "LASERBEAMNODE_API_KEY", reason: "external market data will not work" },
-    { name: "OPENROUTER_API_KEY", reason: "AI chat features will not work" },
     { name: "INTERNAL_API_KEY", reason: "internal API authentication will not work" },
     { name: "FRONTEND_API_KEY", reason: "frontend API key validation will fall back to LASERBEAMNODE_API_KEY" },
     { name: "ADMIN_EMAILS", reason: "admin access will fall back to default" },
