@@ -2,7 +2,7 @@ import type { Express, Response } from "express";
 import { storage } from "../storage";
 import { isAuthenticated, authStorage } from "../replit_integrations/auth";
 import { insertPortfolioHoldingSchema } from "@shared/schema";
-import { fetchWithTimeout, openrouter, parseIntParam } from "./shared";
+import { fetchWithTimeout, parseIntParam, LASER_BEAM_API, LASER_BEAM_HEADERS } from "./shared";
 import { recordUsage, checkBroQueryAllowed } from "../creditService";
 
 export function registerPortfolioRoutes(app: Express) {
@@ -245,30 +245,30 @@ export function registerPortfolioRoutes(app: Express) {
         `${h.ticker}: ${h.shares} shares at $${h.avgCost} avg cost`
       ).join(", ");
 
-      const completion = await openrouter.chat.completions.create({
-        model: "moonshotai/kimi-k2.5",
-        messages: [
-          {
-            role: "system",
-            content: "You are a friendly portfolio analyst. Give brief, actionable insights about the portfolio. Be casual but informative. Max 3-4 sentences."
-          },
-          {
-            role: "user",
-            content: `Analyze this portfolio and give brief insights: ${holdingsSummary}`
-          }
-        ],
-        max_tokens: 300,
-      });
+      // Proxy to laserbeamnode for AI analysis
+      const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/portfolio-analysis/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
+        body: JSON.stringify({
+          type: "quick",
+          holdings: holdingsSummary,
+          max_tokens: 300,
+        }),
+      }, 30000);
 
-      const content = completion.choices[0]?.message?.content || "";
+      if (!response.ok) {
+        throw new Error(`Upstream returned ${response.status}`);
+      }
 
-      // Record usage for authenticated users
+      const data = await response.json() as any;
+
+      // Record usage for query limit tracking (actual AI cost handled by laserbeamnode)
       if (userId) {
-        await recordUsage(userId, 'portfolio_analysis', 'moonshotai/kimi-k2.5', holdingsSummary.length / 4, content.length / 4);
+        await recordUsage(userId, 'portfolio_analysis', 'proxied', 0, 0);
       }
 
       res.json({
-        analysis: content || "Your portfolio looks interesting! Consider reviewing your sector allocation for better diversification."
+        analysis: data.analysis || data.content || "Your portfolio looks interesting! Consider reviewing your sector allocation for better diversification."
       });
     } catch (error) {
       console.error("Portfolio analysis error:", error);
@@ -301,22 +301,23 @@ export function registerPortfolioRoutes(app: Express) {
         return `${h.ticker} (${shares} shares, ${pnlPct}% P&L)`;
       }).join(", ");
 
-      const completion = await openrouter.chat.completions.create({
-        model: "moonshotai/kimi-k2.5",
-        messages: [
-          {
-            role: "system",
-            content: "You are a concise portfolio analyst. Give 2-3 brief bullet points about the portfolio's key observations. Keep it under 100 words total. Use Australian spelling. No markdown headers — just bullet points starting with •."
-          },
-          {
-            role: "user",
-            content: `Give 2-3 brief bullet points about this portfolio: ${positionSummary}`
-          }
-        ],
-        max_tokens: 200,
-      });
+      // Proxy to laserbeamnode for AI insights
+      const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/portfolio-analysis/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
+        body: JSON.stringify({
+          type: "quick-insights",
+          holdings: positionSummary,
+          max_tokens: 200,
+        }),
+      }, 30000);
 
-      const insights = completion.choices[0]?.message?.content || null;
+      if (!response.ok) {
+        throw new Error(`Upstream returned ${response.status}`);
+      }
+
+      const data = await response.json() as any;
+      const insights = data.insights || data.content || null;
       if (!insights) {
         return res.json({ insights: null });
       }
@@ -490,21 +491,28 @@ Conduct a comprehensive portfolio review covering:
 
 Be specific with price targets, stop losses, position sizes (in bps), and timeframes.`;
 
-      const completion = await openrouter.chat.completions.create({
-        model: "moonshotai/kimi-k2.5",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        max_tokens: 4000,
-      });
+      // Proxy to laserbeamnode for AI review
+      const response = await fetchWithTimeout(`${LASER_BEAM_API}/api/portfolio-analysis/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...LASER_BEAM_HEADERS },
+        body: JSON.stringify({
+          type: "review",
+          systemPrompt,
+          userPrompt,
+          max_tokens: 4000,
+        }),
+      }, 60000);
 
-      const review = completion.choices[0]?.message?.content || "Unable to generate review at this time. Please try again.";
+      if (!response.ok) {
+        throw new Error(`Upstream returned ${response.status}`);
+      }
 
-      // Record usage for authenticated users
+      const data = await response.json() as any;
+      const review = data.review || data.content || "Unable to generate review at this time. Please try again.";
+
+      // Record usage for query limit tracking (actual AI cost handled by laserbeamnode)
       if (userId) {
-        const promptLength = systemPrompt.length + userPrompt.length;
-        await recordUsage(userId, 'portfolio_review', 'moonshotai/kimi-k2.5', promptLength / 4, review.length / 4);
+        await recordUsage(userId, 'portfolio_review', 'proxied', 0, 0);
       }
 
       res.json({ review });

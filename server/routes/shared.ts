@@ -1,5 +1,4 @@
 import type { Response, NextFunction } from "express";
-import OpenAI from "openai";
 
 // ── Parse helpers ────────────────────────────────────────────────────
 
@@ -79,9 +78,3 @@ export async function fetchWithTimeout(url: string, options: RequestInit = {}, t
   }
 }
 
-// ── OpenRouter AI client ─────────────────────────────────────────────
-
-export const openrouter = new OpenAI({
-  baseURL: process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY || "",
-});
